@@ -13,4 +13,4 @@ set(CMAKE_PREFIX_PATH  "~/libraries/")
 set(CMAKE_SOURCE_DIR src)
 set(CMAKE_INCLUDE_PATH include)
 
-add_executable(SPEC ${CMAKE_SOURCE_DIR}/main.cpp ${CMAKE_SOURCE_DIR}/zupply.cpp ${CMAKE_SOURCE_DIR}/zupply.hpp)
+add_executable(SPEC ${CMAKE_SOURCE_DIR}/main.cpp ${CMAKE_SOURCE_DIR}/zupply.cpp ${CMAKE_SOURCE_DIR}/zupply.hpp include/zoltan_fn.hpp include/cell.hpp include/communication.hpp include/utils.hpp)
