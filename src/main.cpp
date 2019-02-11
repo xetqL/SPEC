@@ -7,6 +7,7 @@
 #include <map>
 #include <cassert>
 #include <algorithm>
+#include <mpi.h>
 
 #include "zupply.hpp"
 
@@ -59,14 +60,15 @@ int main(int argc, char **argv) {
     MPI_Comm_size(world, &worldsize);
     MPI_Comm_rank(world, &rank);
 
-    int xprocs = argv[1], yprocs = argv[2];	
+    int xprocs = std::atoi(argv[1]), yprocs = std::atoi(argv[2]);
 
     if(xprocs * yprocs != worldsize){
         MPI_Finalize();
         return EXIT_FAILURE;
     }
 
-    int cell_per_process = argv[3];
+    int cell_per_process = std::atoi(argv[3]);
+
     int cell_per_row = std::sqrt(cell_per_process);
     int xcells = cell_per_row * xprocs, ycells = cell_per_row * yprocs; 
     int x_proc_idx, y_proc_idx;
