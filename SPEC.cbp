@@ -5,7 +5,7 @@
 		<Option title="SPEC"/>
 		<Option makefile_is_custom="1"/>
 		<Option compiler="gcc"/>
-		<Option virtualFolders="CMake Files\;"/>
+		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\libraries\;CMake Files\..\libraries\HighFive\;"/>
 		<Build>
 			<Target title="all">
 				<Option working_dir="/home/xetql/SPEC"/>
@@ -43,7 +43,12 @@
 				<Option object_output="./"/>
 				<Option type="1"/>
 				<Option compiler="gcc"/>
-				<Compiler/>
+				<Compiler>
+					<Add directory="/home/xetql/libraries/Zoltan/include"/>
+					<Add directory="/home/xetql/libraries/HighFive/include"/>
+					<Add directory="/home/xetql/libraries/HighFive"/>
+					<Add directory="/usr/local/include"/>
+				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 SPEC"/>
 					<CompileFile command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
@@ -57,7 +62,12 @@
 				<Option object_output="./"/>
 				<Option type="1"/>
 				<Option compiler="gcc"/>
-				<Compiler/>
+				<Compiler>
+					<Add directory="/home/xetql/libraries/Zoltan/include"/>
+					<Add directory="/home/xetql/libraries/HighFive/include"/>
+					<Add directory="/home/xetql/libraries/HighFive"/>
+					<Add directory="/usr/local/include"/>
+				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 SPEC/fast"/>
 					<CompileFile command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
@@ -70,6 +80,9 @@
 			<Option target="SPEC"/>
 		</Unit>
 		<Unit filename="/home/xetql/SPEC/include/communication.hpp">
+			<Option target="SPEC"/>
+		</Unit>
+		<Unit filename="/home/xetql/SPEC/include/io.hpp">
 			<Option target="SPEC"/>
 		</Unit>
 		<Unit filename="/home/xetql/SPEC/include/utils.hpp">
@@ -89,6 +102,15 @@
 		</Unit>
 		<Unit filename="/home/xetql/SPEC/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/xetql/SPEC/../libraries/HighFive/HighFiveConfig.cmake">
+			<Option virtualFolder="CMake Files\..\libraries\HighFive\"/>
+		</Unit>
+		<Unit filename="/home/xetql/SPEC/../libraries/HighFive/HighFiveConfigVersion.cmake">
+			<Option virtualFolder="CMake Files\..\libraries\HighFive\"/>
+		</Unit>
+		<Unit filename="/home/xetql/SPEC/../libraries/HighFive/HighFiveTargets.cmake">
+			<Option virtualFolder="CMake Files\..\libraries\HighFive\"/>
 		</Unit>
 	</Project>
 </CodeBlocks_project_file>

@@ -16,7 +16,6 @@
 #define ENABLE_AUTOMATIC_MIGRATION true
 #define DISABLE_AUTOMATIC_MIGRATION FALSE
 
-
 int get_number_of_objects(void *data, int *ierr) {
     std::vector<Cell> *mesh = (std::vector<Cell> *)data;
     *ierr = ZOLTAN_OK;
@@ -27,15 +26,15 @@ void get_object_list(void *data, int sizeGID, int sizeLID,
                      ZOLTAN_ID_PTR globalID, ZOLTAN_ID_PTR localID,
                      int wgt_dim, float *obj_wgts, int *ierr) {
     size_t i;
-    std::vector<Cell> *mesh = (std::vector<Cell> *)data;
-    *ierr = ZOLTAN_OK;
-    /* In this example, return the IDs of our objects, but no weights.
-     * Zoltan will assume equally weighted objects.
-     */
-    for (i=0; i < mesh->size(); i++){
+    auto *mesh = (std::vector<Cell> *)data;
+    const auto mesh_size = mesh->size();
+    for (i=0; i < mesh_size; i++){
+        obj_wgts[i] = mesh->at(i).weight;
         globalID[i] = mesh->at(i).gid;
-        localID[i] = i;
+        localID[i]  = i;
     }
+
+    *ierr = ZOLTAN_OK;
 }
 
 int get_num_geometry(void *data, int *ierr) {
@@ -49,7 +48,7 @@ void get_geometry_list(void *data, int sizeGID, int sizeLID,
                        int num_dim, double *geom_vec, int *ierr) {
     int i;
 
-    std::vector<Cell> *mesh = (std::vector<Cell> *)data;
+    auto *mesh = (std::vector<Cell> *)data;
 
     if ( (sizeGID != 1) || (sizeLID != 1) || (num_dim != 2)){
         *ierr = ZOLTAN_FATAL;
@@ -60,7 +59,7 @@ void get_geometry_list(void *data, int sizeGID, int sizeLID,
 
     for (i=0;  i < num_obj; i++){
         auto gid = mesh->at(i).gid;
-        int x,y; std::tie(x,y) = cell_to_position(Cell::get_msx(), Cell::get_msy(), gid);
+        int x,y; std::tie(x,y) = cell_to_global_position(Cell::get_msx(), Cell::get_msy(), gid);
         geom_vec[2 * i]     = x;
         geom_vec[2 * i + 1] = y;
     }
@@ -72,8 +71,8 @@ int cpt_obj_size( void *data,
                   ZOLTAN_ID_PTR global_id,
                   ZOLTAN_ID_PTR local_id,
                   int *ierr) {
-    ierr = ZOLTAN_OK;
-    return sizeof(int) * 5 + sizeof(float);
+    *ierr = ZOLTAN_OK;
+    return sizeof(int) * 3 + sizeof(float);
 }
 
 void pack_particles(void *data,
@@ -85,9 +84,10 @@ void pack_particles(void *data,
                     int size,
                     char *buf,
                     int *ierr) {
-    auto all_mesh_data = (std::vector<Vehicle> *) data;
-    memcpy(buf, &(all_mesh_data->operator[]((int)(*local_id))), sizeof(class std::vector<Vehicle>));
+    auto all_mesh_data = (std::vector<Cell> *) data;
+    memcpy(buf, &(all_mesh_data->operator[]((int)(*local_id))), sizeof(class std::vector<Cell>));
     all_mesh_data->operator[]((int)(*local_id)).gid = -1;
+    *ierr = ZOLTAN_OK;
 }
 
 void unpack_particles ( void *data,
@@ -96,10 +96,12 @@ void unpack_particles ( void *data,
                         int size,
                         char *buf,
                         int *ierr) {
-    std::vector<Cell> *all_mesh_data = (std::vector<Vehicle> *) data;
-    Vehicle v;
-    memcpy(&v, buf, sizeof(int) * 5 + sizeof(float));
+    auto *all_mesh_data = (std::vector<Cell> *) data;
+    Cell v;
+    memcpy(&v, buf, sizeof(int) * 3 + sizeof(float));
     all_mesh_data->push_back(v);
+    *ierr = ZOLTAN_OK;
+
 }
 
 void post_migrate_particles (
@@ -109,7 +111,7 @@ void post_migrate_particles (
         int *import_procs, int num_export,
         ZOLTAN_ID_PTR export_global_ids, ZOLTAN_ID_PTR export_local_ids,
         int *export_procs, int *ierr) {
-    auto all_mesh_data = (std::vector<Vehicle> *) data;
+    auto all_mesh_data = (std::vector<Cell> *) data;
     size_t size = all_mesh_data->size();
     size_t i = 0;
     while(i < size) {
@@ -121,10 +123,8 @@ void post_migrate_particles (
             i++;
         }
     }
-    size = all_mesh_data->size();
-    for(size_t i = 0; i < size; i++){
-        all_mesh_data->operator[](i).lid = i;
-    }
+    *ierr = ZOLTAN_OK;
+
 }
 
 Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, int num_global_part = -1, int part_on_me = -1) {
@@ -142,12 +142,13 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, in
     if(part_on_me >= 1)      Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS",  pom.c_str());
 
     Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1");
-    Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "0");
+    Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "1");
     Zoltan_Set_Param(zz, "RETURN_LISTS", "ALL");
 
     Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "0");
-    Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "1");
+    Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "0");
     Zoltan_Set_Param(zz, "KEEP_CUTS", "1");
+    Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
 
     if(automatic_migration)
         Zoltan_Set_Param(zz, "AUTO_MIGRATE", "TRUE");
@@ -156,10 +157,10 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, in
 }
 
 Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration = false) {
-    return zoltan_create_wrapper(false, MPI_COMM_WORLD);
+    return zoltan_create_wrapper(automatic_migration, MPI_COMM_WORLD);
 }
 
-void zoltan_fn_init(Zoltan_Struct* zz, std::vector<Vehicle>* mesh_data, bool automatic_migration = false) {
+void zoltan_fn_init(Zoltan_Struct* zz, std::vector<Cell>* mesh_data, bool automatic_migration = false) {
     Zoltan_Set_Num_Obj_Fn(   zz, get_number_of_objects, mesh_data);
     Zoltan_Set_Obj_List_Fn(  zz, get_object_list,       mesh_data);
     Zoltan_Set_Num_Geom_Fn(  zz, get_num_geometry,      mesh_data);
@@ -172,7 +173,7 @@ void zoltan_fn_init(Zoltan_Struct* zz, std::vector<Vehicle>* mesh_data, bool aut
     }
 }
 
-inline void zoltan_load_balance(std::vector<Vehicle>* mesh_data,
+inline void zoltan_load_balance(std::vector<Cell>* mesh_data,
                                 Zoltan_Struct* load_balancer,
                                 bool automatic_migration = false,
                                 bool do_migration = true) {
