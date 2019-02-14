@@ -51,7 +51,7 @@ std::tuple<int, int, int, int> get_bounding_box(
     assert(minx >= 0);
     assert(miny >= 0);
     assert((maxx-minx) * (maxy-miny) >= (my_data.size() + remote_data.size()));
-    return std::make_tuple(minx, maxx+1, miny, maxy+1);
+    return std::make_tuple(minx, maxx, miny, maxy);
 }
 
 #endif //SPEC_UTILS_HPP

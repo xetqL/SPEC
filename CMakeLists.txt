@@ -25,7 +25,7 @@ find_path(ZOLTAN_INCLUDES
         NAMES zoltan zoltan.h
         HINTS ${CMAKE_PREFIX_PATH}/Zoltan/include)
 
-find_package(HighFive 2.0 REQUIRED)
+#find_package(HighFive 2.0 REQUIRED)
 
 find_library(CNPY
         NAMES libcnpy.a libcnpy.so
@@ -33,18 +33,25 @@ find_library(CNPY
 
 find_path(CNPY_INCLUDES
         NAMES cnpy.h
-        HINTS ${CMAKE_PREFIX_PATH}/cnpy/build/)
+        HINTS ${CMAKE_PREFIX_PATH}/cnpy/)
 
 set(CMAKE_SOURCE_DIR src)
 set(CMAKE_INCLUDE_PATH include)
+
+link_directories(${CMAKE_PREFIX_PATH}/cnpy/build/)
+
+message(${CNPY})
+message(${CNPY_INCLUDES})
 
 add_executable(SPEC ${CMAKE_SOURCE_DIR}/main.cpp ${CMAKE_SOURCE_DIR}/zupply.cpp ${CMAKE_SOURCE_DIR}/zupply.hpp include/zoltan_fn.hpp include/cell.hpp include/communication.hpp include/utils.hpp include/io.hpp)
 
 target_include_directories(SPEC INTERFACE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(SPEC PRIVATE ${ZOLTAN_INCLUDES})
-target_include_directories(SPEC PUBLIC $<TARGET_PROPERTY:HighFive,INTERFACE_INCLUDE_DIRECTORIES>)
+#target_include_directories(SPEC PUBLIC $<TARGET_PROPERTY:HighFive,INTERFACE_INCLUDE_DIRECTORIES>)
 target_include_directories(SPEC PRIVATE ${CNPY_INCLUDES})
 
-target_link_libraries(SPEC $<TARGET_PROPERTY:HighFive,INTERFACE_LINK_LIBRARIES>)
+#target_link_libraries(SPEC $<TARGET_PROPERTY:HighFive,INTERFACE_LINK_LIBRARIES>)
 target_link_libraries(SPEC ${ZOLTAN})
 target_link_libraries(SPEC ${CNPY})
+target_link_libraries(SPEC z)
+

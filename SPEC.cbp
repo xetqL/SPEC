@@ -5,7 +5,7 @@
 		<Option title="SPEC"/>
 		<Option makefile_is_custom="1"/>
 		<Option compiler="gcc"/>
-		<Option virtualFolders="CMake Files\;CMake Files\..\;CMake Files\..\libraries\;CMake Files\..\libraries\HighFive\;"/>
+		<Option virtualFolders="CMake Files\;"/>
 		<Build>
 			<Target title="all">
 				<Option working_dir="/home/xetql/SPEC"/>
@@ -44,10 +44,8 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
-					<Add directory="/home/xetql/libraries/Zoltan/include"/>
-					<Add directory="/home/xetql/libraries/HighFive/include"/>
-					<Add directory="/home/xetql/libraries/HighFive"/>
 					<Add directory="/usr/local/include"/>
+					<Add directory="/home/xetql/libraries/cnpy"/>
 				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 SPEC"/>
@@ -63,10 +61,8 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
-					<Add directory="/home/xetql/libraries/Zoltan/include"/>
-					<Add directory="/home/xetql/libraries/HighFive/include"/>
-					<Add directory="/home/xetql/libraries/HighFive"/>
 					<Add directory="/usr/local/include"/>
+					<Add directory="/home/xetql/libraries/cnpy"/>
 				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 SPEC/fast"/>
@@ -102,15 +98,6 @@
 		</Unit>
 		<Unit filename="/home/xetql/SPEC/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
-		</Unit>
-		<Unit filename="/home/xetql/SPEC/../libraries/HighFive/HighFiveConfig.cmake">
-			<Option virtualFolder="CMake Files\..\libraries\HighFive\"/>
-		</Unit>
-		<Unit filename="/home/xetql/SPEC/../libraries/HighFive/HighFiveConfigVersion.cmake">
-			<Option virtualFolder="CMake Files\..\libraries\HighFive\"/>
-		</Unit>
-		<Unit filename="/home/xetql/SPEC/../libraries/HighFive/HighFiveTargets.cmake">
-			<Option virtualFolder="CMake Files\..\libraries\HighFive\"/>
 		</Unit>
 	</Project>
 </CodeBlocks_project_file>

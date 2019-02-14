@@ -54,18 +54,21 @@ std::normal_distribution<float> ndist(90, 10);
 std::uniform_real_distribution<float> udist(0, 1);
 
 
-void dummy_erosion_computation(int msx, int msy,
-                               std::vector<Cell>* _my_cells,
+std::vector<Cell> dummy_erosion_computation(int msx, int msy,
+                               const std::vector<Cell>& _my_cells,
                                const std::vector<Cell>& remote_cells,
                                const std::vector<size_t>& data_pointers,
                                const std::tuple<int, int, int, int>& bbox) {
 
 
-    std::vector<Cell>& my_cells = *(_my_cells);
+    std::vector<Cell> my_cells = _my_cells;
+    const std::vector<Cell>& my_old_cells = _my_cells;
+
     int x1,x2,y1,y2; std::tie(x1,x2,y1,y2) = bbox;
     int total_box = (x2-x1) * (y2-y1);
     const size_t my_cell_count = my_cells.size();
-    std::vector<size_t> idx_neighbors(4);
+    const size_t remote_count  = remote_cells.size();
+    std::vector<size_t> idx_neighbors(4, -1);
     for(unsigned int i = 0; i < my_cell_count; ++i) {
         Cell& cell = my_cells[i];
         auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
@@ -76,6 +79,7 @@ void dummy_erosion_computation(int msx, int msy,
             std::tie(_x,_y) = cell_to_position((x2-x1), (y2-y1), lid);
 
             const Cell* neighbor_cell;
+            std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
 
             if(lid+(x2-x1) < total_box) idx_neighbors[0] = (data_pointers[lid+(x2-x1)]);
             if(lid+1 < total_box)       idx_neighbors[1] = (data_pointers[lid+1]);
@@ -83,8 +87,11 @@ void dummy_erosion_computation(int msx, int msy,
             if(lid-1 >= 0)              idx_neighbors[3] = (data_pointers[lid-1]);
 
             for(auto idx_neighbor : idx_neighbors){
-                if(idx_neighbor >= my_cell_count) neighbor_cell = &remote_cells[idx_neighbor - my_cell_count];
-                else neighbor_cell = &my_cells[idx_neighbor];
+                if(idx_neighbor > (my_cell_count + remote_count) ) continue;
+                if(idx_neighbor >= my_cell_count)
+                    neighbor_cell = &remote_cells[idx_neighbor - my_cell_count];
+                else neighbor_cell =
+                        &my_old_cells[idx_neighbor];
                 if(neighbor_cell->type) {
                     auto p = udist(gen);
                     cell.type = p < cell.erosion_probability ? 1 : 0;
@@ -92,9 +99,10 @@ void dummy_erosion_computation(int msx, int msy,
                     //break;
                 }
             }
-            std::fill(idx_neighbors.begin(), idx_neighbors.end(), 0);
+
         }
     }
+    return my_cells;
 }
 
 void populate_data_pointers(int msx, int msy,
@@ -163,7 +171,7 @@ int main(int argc, char **argv) {
     }
 
     if (xprocs < yprocs) {
-        steplogger->fatal() << "Not a rectangular grid where X > Y";
+        steplogger->fatal() << "Not a rectangular grid where X >= Y";
         MPI_Abort(world, 1);
         return EXIT_FAILURE;
     }
@@ -202,8 +210,6 @@ int main(int argc, char **argv) {
     if(!rank) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
 
     float minp, maxp;
-
-
 
     for(int j = 0; j < cell_in_my_cols; ++j) {
 
@@ -263,7 +269,7 @@ int main(int argc, char **argv) {
         auto bbox = get_bounding_box(my_cells, remote_cells);
         //print_bbox(bbox);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
-        dummy_erosion_computation(msx, msy, &my_cells, remote_cells, data_pointers, bbox);
+        my_cells = dummy_erosion_computation(msx, msy, my_cells, remote_cells, data_pointers, bbox);
 
         CHECKPOINT_TIMING(step_time, my_step_time);
         PAR_STOP_TIMING(step_time, world);
@@ -283,9 +289,10 @@ int main(int argc, char **argv) {
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
         if(!rank){
             std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
-            std::vector<int> types;
-            std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
-            cnpy::npz_save("out.npz", "step-"+std::to_string(step+1), &types[0], {total_cell}, "a");
+            all_types.erase(std::remove_if(all_types.begin(), all_types.end(), [](auto e){return e[1] == 0;}), all_types.end());
+            std::vector<int> water_gid;
+            std::for_each(all_types.begin(), all_types.end(), [&water_gid](auto e){water_gid.push_back(e[0]);});
+            cnpy::npz_save("out.npz", "step-"+std::to_string(step+1), &water_gid[0], {total_cell}, "a");
         }
     }
 
