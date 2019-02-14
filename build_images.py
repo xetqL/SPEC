@@ -21,9 +21,9 @@ for i in range(nb_step):
     image = data['step-%d' % i]
     assert image.shape[0] == shapey*shapex
     fig, ax = plt.subplots(1, 1, figsize=(20,20))
-    for gid in image:
-        x, y = cell_to_pos(shapex, shapey, gid)
-        grid[x][y] = 1
+    for id, type in enumerate(image):
+        x, y = cell_to_pos(shapex, shapey, id)
+        grid[x][y] = type
     ax.imshow(grid)
 
     fig.savefig(("{0:0>%d}_water_dummy.jpg" % displ).format(i))

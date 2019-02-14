@@ -289,10 +289,9 @@ int main(int argc, char **argv) {
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
         if(!rank){
             std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
-            all_types.erase(std::remove_if(all_types.begin(), all_types.end(), [](auto e){return e[1] == 0;}), all_types.end());
-            std::vector<int> water_gid;
-            std::for_each(all_types.begin(), all_types.end(), [&water_gid](auto e){water_gid.push_back(e[0]);});
-            cnpy::npz_save("out.npz", "step-"+std::to_string(step+1), &water_gid[0], {total_cell}, "a");
+            std::vector<int> types;
+            std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
+            cnpy::npz_save("out.npz", "step-"+std::to_string(step+1), &types[0], {total_cell}, "a");
         }
     }
 
