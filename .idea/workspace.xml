@@ -11,18 +11,7 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="189540d3-2c33-45a3-bac2-9d9825cbacfb" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/bin/SPEC" beforeDir="false" afterPath="$PROJECT_DIR$/bin/SPEC" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build_images.py" beforeDir="false" afterPath="$PROJECT_DIR$/build_images.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/io.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/include/io.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/utils.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/include/utils.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/zoltan_fn.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/include/zoltan_fn.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/log/perf.log" beforeDir="false" afterPath="$PROJECT_DIR$/log/perf.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/log/step.log" beforeDir="false" afterPath="$PROJECT_DIR$/log/step.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logger.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/logger.cfg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/out.mp4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
-    </list>
+    <list default="true" id="189540d3-2c33-45a3-bac2-9d9825cbacfb" name="Default Changelist" comment="" />
     <ignored path="$PROJECT_DIR$/cmake-build-debug/" />
     <ignored path="$PROJECT_DIR$/CMakeFiles/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -37,8 +26,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="423">
-              <caret line="331" column="74" selection-start-line="331" selection-start-column="74" selection-end-line="331" selection-end-column="74" />
+            <state relative-caret-position="480">
+              <caret line="397" column="5" lean-forward="true" selection-start-line="397" selection-start-column="5" selection-end-line="397" selection-end-column="5" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -219,9 +208,10 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="3" y="25" width="955" height="1052" extended-state="6" />
+    <frame x="3" y="25" width="1914" height="1052" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49946293" visible="true" weight="0.28052804" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49946293" visible="true" weight="0.13650964" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -487,8 +477,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="423">
-          <caret line="331" column="74" selection-start-line="331" selection-start-column="74" selection-end-line="331" selection-end-column="74" />
+        <state relative-caret-position="480">
+          <caret line="397" column="5" lean-forward="true" selection-start-line="397" selection-start-column="5" selection-end-line="397" selection-end-column="5" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>

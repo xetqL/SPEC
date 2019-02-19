@@ -483,7 +483,6 @@ int main(int argc, char **argv) {
         CHECKPOINT_TIMING(step_time, my_step_time);
         window.add(my_step_time);
         PAR_STOP_TIMING(step_time, world);
-
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -526,8 +525,7 @@ int main(int argc, char **argv) {
 
         if(pcall + ncall <= step && total_slope > 0 && skew > 0){
             if(!rank) steplogger->info("call LB");
-            relative_slope = std::max(my_time_slope/total_slope, 0.0);
-
+            relative_slope = std::max(my_time_slope/total_slope, 0.0); //TODO: OVERLOADED PROCESSORS ARE THOSE WITH POSITIVE MYSLOPE-MEAN(ALL_WORKLOAD_SLOPE).
             PAR_START_TIMING(lb_cost, world);
             update_cell_weights(&my_cells, relative_slope);
             zoltan_load_balance(&my_cells, zoltan_lb, true, true);
