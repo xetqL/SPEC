@@ -84,6 +84,9 @@
 		<Unit filename="/home/xetql/SPEC/include/utils.hpp">
 			<Option target="SPEC"/>
 		</Unit>
+		<Unit filename="/home/xetql/SPEC/include/window.hpp">
+			<Option target="SPEC"/>
+		</Unit>
 		<Unit filename="/home/xetql/SPEC/include/zoltan_fn.hpp">
 			<Option target="SPEC"/>
 		</Unit>

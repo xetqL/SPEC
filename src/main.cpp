@@ -17,6 +17,7 @@
 #include "../include/utils.hpp"
 #include "zupply.hpp"
 #include "../include/zoltan_fn.hpp"
+#include "../include/window.hpp"
 
 #define START_TIMING(v) \
 auto v = MPI_Wtime()
@@ -53,6 +54,7 @@ zz::log::LoggerPtr perflogger, steplogger;
 std::random_device rd;
 std::mt19937 gen(rd());
 std::normal_distribution<float> ndist(9, 1);
+std::normal_distribution<float> flopdist(80, 15);
 std::uniform_real_distribution<float> udist(0, 1);
 
 std::vector<Cell> dummy_erosion_computation(int msx, int msy,
@@ -135,27 +137,15 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                     idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
                     thetas[1]        = 1.0f/1.4142135f;
                 }
-                if(lid-(x2-x1) >= 0)            {
+                if(lid-(x2-x1) >= 0) {
                     idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
                     thetas[2]        = 0;
                 }
-                /*if((lid-(x2-x1))-1 >= 0) {
-                    idx_neighbors[3] = (data_pointers[(lid-(x2-x1))-1]);
-                    thetas[3]        = -1.0f/1.4142135f;
-                }
-                if(lid-1 >= 0)                  {
-                    idx_neighbors[4] = (data_pointers[lid-1]);
-                    thetas[4]        = -M_PI;
-                }
-                if(lid+(x2-x1)-1 < total_box)   {
-                    idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
-                    thetas[5]        = -1.0f/1.4142135f;
-                }*/
-                if(lid+(x2-x1) < total_box)     {
+                if(lid+(x2-x1) < total_box) {
                     idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
                     thetas[6]        = 0;
                 }
-                if(lid+(x2-x1)+1 < total_box)   {
+                if(lid+(x2-x1)+1 < total_box) {
                     idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
                     thetas[7]        = 1.0f/1.4142135f;
                 }
@@ -171,6 +161,16 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                         my_cells[idx_neighbor].weight = 1;
                     }
                 }
+
+                /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK*/
+                float flop = flopdist(gen);
+                const int nb_flop = (int) flop;
+                float res = 0.0;
+                for(int i = 0; i < nb_flop; ++i) {
+                    __asm__("");
+                    res = flop * flop;
+                }
+                thetas[0] = res;
             }
         }
     }
@@ -312,7 +312,7 @@ std::vector<Cell> generate_lattice_CA_diffusion(int msx, int msy,
 
 std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
                                                 int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols){
-    const int minr = 5, maxr = 15, avgr = maxr-minr;
+    const int minr = (int) (msx*0.01f), maxr = (int) (msx*0.1f), avgr = maxr-minr;
     int circles = (int) ((msx * msy) / (M_PI*(avgr*avgr)));
     int nb_var = 4;
     int circle_data_space = circles*nb_var;
@@ -351,13 +351,12 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
                 //std::cout <<x_proc_idx << " " << y_proc_idx << " "<< std::sqrt( std::pow(x2-pos.first,2) + std::pow(y2 - pos.second,2) ) << " " << r << std::endl;
                 if(is_rock) break;
             }
-            std::uniform_real_distribution<float> real_dist(eprob-0.05f, eprob+0.05f);
+            std::normal_distribution<float> real_dist(eprob, 0.02f);
             my_cells.emplace_back(id, is_rock ? ROCK_TYPE : WATER_TYPE, is_rock ? 0.0 : 1.0, is_rock ? real_dist(gen) : 1.0);
         }
     }
     return my_cells;
 }
-
 
 int main(int argc, char **argv) {
     int worldsize;
@@ -372,7 +371,6 @@ int main(int argc, char **argv) {
     int cell_per_process = std::atoi(argv[3]);
     const int MAX_STEP = std::atoi(argv[4]);
     const int seed = std::atoi(argv[5]);
-
 
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);
@@ -407,7 +405,7 @@ int main(int argc, char **argv) {
     int& msy = Cell::get_msy(); msy = ycells;
 
     int shape[2] = {msx,msy};
-    if(!rank) cnpy::npz_save("out.npz", "shape", &shape[0], {2}, "w");
+    //if(!rank) cnpy::npz_save("out.npz", "shape", &shape[0], {2}, "w");
     if(!rank) cnpy::npz_save("gids-out.npz", "shape", &shape[0], {2}, "w");
 
     int x_proc_idx, y_proc_idx;
@@ -440,9 +438,9 @@ int main(int argc, char **argv) {
         std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
         std::vector<int> types, water_gid;
         std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
-        std::for_each(all_types.begin(), all_types.end(), [&water_gid](auto e){if(e[1]) water_gid.push_back(e[0]);});
+        std::for_each(all_types.begin(), all_types.end(), [&water_gid](auto e){if(!e[1]) water_gid.push_back(e[0]);});
         assert((*(all_types.end() - 1))[0] == total_cell-1);
-        cnpy::npz_save("out.npz", "step-"+std::to_string(0), &types[0], {total_cell}, "a");
+        //cnpy::npz_save("out.npz", "step-"+std::to_string(0), &types[0], {total_cell}, "a");
         cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
     }
 
@@ -455,26 +453,30 @@ int main(int argc, char **argv) {
     int minx, maxx, miny, maxy;
     std::vector<size_t> data_pointers;
     if(!rank) all_types.resize(total_cell);
+    SlidingWindow<double> window(10); //sliding window with max size = 10
+
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
 
         const int my_cell_count = my_cells.size();
         if(!rank) steplogger->info() << "Beginning step "<< step;
         PAR_START_TIMING(step_time, world);
-        // Share my cells with my neighbors to propagate their state
-
         auto remote_cells = zoltan_exchange_data(zoltan_lb, my_cells, &recv, &sent, datatype.element_datatype, world, 1.0);
         auto bbox = get_bounding_box(my_cells, remote_cells);
 
-        //print_bbox(bbox);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
         my_cells = dummy_erosion_computation2(msx, msy, my_cells, remote_cells, data_pointers, bbox);
 
         CHECKPOINT_TIMING(step_time, my_step_time);
+        window.add(my_step_time);
         PAR_STOP_TIMING(step_time, world);
+
+        auto my_time_slope = get_slope<double>(window.data_container);
+
         if(!rank) steplogger->info() << "Stop step "<< step;
 
         std::vector<double> timings(worldsize);
+
         MPI_Gather(&my_step_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, 0, world);
 
         double max = *std::max_element(timings.cbegin(), timings.cend()),
@@ -488,13 +490,14 @@ int main(int argc, char **argv) {
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
         if(!rank) {
             std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
-            std::vector<int> types, water_gid;
+            std::vector<int> types, rock_gid;
             std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
-            std::for_each(all_types.begin(), all_types.end(), [&water_gid](auto e){if(e[1]) water_gid.push_back(e[0]);});
-            cnpy::npz_save("out.npz", "step-"+std::to_string(step+1), &types[0], {total_cell}, "a");
-            cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &water_gid[0], {water_gid.size()}, "a");
+            std::for_each(all_types.begin(), all_types.end(), [&rock_gid](auto e){if(!e[1]) rock_gid.push_back(e[0]);});
+            //cnpy::npz_save("out.npz", "step-"+std::to_string(step+1), &types[0], {total_cell}, "a");
+            cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
         }
     }
+    PAR_STOP_TIMING(loop_time, world);
 
     datatype.free_datatypes();
     MPI_Finalize();

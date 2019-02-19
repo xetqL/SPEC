@@ -54,4 +54,26 @@ std::tuple<int, int, int, int> get_bounding_box(
     return std::make_tuple(minx, maxx, miny, maxy);
 }
 
+template<typename Realtype, typename ContainerA>
+Realtype get_slope(const ContainerA& x){
+
+    std::vector<Realtype> y(x.size());
+    std::iota(y.begin(), y.end(), 0);
+
+    int n = x.size();
+
+    Realtype avgX = std::accumulate(x.begin(), x.end(), 0.0) / n;
+    Realtype avgY = std::accumulate(y.begin(), y.end(), 0.0) / n;
+
+    Realtype numerator = 0.0;
+    Realtype denominator = 0.0;
+
+    for(int i=0; i<n; ++i){
+        numerator += (x[i] - avgX) * (y[i] - avgY);
+        denominator += (x[i] - avgX) * (x[i] - avgX);
+    }
+
+    return numerator / denominator;
+}
+
 #endif //SPEC_UTILS_HPP
