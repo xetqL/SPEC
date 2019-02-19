@@ -1,152 +1,212 @@
-[19-02-19 14:39:39] [INFO] 50 50
-[19-02-19 14:39:39] [INFO] End of map generation
-[19-02-19 14:39:39] [INFO] Beginning step 0
-[19-02-19 14:39:39] [INFO] Stop step 0
-[19-02-19 14:39:39] [INFO] stats: load imbalance: 7.05932 skewness: 0.232888
-[19-02-19 14:39:39] [INFO] Beginning step 1
-[19-02-19 14:39:39] [INFO] Stop step 1
-[19-02-19 14:39:39] [INFO] stats: load imbalance: 8.20972 skewness: 0.304961
-[19-02-19 14:39:39] [INFO] Beginning step 2
-[19-02-19 14:39:39] [INFO] Stop step 2
-[19-02-19 14:39:39] [INFO] stats: load imbalance: 7.56454 skewness: 0.266199
-[19-02-19 14:39:39] [INFO] Beginning step 3
-[19-02-19 14:39:39] [INFO] Stop step 3
-[19-02-19 14:39:39] [INFO] stats: load imbalance: 8.01075 skewness: 0.29659
-[19-02-19 14:39:39] [INFO] Beginning step 4
-[19-02-19 14:39:39] [INFO] Stop step 4
-[19-02-19 14:39:39] [INFO] stats: load imbalance: 9.26649 skewness: 0.36982
-[19-02-19 14:39:39] [INFO] Beginning step 5
-[19-02-19 14:39:39] [INFO] Stop step 5
-[19-02-19 14:39:39] [INFO] stats: load imbalance: 9.30574 skewness: 0.343147
-[19-02-19 14:39:39] [INFO] Beginning step 6
-[19-02-19 14:39:39] [INFO] Stop step 6
-[19-02-19 14:39:39] [INFO] stats: load imbalance: 8.47443 skewness: 0.306857
-[19-02-19 14:39:40] [INFO] Beginning step 7
-[19-02-19 14:39:40] [INFO] Stop step 7
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 8.43981 skewness: 0.295585
-[19-02-19 14:39:40] [INFO] Beginning step 8
-[19-02-19 14:39:40] [INFO] Stop step 8
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 10.347 skewness: 0.322154
-[19-02-19 14:39:40] [INFO] Beginning step 9
-[19-02-19 14:39:40] [INFO] Stop step 9
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 11.8326 skewness: 0.390873
-[19-02-19 14:39:40] [INFO] Beginning step 10
-[19-02-19 14:39:40] [INFO] Stop step 10
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 9.40042 skewness: 0.332973
-[19-02-19 14:39:40] [INFO] Beginning step 11
-[19-02-19 14:39:40] [INFO] Stop step 11
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 9.15697 skewness: 0.310306
-[19-02-19 14:39:40] [INFO] Beginning step 12
-[19-02-19 14:39:40] [INFO] Stop step 12
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 9.26156 skewness: 0.296478
-[19-02-19 14:39:40] [INFO] Beginning step 13
-[19-02-19 14:39:40] [INFO] Stop step 13
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 9.29924 skewness: 0.232882
-[19-02-19 14:39:40] [INFO] Beginning step 14
-[19-02-19 14:39:40] [INFO] Stop step 14
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 9.81626 skewness: 0.320572
-[19-02-19 14:39:40] [INFO] Beginning step 15
-[19-02-19 14:39:40] [INFO] Stop step 15
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 9.83112 skewness: 0.331413
-[19-02-19 14:39:40] [INFO] Beginning step 16
-[19-02-19 14:39:40] [INFO] Stop step 16
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 10.0093 skewness: 0.321332
-[19-02-19 14:39:40] [INFO] Beginning step 17
-[19-02-19 14:39:40] [INFO] Stop step 17
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 9.87284 skewness: 0.236622
-[19-02-19 14:39:40] [INFO] Beginning step 18
-[19-02-19 14:39:40] [INFO] Stop step 18
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 11.1756 skewness: 0.387312
-[19-02-19 14:39:40] [INFO] Beginning step 19
-[19-02-19 14:39:40] [INFO] Stop step 19
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 10.6365 skewness: 0.34467
-[19-02-19 14:39:40] [INFO] Beginning step 20
-[19-02-19 14:39:40] [INFO] Stop step 20
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 10.6399 skewness: 0.36295
-[19-02-19 14:39:40] [INFO] Beginning step 21
-[19-02-19 14:39:40] [INFO] Stop step 21
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 10.2686 skewness: 0.231692
-[19-02-19 14:39:40] [INFO] Beginning step 22
-[19-02-19 14:39:40] [INFO] Stop step 22
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 12.4064 skewness: 0.32633
-[19-02-19 14:39:40] [INFO] Beginning step 23
-[19-02-19 14:39:40] [INFO] Stop step 23
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 11.1327 skewness: 0.347043
-[19-02-19 14:39:40] [INFO] Beginning step 24
-[19-02-19 14:39:40] [INFO] Stop step 24
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 11.3553 skewness: 0.38245
-[19-02-19 14:39:40] [INFO] Beginning step 25
-[19-02-19 14:39:40] [INFO] Stop step 25
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 16.0074 skewness: 0.197786
-[19-02-19 14:39:40] [INFO] Beginning step 26
-[19-02-19 14:39:40] [INFO] Stop step 26
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 9.23047 skewness: -0.102125
-[19-02-19 14:39:40] [INFO] Beginning step 27
-[19-02-19 14:39:40] [INFO] Stop step 27
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 11.5848 skewness: 0.380482
-[19-02-19 14:39:40] [INFO] Beginning step 28
-[19-02-19 14:39:40] [INFO] Stop step 28
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 11.4311 skewness: 0.3947
-[19-02-19 14:39:40] [INFO] Beginning step 29
-[19-02-19 14:39:40] [INFO] Stop step 29
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 11.4046 skewness: 0.305265
-[19-02-19 14:39:40] [INFO] Beginning step 30
-[19-02-19 14:39:40] [INFO] Stop step 30
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 14.1053 skewness: 0.310294
-[19-02-19 14:39:40] [INFO] Beginning step 31
-[19-02-19 14:39:40] [INFO] Stop step 31
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 12.3979 skewness: 0.398406
-[19-02-19 14:39:40] [INFO] Beginning step 32
-[19-02-19 14:39:40] [INFO] Stop step 32
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 19.573 skewness: 0.604327
-[19-02-19 14:39:40] [INFO] Beginning step 33
-[19-02-19 14:39:40] [INFO] Stop step 33
-[19-02-19 14:39:40] [INFO] stats: load imbalance: 18.7396 skewness: 0.682298
-[19-02-19 14:39:41] [INFO] Beginning step 34
-[19-02-19 14:39:41] [INFO] Stop step 34
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 24.0928 skewness: 0.402109
-[19-02-19 14:39:41] [INFO] Beginning step 35
-[19-02-19 14:39:41] [INFO] Stop step 35
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 17.8191 skewness: 0.714226
-[19-02-19 14:39:41] [INFO] Beginning step 36
-[19-02-19 14:39:41] [INFO] Stop step 36
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 11.5561 skewness: 0.188824
-[19-02-19 14:39:41] [INFO] Beginning step 37
-[19-02-19 14:39:41] [INFO] Stop step 37
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 13.053 skewness: 0.42112
-[19-02-19 14:39:41] [INFO] Beginning step 38
-[19-02-19 14:39:41] [INFO] Stop step 38
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 15.6436 skewness: 0.501182
-[19-02-19 14:39:41] [INFO] Beginning step 39
-[19-02-19 14:39:41] [INFO] Stop step 39
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 26.3225 skewness: 0.645007
-[19-02-19 14:39:41] [INFO] Beginning step 40
-[19-02-19 14:39:41] [INFO] Stop step 40
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 12.1366 skewness: 0.463402
-[19-02-19 14:39:41] [INFO] Beginning step 41
-[19-02-19 14:39:41] [INFO] Stop step 41
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 8.32151 skewness: -0.236662
-[19-02-19 14:39:41] [INFO] Beginning step 42
-[19-02-19 14:39:41] [INFO] Stop step 42
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 7.9198 skewness: -0.236756
-[19-02-19 14:39:41] [INFO] Beginning step 43
-[19-02-19 14:39:41] [INFO] Stop step 43
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 14.1069 skewness: 0.455963
-[19-02-19 14:39:41] [INFO] Beginning step 44
-[19-02-19 14:39:41] [INFO] Stop step 44
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 14.0745 skewness: 0.439922
-[19-02-19 14:39:41] [INFO] Beginning step 45
-[19-02-19 14:39:41] [INFO] Stop step 45
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 13.7027 skewness: 0.42238
-[19-02-19 14:39:41] [INFO] Beginning step 46
-[19-02-19 14:39:41] [INFO] Stop step 46
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 16.4072 skewness: 0.518671
-[19-02-19 14:39:41] [INFO] Beginning step 47
-[19-02-19 14:39:41] [INFO] Stop step 47
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 13.4453 skewness: 0.415665
-[19-02-19 14:39:41] [INFO] Beginning step 48
-[19-02-19 14:39:41] [INFO] Stop step 48
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 13.2091 skewness: 0.406543
-[19-02-19 14:39:41] [INFO] Beginning step 49
-[19-02-19 14:39:41] [INFO] Stop step 49
-[19-02-19 14:39:41] [INFO] stats: load imbalance: 13.473 skewness: 0.41794
+[19-02-19 20:05:01] [INFO] 40 40
+[19-02-19 20:05:01] [INFO] End of map generation
+[19-02-19 20:05:01] [INFO] Beginning step 0
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 26.1157 skewness: 0.285551
+[19-02-19 20:05:01] [INFO] Stop step 0
+[19-02-19 20:05:01] [INFO] Beginning step 1
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 26.4557 skewness: 0.297318
+[19-02-19 20:05:01] [INFO] Stop step 1
+[19-02-19 20:05:01] [INFO] Beginning step 2
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 26.8452 skewness: 0.298725
+[19-02-19 20:05:01] [INFO] Stop step 2
+[19-02-19 20:05:01] [INFO] Beginning step 3
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 27.0655 skewness: 0.288026
+[19-02-19 20:05:01] [INFO] Stop step 3
+[19-02-19 20:05:01] [INFO] Beginning step 4
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 28.9738 skewness: 0.306355
+[19-02-19 20:05:01] [INFO] Stop step 4
+[19-02-19 20:05:01] [INFO] Beginning step 5
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 28.6716 skewness: 0.328928
+[19-02-19 20:05:01] [INFO] Stop step 5
+[19-02-19 20:05:01] [INFO] Beginning step 6
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 27.0876 skewness: 0.36658
+[19-02-19 20:05:01] [INFO] Stop step 6
+[19-02-19 20:05:01] [INFO] Beginning step 7
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 26.4078 skewness: 0.3717
+[19-02-19 20:05:01] [INFO] Stop step 7
+[19-02-19 20:05:01] [INFO] Beginning step 8
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 19.4434 skewness: -0.349699
+[19-02-19 20:05:01] [INFO] Stop step 8
+[19-02-19 20:05:01] [INFO] Beginning step 9
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 19.9471 skewness: -0.310069
+[19-02-19 20:05:01] [INFO] Stop step 9
+[19-02-19 20:05:01] [INFO] Beginning step 10
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 16.2429 skewness: -0.391193
+[19-02-19 20:05:01] [INFO] Stop step 10
+[19-02-19 20:05:01] [INFO] Beginning step 11
+[19-02-19 20:05:01] [INFO] stats: load imbalance: 23.3504 skewness: -0.170436
+[19-02-19 20:05:01] [INFO] Stop step 11
+[19-02-19 20:05:01] [INFO] Beginning step 12
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.5538 skewness: -0.165422
+[19-02-19 20:05:02] [INFO] Stop step 12
+[19-02-19 20:05:02] [INFO] Beginning step 13
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.5344 skewness: -0.174867
+[19-02-19 20:05:02] [INFO] Stop step 13
+[19-02-19 20:05:02] [INFO] Beginning step 14
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.6392 skewness: -0.171886
+[19-02-19 20:05:02] [INFO] Stop step 14
+[19-02-19 20:05:02] [INFO] Beginning step 15
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.6414 skewness: -0.175422
+[19-02-19 20:05:02] [INFO] Stop step 15
+[19-02-19 20:05:02] [INFO] Beginning step 16
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 25.3839 skewness: -0.147526
+[19-02-19 20:05:02] [INFO] Stop step 16
+[19-02-19 20:05:02] [INFO] Beginning step 17
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 24.1513 skewness: -0.185539
+[19-02-19 20:05:02] [INFO] Stop step 17
+[19-02-19 20:05:02] [INFO] Beginning step 18
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 22.0285 skewness: -0.26956
+[19-02-19 20:05:02] [INFO] Stop step 18
+[19-02-19 20:05:02] [INFO] Beginning step 19
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 22.0256 skewness: -0.197559
+[19-02-19 20:05:02] [INFO] Stop step 19
+[19-02-19 20:05:02] [INFO] Beginning step 20
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.6115 skewness: -0.18166
+[19-02-19 20:05:02] [INFO] Stop step 20
+[19-02-19 20:05:02] [INFO] Beginning step 21
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.4378 skewness: -0.189334
+[19-02-19 20:05:02] [INFO] Stop step 21
+[19-02-19 20:05:02] [INFO] Beginning step 22
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.5573 skewness: -0.184732
+[19-02-19 20:05:02] [INFO] Stop step 22
+[19-02-19 20:05:02] [INFO] Beginning step 23
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.817 skewness: -0.182248
+[19-02-19 20:05:02] [INFO] Stop step 23
+[19-02-19 20:05:02] [INFO] Beginning step 24
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.5573 skewness: -0.180863
+[19-02-19 20:05:02] [INFO] Stop step 24
+[19-02-19 20:05:02] [INFO] Beginning step 25
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 22.561 skewness: -0.194159
+[19-02-19 20:05:02] [INFO] Stop step 25
+[19-02-19 20:05:02] [INFO] Beginning step 26
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.6658 skewness: -0.184866
+[19-02-19 20:05:02] [INFO] Stop step 26
+[19-02-19 20:05:02] [INFO] Beginning step 27
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.7126 skewness: -0.184604
+[19-02-19 20:05:02] [INFO] Stop step 27
+[19-02-19 20:05:02] [INFO] Beginning step 28
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 24.2913 skewness: -0.161766
+[19-02-19 20:05:02] [INFO] Stop step 28
+[19-02-19 20:05:02] [INFO] Beginning step 29
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 24.7638 skewness: -0.176181
+[19-02-19 20:05:02] [INFO] Stop step 29
+[19-02-19 20:05:02] [INFO] Beginning step 30
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 22.3573 skewness: -0.143188
+[19-02-19 20:05:02] [INFO] Stop step 30
+[19-02-19 20:05:02] [INFO] Beginning step 31
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 21.9517 skewness: -0.155979
+[19-02-19 20:05:02] [INFO] Stop step 31
+[19-02-19 20:05:02] [INFO] Beginning step 32
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.5835 skewness: -0.214904
+[19-02-19 20:05:02] [INFO] Stop step 32
+[19-02-19 20:05:02] [INFO] Beginning step 33
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.6184 skewness: -0.200232
+[19-02-19 20:05:02] [INFO] Stop step 33
+[19-02-19 20:05:02] [INFO] Beginning step 34
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.9065 skewness: -0.180165
+[19-02-19 20:05:02] [INFO] Stop step 34
+[19-02-19 20:05:02] [INFO] Beginning step 35
+[19-02-19 20:05:02] [INFO] stats: load imbalance: 23.8188 skewness: -0.190155
+[19-02-19 20:05:02] [INFO] Stop step 35
+[19-02-19 20:05:02] [INFO] Beginning step 36
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.8112 skewness: -0.186554
+[19-02-19 20:05:03] [INFO] Stop step 36
+[19-02-19 20:05:03] [INFO] Beginning step 37
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.8387 skewness: -0.183458
+[19-02-19 20:05:03] [INFO] Stop step 37
+[19-02-19 20:05:03] [INFO] Beginning step 38
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.9333 skewness: -0.184832
+[19-02-19 20:05:03] [INFO] Stop step 38
+[19-02-19 20:05:03] [INFO] Beginning step 39
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.9217 skewness: -0.181497
+[19-02-19 20:05:03] [INFO] Stop step 39
+[19-02-19 20:05:03] [INFO] Beginning step 40
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 24.1437 skewness: -0.175272
+[19-02-19 20:05:03] [INFO] Stop step 40
+[19-02-19 20:05:03] [INFO] Beginning step 41
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.8834 skewness: -0.186546
+[19-02-19 20:05:03] [INFO] Stop step 41
+[19-02-19 20:05:03] [INFO] Beginning step 42
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 22.7414 skewness: -0.23239
+[19-02-19 20:05:03] [INFO] Stop step 42
+[19-02-19 20:05:03] [INFO] Beginning step 43
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 21.7934 skewness: -0.225689
+[19-02-19 20:05:03] [INFO] Stop step 43
+[19-02-19 20:05:03] [INFO] Beginning step 44
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 22.2597 skewness: -0.216638
+[19-02-19 20:05:03] [INFO] Stop step 44
+[19-02-19 20:05:03] [INFO] Beginning step 45
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.7826 skewness: -0.192288
+[19-02-19 20:05:03] [INFO] Stop step 45
+[19-02-19 20:05:03] [INFO] Beginning step 46
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.7628 skewness: -0.18991
+[19-02-19 20:05:03] [INFO] Stop step 46
+[19-02-19 20:05:03] [INFO] Beginning step 47
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.6819 skewness: -0.184567
+[19-02-19 20:05:03] [INFO] Stop step 47
+[19-02-19 20:05:03] [INFO] Beginning step 48
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.9421 skewness: -0.18271
+[19-02-19 20:05:03] [INFO] Stop step 48
+[19-02-19 20:05:03] [INFO] Beginning step 49
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.1592 skewness: -0.183917
+[19-02-19 20:05:03] [INFO] Stop step 49
+[19-02-19 20:05:03] [INFO] Beginning step 50
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.8968 skewness: -0.184021
+[19-02-19 20:05:03] [INFO] Stop step 50
+[19-02-19 20:05:03] [INFO] Beginning step 51
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.8539 skewness: -0.190386
+[19-02-19 20:05:03] [INFO] Stop step 51
+[19-02-19 20:05:03] [INFO] Beginning step 52
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 24.1515 skewness: -0.175266
+[19-02-19 20:05:03] [INFO] Stop step 52
+[19-02-19 20:05:03] [INFO] Beginning step 53
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 24.2337 skewness: -0.146894
+[19-02-19 20:05:03] [INFO] Stop step 53
+[19-02-19 20:05:03] [INFO] Beginning step 54
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.571 skewness: -0.146474
+[19-02-19 20:05:03] [INFO] Stop step 54
+[19-02-19 20:05:03] [INFO] Beginning step 55
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 24.057 skewness: -0.183631
+[19-02-19 20:05:03] [INFO] Stop step 55
+[19-02-19 20:05:03] [INFO] Beginning step 56
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.9346 skewness: -0.185041
+[19-02-19 20:05:03] [INFO] Stop step 56
+[19-02-19 20:05:03] [INFO] Beginning step 57
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.8176 skewness: -0.192008
+[19-02-19 20:05:03] [INFO] Stop step 57
+[19-02-19 20:05:03] [INFO] Beginning step 58
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 24.0256 skewness: -0.177503
+[19-02-19 20:05:03] [INFO] Stop step 58
+[19-02-19 20:05:03] [INFO] Beginning step 59
+[19-02-19 20:05:03] [INFO] stats: load imbalance: 23.8395 skewness: -0.187235
+[19-02-19 20:05:03] [INFO] Stop step 59
+[19-02-19 20:05:03] [INFO] Beginning step 60
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 23.9899 skewness: -0.178868
+[19-02-19 20:05:04] [INFO] Stop step 60
+[19-02-19 20:05:04] [INFO] Beginning step 61
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 23.0983 skewness: -0.185833
+[19-02-19 20:05:04] [INFO] Stop step 61
+[19-02-19 20:05:04] [INFO] Beginning step 62
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 23.8854 skewness: -0.186295
+[19-02-19 20:05:04] [INFO] Stop step 62
+[19-02-19 20:05:04] [INFO] Beginning step 63
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 23.9692 skewness: -0.184706
+[19-02-19 20:05:04] [INFO] Stop step 63
+[19-02-19 20:05:04] [INFO] Beginning step 64
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 23.7005 skewness: -0.156523
+[19-02-19 20:05:04] [INFO] Stop step 64
+[19-02-19 20:05:04] [INFO] Beginning step 65
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 24.8581 skewness: -0.184001
+[19-02-19 20:05:04] [INFO] Stop step 65
+[19-02-19 20:05:04] [INFO] Beginning step 66
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 23.6099 skewness: -0.124894
+[19-02-19 20:05:04] [INFO] Stop step 66
+[19-02-19 20:05:04] [INFO] Beginning step 67
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 21.8438 skewness: -0.280246
+[19-02-19 20:05:04] [INFO] Stop step 67
+[19-02-19 20:05:04] [INFO] Beginning step 68
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 23.8793 skewness: -0.176233
+[19-02-19 20:05:04] [INFO] Stop step 68
+[19-02-19 20:05:04] [INFO] Beginning step 69
+[19-02-19 20:05:04] [INFO] stats: load imbalance: 24.0152 skewness: -0.18162
+[19-02-19 20:05:04] [INFO] Stop step 69

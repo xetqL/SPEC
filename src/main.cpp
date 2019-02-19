@@ -54,7 +54,7 @@ zz::log::LoggerPtr perflogger, steplogger;
 std::random_device rd;
 std::mt19937 gen(rd());
 std::normal_distribution<float> ndist(9, 1);
-std::normal_distribution<float> flopdist(80, 15);
+std::normal_distribution<float> flopdist(145-52, 5); // https://arxiv.org/pdf/1703.08015.pdf
 std::uniform_real_distribution<float> udist(0, 1);
 
 std::vector<Cell> dummy_erosion_computation(int msx, int msy,
@@ -162,13 +162,12 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                     }
                 }
 
-                /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK*/
+                /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
                 float flop = flopdist(gen);
                 const int nb_flop = (int) flop;
                 float res = 0.0;
                 for(int i = 0; i < nb_flop; ++i) {
-                    __asm__("");
-                    res = flop * flop;
+                    __asm__(""); res = flop * flop;
                 }
                 thetas[0] = res;
             }
@@ -266,16 +265,21 @@ void populate_data_pointers(int msx, int msy,
     //if(!rank) std::cout << mine_size << std::endl;
     //if(!rank) std::for_each(data_pointers.cbegin(), data_pointers.cend(), [&](auto v){ std::cout << mine_size << ";" << v << ";" << my_cells[v].gid << std::endl; });
 }
+template<class RealType, class Iter>
+inline RealType mean(Iter b, Iter e) {
+    long N = std::distance(b, e);
+    return std::accumulate(b, e, (RealType) 0.0) / N;
+}
 
 template<class RealType, class Iter>
 inline RealType skewness(Iter b, Iter e) {
     long N = std::distance(b, e);
-    RealType mean = std::accumulate(b, e, (RealType) 0.0) / N;
+    RealType _mean = mean<RealType, Iter>(b,e);
     RealType diff1 = 0.0;
-    std::for_each(b,e, [&diff1, mean](auto x){diff1 += std::pow(x - mean, 3.0);});
+    std::for_each(b,e, [&diff1, mean=_mean](auto x){diff1 += std::pow(x - mean, 3.0);});
     diff1 /= N;
     RealType diff2 = 0.0;
-    std::for_each(b,e, [&diff2, mean](auto x){diff2 += std::pow(x - mean, 2.0);});
+    std::for_each(b,e, [&diff2, mean=_mean](auto x){diff2 += std::pow(x - mean, 2.0);});
     diff2 /= (N-1);
     return diff1 / std::pow(diff2, 3.0/2.0);
 }
@@ -312,20 +316,23 @@ std::vector<Cell> generate_lattice_CA_diffusion(int msx, int msy,
 
 std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
                                                 int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols){
-    const int minr = (int) (msx*0.01f), maxr = (int) (msx*0.1f), avgr = maxr-minr;
-    int circles = (int) ((msx * msy) / (M_PI*(avgr*avgr)));
+    const int smallest_coordinate = std::min(msx, msy);
+    const int minr = (int) (smallest_coordinate*0.01f), maxr = (int) (smallest_coordinate*0.05f), avgr = maxr-minr;
+    int circles = (int) ( 2*(msx * msy) / (M_PI*(avgr*avgr)));
     int nb_var = 4;
     int circle_data_space = circles*nb_var;
     std::vector<float> circles_var(circle_data_space);
     if(!rank){
         std::uniform_int_distribution<int> distx(0, msx), disty(0, msy), dist_r(minr, maxr);
-        std::uniform_real_distribution<float> erosion_dist(0.01f, 0.2f);
+        std::uniform_real_distribution<float> erosion_dist(0.01f, 0.8f);
+        //std::gamma_distribution<float> erosion_dist(2, 0.01);
         for (int k = 0; k < circle_data_space; k+=4) {
-            auto x = distx(gen); auto y = disty(gen); auto r = dist_r(gen);
+            auto x = distx(gen); auto y = disty(gen);
+            auto r = dist_r(gen);
             circles_var[k]   = ((float) x);
             circles_var[k+1] = ((float) y);
             circles_var[k+2] = ((float) r);
-            circles_var[k+3] = ((float) erosion_dist(gen));
+            circles_var[k+3] = (float)  erosion_dist(gen);
         }
     }
     MPI_Bcast(&circles_var.front(), circle_data_space, MPI_FLOAT, 0, MPI_COMM_WORLD);
@@ -337,8 +344,6 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
     int cell_per_process = cell_in_my_cols*cell_in_my_rows;
     std::vector<Cell> my_cells; my_cells.reserve(cell_per_process);
 
-    float minp, maxp;
-
     for(int j = 0; j < cell_in_my_cols; ++j) {
         for(int i = 0; i < cell_in_my_rows; ++i) {
             int id = cell_in_my_rows * x_proc_idx + i + msx * (j + (y_proc_idx * cell_in_my_cols));
@@ -348,15 +353,25 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
             for ( auto circle : rock_fn) {
                 int x2, y2, r; std::tie(x2, y2, r, eprob) = circle;
                 is_rock = std::sqrt( std::pow(x2-pos.first,2) + std::pow(y2 - pos.second,2) ) < r;
-                //std::cout <<x_proc_idx << " " << y_proc_idx << " "<< std::sqrt( std::pow(x2-pos.first,2) + std::pow(y2 - pos.second,2) ) << " " << r << std::endl;
                 if(is_rock) break;
             }
-            std::normal_distribution<float> real_dist(eprob, 0.02f);
-            my_cells.emplace_back(id, is_rock ? ROCK_TYPE : WATER_TYPE, is_rock ? 0.0 : 1.0, is_rock ? real_dist(gen) : 1.0);
+            my_cells.emplace_back(id, is_rock ? ROCK_TYPE : WATER_TYPE, is_rock ? 0.0 : 1.0, is_rock ? eprob: 1.0);
         }
     }
     return my_cells;
 }
+
+void update_cell_weights(std::vector<Cell>* _my_cells, double relative_slope){
+    std::vector<Cell>& my_cells = *(_my_cells);
+    for(auto& cell : my_cells) {
+        if(cell.type == ROCK_TYPE) { // rock
+            cell.weight = (float) relative_slope;
+        }
+    }
+}
+
+
+#include "../include/io.hpp"
 
 int main(int argc, char **argv) {
     int worldsize;
@@ -382,12 +397,6 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    /*if (xprocs  yprocs) {
-        steplogger->fatal() << "Not a rectangular grid where X >= Y";
-        MPI_Abort(world, 1);
-        return EXIT_FAILURE;
-    }*/
-
     int cell_in_my_rows = (int) std::sqrt(cell_per_process), cell_in_my_cols = cell_in_my_rows;
     int xcells = cell_in_my_rows * xprocs, ycells = cell_in_my_rows * yprocs;
     std::vector<int> cols(ycells);
@@ -399,7 +408,7 @@ int main(int argc, char **argv) {
     cols = {0, 1};
     std::vector<int> water_cols(cols.begin(), cols.begin()+1 );
     std::sort(water_cols.begin(), water_cols.end());
-    std::for_each(water_cols.cbegin(), water_cols.cend(), [](auto v){ std::cout << v << std::endl; });
+    //std::for_each(water_cols.cbegin(), water_cols.cend(), [](auto v){ std::cout << v << std::endl; });
 
     int& msx = Cell::get_msx(); msx = xcells;
     int& msy = Cell::get_msy(); msy = ycells;
@@ -410,7 +419,7 @@ int main(int argc, char **argv) {
 
     int x_proc_idx, y_proc_idx;
     std::tie(x_proc_idx, y_proc_idx) = cell_to_global_position(xprocs, yprocs, rank);
-    std::cout << x_proc_idx << " ; " << y_proc_idx << std::endl;
+    //std::cout << x_proc_idx << " ; " << y_proc_idx << std::endl;
     unsigned long total_cell = cell_per_process * worldsize;
     auto datatype   = Cell::register_datatype();
 
@@ -453,15 +462,19 @@ int main(int argc, char **argv) {
     int minx, maxx, miny, maxy;
     std::vector<size_t> data_pointers;
     if(!rank) all_types.resize(total_cell);
-    SlidingWindow<double> window(10); //sliding window with max size = 10
-
+    std::vector<double> lb_costs;
+    SlidingWindow<double> window(20); //sliding window with max size = TODO: tune it?
+    int ncall = 20, pcall=0;
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
 
         const int my_cell_count = my_cells.size();
         if(!rank) steplogger->info() << "Beginning step "<< step;
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// COMPUTATION START
         PAR_START_TIMING(step_time, world);
-        auto remote_cells = zoltan_exchange_data(zoltan_lb, my_cells, &recv, &sent, datatype.element_datatype, world, 1.0);
+        auto remote_cells = zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         auto bbox = get_bounding_box(my_cells, remote_cells);
 
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
@@ -471,20 +484,34 @@ int main(int argc, char **argv) {
         window.add(my_step_time);
         PAR_STOP_TIMING(step_time, world);
 
-        auto my_time_slope = get_slope<double>(window.data_container);
-
-        if(!rank) steplogger->info() << "Stop step "<< step;
+        /// COMPUTATION STOP
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         std::vector<double> timings(worldsize);
+        std::vector<double> slopes (worldsize);
+        std::vector<double> rel_slopes;
+        std::vector<int>    PE_cells(worldsize);
 
-        MPI_Gather(&my_step_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, 0, world);
+        double my_time_slope = get_slope<double>(window.data_container), total_slope, relative_slope;
 
+        MPI_Allgather(&my_step_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, world);
+        MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); //TODO: propagate information differently
+
+        total_slope = std::max(std::accumulate(slopes.begin(), slopes.end(), 0.0), 0.0);
+        std::for_each(slopes.cbegin(), slopes.cend(), [&](auto v){ rel_slopes.push_back(std::max(v/total_slope,0.0)); });
         double max = *std::max_element(timings.cbegin(), timings.cend()),
                average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
                load_imbalance = (max / average - 1.0) * 100.0,
                skew = skewness<double>(timings.cbegin(), timings.cend());
 
-        if(!rank) steplogger->info("stats: ") << "load imbalance: " << load_imbalance << " skewness: " << skew;
+        if(!rank) {
+            steplogger->info("stats: ") << "load imbalance: " << load_imbalance << " skewness: " << skew;
+            perflogger->info("step:") << step << ",load_imbalance: " << load_imbalance << ",skewness: " << skew << ",loads: (" << timings << "), rslopes:("<<rel_slopes<<")" << "slopes:("<<slopes<<")";
+        }
+
+        int cell_cnt = my_cells.size();
+
+
         std::vector<std::array<int,2>> my_types(my_cell_count);
         for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
@@ -496,6 +523,23 @@ int main(int argc, char **argv) {
             //cnpy::npz_save("out.npz", "step-"+std::to_string(step+1), &types[0], {total_cell}, "a");
             cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
         }
+
+        if(pcall + ncall <= step && total_slope > 0 && skew > 0){
+            if(!rank) steplogger->info("call LB");
+            relative_slope = std::max(my_time_slope/total_slope, 0.0);
+
+            PAR_START_TIMING(lb_cost, world);
+            update_cell_weights(&my_cells, relative_slope);
+            zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            PAR_STOP_TIMING(lb_cost, world);
+
+            window.data_container.clear();
+            cell_cnt = my_cells.size();
+        }
+        MPI_Gather(&cell_cnt, 1, MPI_INT, &PE_cells.front(), 1, MPI_INT, 0, world);
+        if(!rank) perflogger->info("step:") << step << ",cells: (" << PE_cells << ")";
+
+        if(!rank) steplogger->info() << "Stop step "<< step;
     }
     PAR_STOP_TIMING(loop_time, world);
 

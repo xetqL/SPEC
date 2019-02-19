@@ -55,10 +55,10 @@ std::tuple<int, int, int, int> get_bounding_box(
 }
 
 template<typename Realtype, typename ContainerA>
-Realtype get_slope(const ContainerA& x){
+Realtype get_slope(const ContainerA& y){
 
-    std::vector<Realtype> y(x.size());
-    std::iota(y.begin(), y.end(), 0);
+    std::vector<Realtype> x(y.size());
+    std::iota(x.begin(),x.end(), 0);
 
     int n = x.size();
 
@@ -68,12 +68,22 @@ Realtype get_slope(const ContainerA& x){
     Realtype numerator = 0.0;
     Realtype denominator = 0.0;
 
-    for(int i=0; i<n; ++i){
+    for(int i=0; i<n; ++i) {
         numerator += (x[i] - avgX) * (y[i] - avgY);
         denominator += (x[i] - avgX) * (x[i] - avgX);
     }
 
-    return numerator / denominator;
+    return denominator == 0 ? (Realtype) 0 : numerator / denominator;
 }
-
+double slope(const std::vector<double>& y) {
+    std::vector<double> x(y.size());
+    std::iota(x.begin(), x.end(), 0);
+    const auto n    = x.size();
+    const auto s_x  = std::accumulate(x.begin(), x.end(), 0.0);
+    const auto s_y  = std::accumulate(y.begin(), y.end(), 0.0);
+    const auto s_xx = std::inner_product(x.begin(), x.end(), x.begin(), 0.0);
+    const auto s_xy = std::inner_product(x.begin(), x.end(), y.begin(), 0.0);
+    const auto a    = (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
+    return a;
+}
 #endif //SPEC_UTILS_HPP

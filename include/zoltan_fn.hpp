@@ -98,7 +98,7 @@ void unpack_particles ( void *data,
                         int *ierr) {
     auto *all_mesh_data = (std::vector<Cell> *) data;
     Cell v;
-    memcpy(&v, buf, sizeof(int) * 3 + sizeof(float));
+    memcpy(&v, buf, sizeof(Cell));
     all_mesh_data->push_back(v);
     *ierr = ZOLTAN_OK;
 
