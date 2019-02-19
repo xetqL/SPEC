@@ -1,35 +1,54 @@
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
+import multiprocessing
 def cell_to_pos(msx, msy, pos):
     return (pos % msx, int(pos / msx))
 
 filename = sys.argv[1]
 
 nb_step  = sys.argv[2]
-displ = len(nb_step)
-nb_step = int(nb_step)
+displ    = len(nb_step)
+nb_step  = int(nb_step)
 
-data = np.load(filename)
-
+data  = np.load(filename)
 shapex, shapey = data['shape']
 
 print(shapex, shapey)
 
-grid = np.zeros((shapex, shapey))
-for i in range(nb_step):
-    image = data['step-%d' % i]
-    assert image.shape[0] == shapey*shapex
+def processStep(img, i, data=data, shapex=shapex, shapey=shapey):
+    image = img
+    print('processing step %d'%i)
+    grid = np.zeros((shapey, shapex))
     fig, ax = plt.subplots(1, 1, figsize=(20,20))
     for id, type in enumerate(image):
         x, y = cell_to_pos(shapex, shapey, id)
-        grid[x][y] = type
+        grid[y][x] = type
+    ax.imshow(grid)
+    fig.savefig(("{0:0>%d}_water_dummy.jpg" % displ).format(i))
+    plt.close(fig)
+
+cpu_count = multiprocessing.cpu_count()
+pool = multiprocessing.Pool(cpu_count)
+pool.starmap(processStep, [(data['step-%d' % i], i) for i in range(nb_step)])
+
+'''
+data2 = np.load("gids-"+filename)
+shapex, shapey = data2['shape']
+
+print(shapex, shapey)
+
+grid = np.zeros((shapex, shapey))
+
+for i in range(nb_step):
+    image = data2['step-%d' % i]
+
+    fig, ax = plt.subplots(1, 1, figsize=(20, 20))
+    for id in image:
+        x, y = cell_to_pos(shapex, shapey, id)
+        grid[x][y] = 1
     ax.imshow(grid)
 
     fig.savefig(("{0:0>%d}_water_dummy.jpg" % displ).format(i))
     plt.close(fig)
-
-
-
-
-
+'''

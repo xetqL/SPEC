@@ -45,14 +45,15 @@ auto u = MPI_Wtime() - v
 
 #define WATER_TYPE 1
 #define ROCK_TYPE 0
+#define EMPTY_TYPE -1
 
 int rank;
+zz::log::LoggerPtr perflogger, steplogger;
 
 std::random_device rd;
 std::mt19937 gen(rd());
-std::normal_distribution<float> ndist(90, 10);
+std::normal_distribution<float> ndist(9, 1);
 std::uniform_real_distribution<float> udist(0, 1);
-
 
 std::vector<Cell> dummy_erosion_computation(int msx, int msy,
                                const std::vector<Cell>& _my_cells,
@@ -63,21 +64,147 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
 
     std::vector<Cell> my_cells = _my_cells;
     const std::vector<Cell>& my_old_cells = _my_cells;
-
-    int x1,x2,y1,y2; std::tie(x1,x2,y1,y2) = bbox;
+    int x1,x2,y1,y2; std::tie(x1,x2, y1,y2) = bbox;
     int total_box = (x2-x1) * (y2-y1);
     const size_t my_cell_count = my_cells.size();
     const size_t remote_count  = remote_cells.size();
-    std::vector<size_t> idx_neighbors(4, -1);
-    for(unsigned int i = 0; i < my_cell_count; ++i) {
-        Cell& cell = my_cells[i];
-        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
-        if(cell.type) { // Do nothing if type == ROCK_TYPE
-            std::this_thread::sleep_for(std::chrono::milliseconds( (int) std::max(ndist(gen), 0.0f)*0 ));
-        } else {
-            int _x,_y;
-            std::tie(_x,_y) = cell_to_position((x2-x1), (y2-y1), lid);
+    const size_t all_count     = my_cell_count + remote_count;
+    std::vector<size_t> idx_neighbors(3, -1);
+    for(unsigned int i = 0; i < all_count; ++i) {
+        const Cell* cell;
+        if(i < my_cell_count) cell = &my_old_cells[i];
+        else cell = &remote_cells[i - my_cell_count];
+        if(cell->type) { // Do nothing if type == ROCK_TYPE
+            auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell->gid));
+            if(cell->type) {
+                std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
+                if(lid+(x2-x1)+1 < total_box) idx_neighbors[0] = (data_pointers[lid+(x2-x1)+1]);
+                if(lid+1 < total_box)         idx_neighbors[1] = (data_pointers[lid+1]);
+                if( ((lid-(x2-x1))+1) >= 0 )  idx_neighbors[2] = data_pointers[((lid-(x2-x1))+1)];
+                for (auto idx_neighbor : idx_neighbors) {
+                    if(idx_neighbor > my_cell_count) continue;
+                    if(my_cells[idx_neighbor].type) continue;
+                    auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
+                    auto p = udist(gen);
+                    if (p < erosion_proba) {
+                        my_cells[idx_neighbor].type   = 1;
+                        my_cells[idx_neighbor].weight = 1;
+                    }
+                }
+            }
+        }
+    }
+    return my_cells;
+}
 
+
+std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
+                                            const std::vector<Cell>& _my_cells,
+                                            const std::vector<Cell>& remote_cells,
+                                            const std::vector<size_t>& data_pointers,
+                                            const std::tuple<int, int, int, int>& bbox) {
+
+
+    std::vector<Cell> my_cells = _my_cells;
+    const std::vector<Cell>& my_old_cells = _my_cells;
+
+    int x1,x2,y1,y2; std::tie(x1,x2, y1,y2) = bbox;
+    int total_box = (x2-x1) * (y2-y1);
+    const size_t my_cell_count = my_cells.size();
+    const size_t remote_count  = remote_cells.size();
+    const size_t all_count     = my_cell_count + remote_count;
+
+    std::vector<size_t> idx_neighbors(8, -1);
+    std::vector<float>  thetas(8, 0);
+
+    for(unsigned int i = 0; i < all_count; ++i) {
+        const Cell* cell;
+        if(i < my_cell_count) cell = &my_old_cells[i];
+        else cell = &remote_cells[i - my_cell_count];
+
+        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell->gid));
+        if(cell->type) { // Do nothing if type == ROCK_TYPE
+            auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell->gid));
+            if(cell->type) {
+                std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
+                if(lid+1 < total_box) {
+                    idx_neighbors[0] = (data_pointers[lid+1]);
+                    thetas[0]        = 1.0f;
+                }
+                if((lid-(x2-x1))+1 >= 0) {
+                    idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
+                    thetas[1]        = 1.0f/1.4142135f;
+                }
+                if(lid-(x2-x1) >= 0)            {
+                    idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
+                    thetas[2]        = 0;
+                }
+                /*if((lid-(x2-x1))-1 >= 0) {
+                    idx_neighbors[3] = (data_pointers[(lid-(x2-x1))-1]);
+                    thetas[3]        = -1.0f/1.4142135f;
+                }
+                if(lid-1 >= 0)                  {
+                    idx_neighbors[4] = (data_pointers[lid-1]);
+                    thetas[4]        = -M_PI;
+                }
+                if(lid+(x2-x1)-1 < total_box)   {
+                    idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
+                    thetas[5]        = -1.0f/1.4142135f;
+                }*/
+                if(lid+(x2-x1) < total_box)     {
+                    idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
+                    thetas[6]        = 0;
+                }
+                if(lid+(x2-x1)+1 < total_box)   {
+                    idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
+                    thetas[7]        = 1.0f/1.4142135f;
+                }
+                for (int j = 0; j < 8; ++j) {
+                    auto idx_neighbor = idx_neighbors[j];
+                    auto theta = thetas[j];
+                    if(idx_neighbor >= my_cell_count) continue;
+                    if(my_cells[idx_neighbor].type) continue;
+                    auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
+                    auto p = udist(gen);
+                    if (p < (theta) * erosion_proba) {
+                        my_cells[idx_neighbor].type   = 1;
+                        my_cells[idx_neighbor].weight = 1;
+                    }
+                }
+            }
+        }
+    }
+    return my_cells;
+}
+
+/*
+std::vector<Cell> invasion_percolation(int msx, int msy, float p,
+                                    const std::vector<Cell>& _my_cells,
+                                    const std::vector<Cell>& remote_cells,
+                                    const std::vector<size_t>& data_pointers,
+                                    const std::tuple<int, int, int, int>& bbox) {
+
+    std::vector<Cell> my_cells = _my_cells;
+    const size_t my_cell_count = my_cells.size();
+    const std::vector<Cell>& my_old_cells = _my_cells;
+
+    int x1,x2,y1,y2; std::tie(x1,x2, y1,y2) = bbox;
+    int total_box = (x2-x1) * (y2-y1);
+    const size_t remote_count  = remote_cells.size();
+
+
+    const size_t all_count     = my_cell_count + remote_count;
+
+    std::vector<size_t> idx_neighbors(4, -1);
+    for(unsigned int i = 0; i < all_count; ++i) {
+        const Cell* cell;
+
+        if(i < my_cell_count) cell = &my_old_cells[i];
+        else cell = &remote_cells[i - my_cell_count];
+
+        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell->gid));
+        if(cell->type) {
+            int _x,_y; std::tie(_x,_y) = cell_to_position((x2-x1), (y2-y1), lid);
             const Cell* neighbor_cell;
             std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
 
@@ -86,24 +213,33 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
             if(lid-(x2-x1) >= 0)        idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
             if(lid-1 >= 0)              idx_neighbors[3] = (data_pointers[lid-1]);
 
-            for(auto idx_neighbor : idx_neighbors){
-                if(idx_neighbor > (my_cell_count + remote_count) ) continue;
-                if(idx_neighbor >= my_cell_count)
-                    neighbor_cell = &remote_cells[idx_neighbor - my_cell_count];
-                else neighbor_cell =
-                        &my_old_cells[idx_neighbor];
-                if(neighbor_cell->type) {
-                    auto p = udist(gen);
-                    cell.type = p < cell.erosion_probability ? 1 : 0;
-                    cell.weight = 1.0;
-                    //break;
-                }
-            }
+            std::vector<std::pair<float, size_t>> neighbor_probability;
+            for (unsigned long idx_neighbor : idx_neighbors) {
+                if(idx_neighbor > (my_cell_count + remote_count)) continue;
+                if(idx_neighbor >= my_cell_count) continue;
+                if(my_old_cells[idx_neighbor].type) continue;
 
+                auto gid = my_old_cells[idx_neighbor].gid;
+                auto pos = cell_to_global_position(msx,msy,gid);
+                float rel_pos = 1.0-((float) msx - (float) (pos.first+1)) / (float) (msx);
+                //std::cout << udist(gen) * p + (1-p) * rel_pos << std::endl;
+
+                neighbor_probability.emplace_back(udist(gen) * p + (1-p) * rel_pos, idx_neighbor);
+            }
+            std::sort(neighbor_probability.begin(),
+                      neighbor_probability.end(), [](auto a, auto b){return a.first>b.first;});
+
+            int idx_invasion_neighbor = -1;
+            if(!neighbor_probability.empty()){
+                idx_invasion_neighbor = neighbor_probability.front().second;
+                my_cells[idx_invasion_neighbor].type   = 1;
+                my_cells[idx_invasion_neighbor].weight = 1;
+            }
         }
     }
     return my_cells;
 }
+*/
 
 void populate_data_pointers(int msx, int msy,
                             std::vector<size_t>* _data_pointers,
@@ -111,7 +247,7 @@ void populate_data_pointers(int msx, int msy,
                             const std::vector<Cell>& remote_cells,
                             const std::tuple<int, int, int, int>& bbox) {
     std::vector<size_t>& data_pointers = *(_data_pointers);
-    int x1, x2, y1, y2; std::tie(x1,x2,y1,y2) = bbox;
+    int x1, x2, y1, y2; std::tie(x1,x2, y1,y2) = bbox;
     int my_box = (x2-x1) * (y2-y1);
     data_pointers.resize(my_box);
     auto mine_size   = my_cells.size();
@@ -120,12 +256,15 @@ void populate_data_pointers(int msx, int msy,
         const Cell& cell = my_cells[i];
         auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
         data_pointers[lid] = i;
+
     }
     for (size_t i = 0; i < remote_size; ++i) {
         const Cell& cell = remote_cells[i];
         auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
         data_pointers[lid] = i+mine_size;
     }
+    //if(!rank) std::cout << mine_size << std::endl;
+    //if(!rank) std::for_each(data_pointers.cbegin(), data_pointers.cend(), [&](auto v){ std::cout << mine_size << ";" << v << ";" << my_cells[v].gid << std::endl; });
 }
 
 template<class RealType, class Iter>
@@ -141,9 +280,84 @@ inline RealType skewness(Iter b, Iter e) {
     return diff1 / std::pow(diff2, 3.0/2.0);
 }
 
-void print_bbox(std::tuple<int, int, int , int> bbox){
+void print_bbox(std::tuple<int, int, int , int> bbox) {
     std::cout << std::get<0>(bbox) << ", " << std::get<1>(bbox) << ", " << std::get<2>(bbox) << ", " << std::get<3>(bbox) << std::endl;
 }
+std::vector<Cell> generate_lattice_CA_diffusion(int msx, int msy,
+                      int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols){
+    int cell_per_process = cell_in_my_cols*cell_in_my_rows;
+
+    std::vector<Cell> my_cells; my_cells.reserve(cell_per_process);
+
+    float minp, maxp;
+
+    for(int j = 0; j < cell_in_my_cols; ++j) {
+        if(j % 100 == 0){
+            std::uniform_real_distribution<float> real_dist1(0.0f, 0.1f);
+            minp = real_dist1(gen);
+            std::uniform_real_distribution<float> real_dist2(0.2f, 0.5f);
+            maxp = real_dist2(gen);
+        }
+        std::uniform_real_distribution<float> real_dist(minp, maxp);
+        //min_bucket * 1/(1.5f*nb_bucket), max_bucket * 1/(1.5f*nb_bucket));
+        for(int i = 0; i < cell_in_my_rows; ++i) {
+            bool rock = std::find(water_cols.begin(), water_cols.end(), (i + (y_proc_idx * cell_in_my_cols))) == water_cols.end();
+            int id = cell_in_my_rows * x_proc_idx + j + msx * (i + (y_proc_idx * cell_in_my_cols));
+            my_cells.emplace_back(id, rock ? ROCK_TYPE : WATER_TYPE, rock ? 0.0f : 1.0f, rock ? real_dist(gen) : 0.0);
+        }
+    }
+
+    return my_cells;
+}
+
+std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
+                                                int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols){
+    const int minr = 5, maxr = 15, avgr = maxr-minr;
+    int circles = (int) ((msx * msy) / (M_PI*(avgr*avgr)));
+    int nb_var = 4;
+    int circle_data_space = circles*nb_var;
+    std::vector<float> circles_var(circle_data_space);
+    if(!rank){
+        std::uniform_int_distribution<int> distx(0, msx), disty(0, msy), dist_r(minr, maxr);
+        std::uniform_real_distribution<float> erosion_dist(0.01f, 0.2f);
+        for (int k = 0; k < circle_data_space; k+=4) {
+            auto x = distx(gen); auto y = disty(gen); auto r = dist_r(gen);
+            circles_var[k]   = ((float) x);
+            circles_var[k+1] = ((float) y);
+            circles_var[k+2] = ((float) r);
+            circles_var[k+3] = ((float) erosion_dist(gen));
+        }
+    }
+    MPI_Bcast(&circles_var.front(), circle_data_space, MPI_FLOAT, 0, MPI_COMM_WORLD);
+    std::vector<std::tuple<int, int, int, float>> rock_fn;
+    for (int l = 0; l < circle_data_space; l+=4) {
+        rock_fn.emplace_back(circles_var[l], circles_var[l+1], circles_var[l+2], circles_var[l+3]);
+    }
+
+    int cell_per_process = cell_in_my_cols*cell_in_my_rows;
+    std::vector<Cell> my_cells; my_cells.reserve(cell_per_process);
+
+    float minp, maxp;
+
+    for(int j = 0; j < cell_in_my_cols; ++j) {
+        for(int i = 0; i < cell_in_my_rows; ++i) {
+            int id = cell_in_my_rows * x_proc_idx + i + msx * (j + (y_proc_idx * cell_in_my_cols));
+            bool is_rock = false;
+            float eprob = 1.0;
+            auto pos = cell_to_global_position(msx, msy, id);
+            for ( auto circle : rock_fn) {
+                int x2, y2, r; std::tie(x2, y2, r, eprob) = circle;
+                is_rock = std::sqrt( std::pow(x2-pos.first,2) + std::pow(y2 - pos.second,2) ) < r;
+                //std::cout <<x_proc_idx << " " << y_proc_idx << " "<< std::sqrt( std::pow(x2-pos.first,2) + std::pow(y2 - pos.second,2) ) << " " << r << std::endl;
+                if(is_rock) break;
+            }
+            std::uniform_real_distribution<float> real_dist(eprob-0.05f, eprob+0.05f);
+            my_cells.emplace_back(id, is_rock ? ROCK_TYPE : WATER_TYPE, is_rock ? 0.0 : 1.0, is_rock ? real_dist(gen) : 1.0);
+        }
+    }
+    return my_cells;
+}
+
 
 int main(int argc, char **argv) {
     int worldsize;
@@ -154,11 +368,11 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(world, &rank);
     std::string str_rank = "[RANK " + std::to_string(rank) + "] ";
     // Generate data
-    int xprocs = std::atoi(argv[1]), yprocs = std::atoi(argv[2]);
+    int xprocs = std::atoi(argv[2]), yprocs = std::atoi(argv[1]);
     int cell_per_process = std::atoi(argv[3]);
     const int MAX_STEP = std::atoi(argv[4]);
     const int seed = std::atoi(argv[5]);
-    zz::log::LoggerPtr perflogger, steplogger;
+
 
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);
@@ -170,11 +384,11 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    if (xprocs < yprocs) {
+    /*if (xprocs  yprocs) {
         steplogger->fatal() << "Not a rectangular grid where X >= Y";
         MPI_Abort(world, 1);
         return EXIT_FAILURE;
-    }
+    }*/
 
     int cell_in_my_rows = (int) std::sqrt(cell_per_process), cell_in_my_cols = cell_in_my_rows;
     int xcells = cell_in_my_rows * xprocs, ycells = cell_in_my_rows * yprocs;
@@ -184,17 +398,21 @@ int main(int argc, char **argv) {
     std::mt19937 gen(seed); ///predictable sequence of value
 
     std::shuffle(cols.begin(), cols.end(), gen);
-    std::vector<int> water_cols(cols.begin(), cols.begin() + 1);
+    cols = {0, 1};
+    std::vector<int> water_cols(cols.begin(), cols.begin()+1 );
     std::sort(water_cols.begin(), water_cols.end());
-    //std::for_each(water_cols.cbegin(), water_cols.cend(), [](auto v){ std::cout << v << std::endl; });
+    std::for_each(water_cols.cbegin(), water_cols.cend(), [](auto v){ std::cout << v << std::endl; });
 
     int& msx = Cell::get_msx(); msx = xcells;
     int& msy = Cell::get_msy(); msy = ycells;
+
     int shape[2] = {msx,msy};
     if(!rank) cnpy::npz_save("out.npz", "shape", &shape[0], {2}, "w");
+    if(!rank) cnpy::npz_save("gids-out.npz", "shape", &shape[0], {2}, "w");
 
     int x_proc_idx, y_proc_idx;
     std::tie(x_proc_idx, y_proc_idx) = cell_to_global_position(xprocs, yprocs, rank);
+    std::cout << x_proc_idx << " ; " << y_proc_idx << std::endl;
     unsigned long total_cell = cell_per_process * worldsize;
     auto datatype   = Cell::register_datatype();
 
@@ -202,48 +420,30 @@ int main(int argc, char **argv) {
         perflogger->info("CPU COUNT:")    << worldsize;
         perflogger->info("GRID PSIZE X:") << xprocs;
         perflogger->info("GRID PSIZE Y:") << yprocs;
+        perflogger->info("GRID SIZE  X:") << msx;
+        perflogger->info("GRID SIZE  Y:") << msy;
+        perflogger->info("EACH SIZE  X:") << xcells;
+        perflogger->info("EACH SIZE  Y:") << ycells;
     }
 
-    std::vector<Cell> my_cells; my_cells.reserve(cell_per_process);
-    const int nb_bucket = 8;
-    //gen.seed(1);
     if(!rank) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
 
-    float minp, maxp;
-
-    for(int j = 0; j < cell_in_my_cols; ++j) {
-
-        if(j % 100 == 0){
-            std::uniform_real_distribution<float> real_dist1(0.0f, 0.1f);
-            minp = real_dist1(gen);
-            std::uniform_real_distribution<float> real_dist2(0.2f, 0.5f);
-            maxp = real_dist2(gen);
-        }
-
-        std::uniform_real_distribution<float> real_dist(minp, maxp);
-
-        //min_bucket * 1/(1.5f*nb_bucket), max_bucket * 1/(1.5f*nb_bucket));
-
-        for(int i = 0; i < cell_in_my_rows; ++i) {
-            bool rock = std::find(water_cols.begin(), water_cols.end(), (i + (y_proc_idx * cell_in_my_cols))) == water_cols.end();
-            int id = cell_in_my_rows * x_proc_idx + j + msx * (i + (y_proc_idx * cell_in_my_cols));
-            my_cells.emplace_back(id, rock ? ROCK_TYPE : WATER_TYPE, rock ? 0.0f : 1.0f, rock ? real_dist(gen) : 0.0);
-        }
-    }
+    auto my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
 
     const int my_cell_count = my_cells.size();
+
     std::vector<std::array<int,2>> all_types(total_cell);
     std::vector<std::array<int,2>> my_types(my_cell_count);
     for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
-
     gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
-
     if(!rank) {
         std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
-        std::vector<int> types;
+        std::vector<int> types, water_gid;
         std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
+        std::for_each(all_types.begin(), all_types.end(), [&water_gid](auto e){if(e[1]) water_gid.push_back(e[0]);});
         assert((*(all_types.end() - 1))[0] == total_cell-1);
         cnpy::npz_save("out.npz", "step-"+std::to_string(0), &types[0], {total_cell}, "a");
+        cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
     }
 
     int recv, sent;
@@ -251,7 +451,6 @@ int main(int argc, char **argv) {
     /* Initial load balancing */
     auto zoltan_lb = zoltan_create_wrapper(true, world);
     zoltan_load_balance(&my_cells, zoltan_lb, true, true);
-
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
     std::vector<size_t> data_pointers;
@@ -265,11 +464,11 @@ int main(int argc, char **argv) {
         // Share my cells with my neighbors to propagate their state
 
         auto remote_cells = zoltan_exchange_data(zoltan_lb, my_cells, &recv, &sent, datatype.element_datatype, world, 1.0);
-
         auto bbox = get_bounding_box(my_cells, remote_cells);
+
         //print_bbox(bbox);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
-        my_cells = dummy_erosion_computation(msx, msy, my_cells, remote_cells, data_pointers, bbox);
+        my_cells = dummy_erosion_computation2(msx, msy, my_cells, remote_cells, data_pointers, bbox);
 
         CHECKPOINT_TIMING(step_time, my_step_time);
         PAR_STOP_TIMING(step_time, world);
@@ -287,11 +486,13 @@ int main(int argc, char **argv) {
         std::vector<std::array<int,2>> my_types(my_cell_count);
         for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
-        if(!rank){
+        if(!rank) {
             std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
-            std::vector<int> types;
+            std::vector<int> types, water_gid;
             std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
+            std::for_each(all_types.begin(), all_types.end(), [&water_gid](auto e){if(e[1]) water_gid.push_back(e[0]);});
             cnpy::npz_save("out.npz", "step-"+std::to_string(step+1), &types[0], {total_cell}, "a");
+            cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &water_gid[0], {water_gid.size()}, "a");
         }
     }
 

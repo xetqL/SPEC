@@ -44,8 +44,8 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
+					<Add directory="/home/xetql/libraries/Zoltan/include"/>
 					<Add directory="/usr/local/include"/>
-					<Add directory="/home/xetql/libraries/cnpy"/>
 				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 SPEC"/>
@@ -61,8 +61,8 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
+					<Add directory="/home/xetql/libraries/Zoltan/include"/>
 					<Add directory="/usr/local/include"/>
-					<Add directory="/home/xetql/libraries/cnpy"/>
 				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 SPEC/fast"/>

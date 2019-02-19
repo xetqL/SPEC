@@ -10,7 +10,7 @@
 #include "utils.hpp"
 
 struct Cell {
-    int gid, type;
+    int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
 
     Cell() : gid(0), type(0), weight(0), erosion_probability(0) {};
