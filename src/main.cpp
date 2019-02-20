@@ -510,7 +510,7 @@ int main(int argc, char **argv) {
 
         if(!rank) {
             steplogger->info("stats: ") << "load imbalance: " << load_imbalance << " skewness: " << skew;
-            perflogger->info("\"step\":") << step << ",\"load_imbalance\": " << load_imbalance << ",\"skewness\": " << skew << ",\"loads\": (" << timings << "),\"rslopes\": ["<<rel_slopes<<"]" << ",\"slopes\":["<<slopes<<"]";
+            perflogger->info("\"step\":") << step << ",\"load_imbalance\": " << load_imbalance << ",\"skewness\": " << skew << ",\"loads\": [" << timings << "],\"slopes\":["<<slopes<<"]";
         }
 
         int cell_cnt = my_cells.size();
