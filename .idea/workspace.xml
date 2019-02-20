@@ -12,7 +12,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="189540d3-2c33-45a3-bac2-9d9825cbacfb" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SPEC.cbp" beforeDir="false" afterPath="$PROJECT_DIR$/SPEC.cbp" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/cmake-build-debug/" />
     <ignored path="$PROJECT_DIR$/CMakeFiles/" />
@@ -28,10 +28,17 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="285">
-              <caret line="507" column="74" lean-forward="true" selection-start-line="507" selection-start-column="74" selection-end-line="507" selection-end-column="74" />
+            <state relative-caret-position="405">
+              <caret line="527" column="6" lean-forward="true" selection-start-line="527" selection-start-column="6" selection-end-line="527" selection-end-column="6" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
+                <element signature="e#267#284#0" expanded="true" />
+                <element signature="e#293#323#0" expanded="true" />
+                <element signature="e#10793#10821#0" expanded="true" />
+                <element signature="e#10960#10988#0" expanded="true" />
+                <element signature="e#17082#17226#0" expanded="true" />
+                <element signature="e#18214#19148#0" expanded="true" />
+                <element signature="e#22190#23050#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -40,8 +47,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/log/perf.log">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="314">
-              <caret line="54" column="84" selection-start-line="54" selection-start-column="84" selection-end-line="54" selection-end-column="84" />
+            <state relative-caret-position="60">
+              <caret line="4" column="38" selection-start-line="4" selection-start-column="38" selection-end-line="4" selection-end-column="38" />
             </state>
           </provider>
         </entry>
@@ -211,7 +218,6 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="3" y="25" width="1914" height="1052" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" sideWeight="0.49946293" visible="true" weight="0.13650964" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -467,22 +473,29 @@
     <entry file="file://$PROJECT_DIR$/24_water_dummy.jpg">
       <provider selected="true" editor-type-id="images" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/log/perf.log">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="314">
-          <caret line="54" column="84" selection-start-line="54" selection-start-column="84" selection-end-line="54" selection-end-column="84" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/28_water_dummy.jpg">
       <provider selected="true" editor-type-id="images" />
     </entry>
+    <entry file="file://$PROJECT_DIR$/log/perf.log">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="60">
+          <caret line="4" column="38" selection-start-line="4" selection-start-column="38" selection-end-line="4" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/main.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="507" column="74" lean-forward="true" selection-start-line="507" selection-start-column="74" selection-end-line="507" selection-end-column="74" />
+        <state relative-caret-position="405">
+          <caret line="527" column="6" lean-forward="true" selection-start-line="527" selection-start-column="6" selection-end-line="527" selection-end-column="6" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
+            <element signature="e#267#284#0" expanded="true" />
+            <element signature="e#293#323#0" expanded="true" />
+            <element signature="e#10793#10821#0" expanded="true" />
+            <element signature="e#10960#10988#0" expanded="true" />
+            <element signature="e#17082#17226#0" expanded="true" />
+            <element signature="e#18214#19148#0" expanded="true" />
+            <element signature="e#22190#23050#0" expanded="true" />
           </folding>
         </state>
       </provider>

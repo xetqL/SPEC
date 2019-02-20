@@ -456,6 +456,7 @@ int main(int argc, char **argv) {
         //cnpy::npz_save("out.npz", "step-"+std::to_string(0), &types[0], {total_cell}, "a");
         cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
     }
+    if(!rank) all_types.resize(total_cell);
 #endif
     int recv, sent;
     if(!rank) steplogger->info() << "End of map generation";
@@ -465,7 +466,7 @@ int main(int argc, char **argv) {
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
     std::vector<size_t> data_pointers;
-    if(!rank) all_types.resize(total_cell);
+
     std::vector<double> lb_costs;
     SlidingWindow<double> window(20); //sliding window with max size = TODO: tune it?
     int ncall = 20, pcall=0;
