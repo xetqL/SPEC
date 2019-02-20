@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
-project(SPEC)
+project(SPEC C CXX)
 
-enable_language(CXX)
+#enable_language(C CXX)
 find_package(MPI REQUIRED)
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 14)
@@ -15,6 +15,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 set(HighFive_DIR "~/libraries/HighFive")
+
+find_package (Threads)
 
 find_library(ZOLTAN
         NAMES zoltan libzoltan
@@ -54,7 +56,7 @@ target_include_directories(SPEC PRIVATE ${ZOLTAN_INCLUDES})
 #target_link_libraries(SPEC $<TARGET_PROPERTY:HighFive,INTERFACE_LINK_LIBRARIES>)
 target_link_libraries(SPEC ${ZOLTAN})
 target_link_libraries(SPEC z)
-
+target_link_libraries(SPEC ${CMAKE_THREAD_LIBS_INIT})
 if(DEFINED PRODUCE_OUTPUTS)
 
     message("Linking with io library")
