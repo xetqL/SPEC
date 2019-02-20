@@ -10,8 +10,11 @@
 #include <mpi.h>
 #include <numeric>
 #include <random>
-#include <cnpy.h>
 #include <complex>
+
+#ifdef PRODUCE_OUTPUTS
+    #include <cnpy.h>
+#endif
 
 #include "../include/cell.hpp"
 #include "../include/utils.hpp"
@@ -414,9 +417,10 @@ int main(int argc, char **argv) {
     int& msy = Cell::get_msy(); msy = ycells;
 
     int shape[2] = {msx,msy};
+#ifdef PRODUCE_OUTPUTS
     //if(!rank) cnpy::npz_save("out.npz", "shape", &shape[0], {2}, "w");
     if(!rank) cnpy::npz_save("gids-out.npz", "shape", &shape[0], {2}, "w");
-
+#endif
     int x_proc_idx, y_proc_idx;
     std::tie(x_proc_idx, y_proc_idx) = cell_to_global_position(xprocs, yprocs, rank);
     //std::cout << x_proc_idx << " ; " << y_proc_idx << std::endl;
@@ -438,7 +442,7 @@ int main(int argc, char **argv) {
     auto my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
 
     const int my_cell_count = my_cells.size();
-
+#ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
     std::vector<std::array<int,2>> my_types(my_cell_count);
     for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
@@ -452,7 +456,7 @@ int main(int argc, char **argv) {
         //cnpy::npz_save("out.npz", "step-"+std::to_string(0), &types[0], {total_cell}, "a");
         cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
     }
-
+#endif
     int recv, sent;
     if(!rank) steplogger->info() << "End of map generation";
     /* Initial load balancing */
@@ -509,7 +513,7 @@ int main(int argc, char **argv) {
         }
 
         int cell_cnt = my_cells.size();
-
+#ifdef PRODUCE_OUTPUTS
         std::vector<std::array<int,2>> my_types(my_cell_count);
         for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
@@ -521,7 +525,7 @@ int main(int argc, char **argv) {
             //cnpy::npz_save("out.npz", "step-"+std::to_string(step+1), &types[0], {total_cell}, "a");
             cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
         }
-
+#endif
         if(pcall + ncall <= step && total_slope > 0 && skew > 0){
             if(!rank) steplogger->info("call LB");
             relative_slope = std::max(my_time_slope/total_slope, 0.0); //TODO: OVERLOADED PROCESSORS ARE THOSE WITH POSITIVE MYSLOPE-MEAN(ALL_WORKLOAD_SLOPE).
