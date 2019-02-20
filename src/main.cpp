@@ -510,7 +510,6 @@ int main(int argc, char **argv) {
 
         int cell_cnt = my_cells.size();
 
-
         std::vector<std::array<int,2>> my_types(my_cell_count);
         for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
@@ -535,8 +534,7 @@ int main(int argc, char **argv) {
             cell_cnt = my_cells.size();
         }
         MPI_Gather(&cell_cnt, 1, MPI_INT, &PE_cells.front(), 1, MPI_INT, 0, world);
-        if(!rank) perflogger->info("step:") << step << ",cells: (" << PE_cells << ")";
-
+        //if(!rank) perflogger->info("step:") << step << ",cells: (" << PE_cells << ")";
         if(!rank) steplogger->info() << "Stop step "<< step;
     }
     PAR_STOP_TIMING(loop_time, world);
