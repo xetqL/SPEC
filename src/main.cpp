@@ -428,13 +428,13 @@ int main(int argc, char **argv) {
     auto datatype   = Cell::register_datatype();
 
     if(!rank) {
-        perflogger->info("CPU COUNT:")    << worldsize;
-        perflogger->info("GRID PSIZE X:") << xprocs;
-        perflogger->info("GRID PSIZE Y:") << yprocs;
-        perflogger->info("GRID SIZE  X:") << msx;
-        perflogger->info("GRID SIZE  Y:") << msy;
-        perflogger->info("EACH SIZE  X:") << xcells;
-        perflogger->info("EACH SIZE  Y:") << ycells;
+        steplogger->info("CPU COUNT:")    << worldsize;
+        steplogger->info("GRID PSIZE X:") << xprocs;
+        steplogger->info("GRID PSIZE Y:") << yprocs;
+        steplogger->info("GRID SIZE  X:") << msx;
+        steplogger->info("GRID SIZE  Y:") << msy;
+        steplogger->info("EACH SIZE  X:") << xcells;
+        steplogger->info("EACH SIZE  Y:") << ycells;
     }
 
     if(!rank) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
@@ -510,7 +510,7 @@ int main(int argc, char **argv) {
 
         if(!rank) {
             steplogger->info("stats: ") << "load imbalance: " << load_imbalance << " skewness: " << skew;
-            perflogger->info("step:") << step << ",load_imbalance: " << load_imbalance << ",skewness: " << skew << ",loads: (" << timings << "), rslopes:("<<rel_slopes<<")" << "slopes:("<<slopes<<")";
+            perflogger->info("\"step:\"") << step << ",\"load_imbalance\": " << load_imbalance << ",\"skewness\": " << skew << ",\"loads\": (" << timings << "), \"rslopes\": ["<<rel_slopes<<"]" << "\"slopes\":["<<slopes<<"]";
         }
 
         int cell_cnt = my_cells.size();
