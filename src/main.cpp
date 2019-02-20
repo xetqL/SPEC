@@ -54,6 +54,7 @@ auto u = MPI_Wtime() - v
 int rank;
 zz::log::LoggerPtr perflogger, steplogger;
 
+const float bytes_per_flop = 2.77f;
 std::random_device rd;
 std::mt19937 gen(rd());
 std::normal_distribution<float> ndist(9, 1);
@@ -121,7 +122,7 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
 
     std::vector<size_t> idx_neighbors(8, -1);
     std::vector<float>  thetas(8, 0);
-
+    volatile float data_store = 0xAF;
     for(unsigned int i = 0; i < all_count; ++i) {
         const Cell* cell;
         if(i < my_cell_count) cell = &my_old_cells[i];
@@ -129,7 +130,8 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
 
         auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell->gid));
         if(cell->type) { // Do nothing if type == ROCK_TYPE
-            auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell->gid));
+            auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
+            auto lid = position_to_cell(x2-x1, y2-y1, __pos);
             if(cell->type) {
                 std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
                 if(lid+1 < total_box) {
@@ -159,18 +161,26 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                     if(my_cells[idx_neighbor].type) continue;
                     auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
                     auto p = udist(gen);
-                    if (p < (theta) * erosion_proba) {
-                        my_cells[idx_neighbor].type   = 1;
-                        my_cells[idx_neighbor].weight = 1;
+                    if( erosion_proba < 1.0 ){
+                        if (p < (theta) * erosion_proba) {
+                            my_cells[idx_neighbor].type   = 1;
+                            my_cells[idx_neighbor].weight = 1;
+                        }
+                    } else {
+                        if (p < 1.0f - (msx - __pos.first) / (float) msx) {
+                            my_cells[idx_neighbor].type   = 1;
+                            my_cells[idx_neighbor].weight = 1;
+                        }
                     }
                 }
 
                 /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
-                float flop = flopdist(gen);
-                const int nb_flop = (int) flop;
+                data_store = flopdist(gen);
+                const int nb_flop = (int) data_store;
+                const int nb_bytes = (int) (nb_flop * bytes_per_flop) + 1;
                 float res = 0.0;
                 for(int i = 0; i < nb_flop; ++i) {
-                    __asm__(""); res = flop * flop;
+                    __asm__(""); res = data_store * data_store;
                 }
                 thetas[0] = res;
             }
@@ -320,14 +330,14 @@ std::vector<Cell> generate_lattice_CA_diffusion(int msx, int msy,
 std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
                                                 int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols){
     const int smallest_coordinate = std::min(msx, msy);
-    const int minr = (int) (smallest_coordinate*0.01f), maxr = (int) (smallest_coordinate*0.05f), avgr = maxr-minr;
+    const int minr = (int) (smallest_coordinate*0.05f), maxr = (int) (smallest_coordinate*0.1f), avgr = maxr-minr;
     int circles = (int) ( 2*(msx * msy) / (M_PI*(avgr*avgr)));
     int nb_var = 4;
     int circle_data_space = circles*nb_var;
     std::vector<float> circles_var(circle_data_space);
-    if(!rank){
+    if(!rank) {
         std::uniform_int_distribution<int> distx(0, msx), disty(0, msy), dist_r(minr, maxr);
-        std::uniform_real_distribution<float> erosion_dist(0.01f, 0.8f);
+        std::uniform_real_distribution<float> erosion_dist(0.005f, 0.1f);
         //std::gamma_distribution<float> erosion_dist(2, 0.01);
         for (int k = 0; k < circle_data_space; k+=4) {
             auto x = distx(gen); auto y = disty(gen);
@@ -346,19 +356,30 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
 
     int cell_per_process = cell_in_my_cols*cell_in_my_rows;
     std::vector<Cell> my_cells; my_cells.reserve(cell_per_process);
-
+    int main_type;
+    float main_weight;
     for(int j = 0; j < cell_in_my_cols; ++j) {
+
         for(int i = 0; i < cell_in_my_rows; ++i) {
             int id = cell_in_my_rows * x_proc_idx + i + msx * (j + (y_proc_idx * cell_in_my_cols));
             bool is_rock = false;
             float eprob = 1.0;
             auto pos = cell_to_global_position(msx, msy, id);
-            for ( auto circle : rock_fn) {
-                int x2, y2, r; std::tie(x2, y2, r, eprob) = circle;
-                is_rock = std::sqrt( std::pow(x2-pos.first,2) + std::pow(y2 - pos.second,2) ) < r;
-                if(is_rock) break;
+
+            if(x_proc_idx+i == 0){
+                main_type = WATER_TYPE;
+                main_weight = 1.0;
+            } else {
+                for ( auto circle : rock_fn) {
+                    int x2, y2, r; std::tie(x2, y2, r, eprob) = circle;
+                    is_rock = std::sqrt( std::pow(x2-pos.first,2) + std::pow(y2 - pos.second,2) ) < r;
+                    if(is_rock) break;
+                }
+                main_type = ROCK_TYPE;
+                main_weight = 0.0;
             }
-            my_cells.emplace_back(id, is_rock ? ROCK_TYPE : WATER_TYPE, is_rock ? 0.0 : 1.0, is_rock ? eprob: 1.0);
+
+            my_cells.emplace_back(id, is_rock ? ROCK_TYPE : main_type, is_rock ? 0.0 : main_weight, is_rock ? eprob : 1.0);
         }
     }
     return my_cells;
@@ -426,7 +447,6 @@ int main(int argc, char **argv) {
     //std::cout << x_proc_idx << " ; " << y_proc_idx << std::endl;
     unsigned long total_cell = cell_per_process * worldsize;
     auto datatype   = Cell::register_datatype();
-
     if(!rank) {
         steplogger->info("CPU COUNT:")    << worldsize;
         steplogger->info("GRID PSIZE X:") << xprocs;
@@ -436,12 +456,10 @@ int main(int argc, char **argv) {
         steplogger->info("EACH SIZE  X:") << xcells;
         steplogger->info("EACH SIZE  Y:") << ycells;
     }
-
     if(!rank) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
-
     auto my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
-
     const int my_cell_count = my_cells.size();
+
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
     std::vector<std::array<int,2>> my_types(my_cell_count);
@@ -461,13 +479,19 @@ int main(int argc, char **argv) {
     int recv, sent;
     if(!rank) steplogger->info() << "End of map generation";
     /* Initial load balancing */
+    std::vector<double> lb_costs;
     auto zoltan_lb = zoltan_create_wrapper(true, world);
+
+    PAR_START_TIMING(current_lb_cost, world);
     zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+    PAR_STOP_TIMING(current_lb_cost, world);
+    lb_costs.push_back(current_lb_cost);
+
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
     std::vector<size_t> data_pointers;
 
-    std::vector<double> lb_costs;
+
     SlidingWindow<double> window(20); //sliding window with max size = TODO: tune it?
     int ncall = 20, pcall=0;
     PAR_START_TIMING(loop_time, world);
@@ -527,17 +551,18 @@ int main(int argc, char **argv) {
             cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
         }
 #endif
-        if(pcall + ncall <= step && total_slope > 0 && skew > 0){
+        if(pcall + ncall <= step && total_slope > 0 && skew > 0) {
             if(!rank) steplogger->info("call LB");
             relative_slope = std::max(my_time_slope/total_slope, 0.0); //TODO: OVERLOADED PROCESSORS ARE THOSE WITH POSITIVE MYSLOPE-MEAN(ALL_WORKLOAD_SLOPE).
             PAR_START_TIMING(lb_cost, world);
             update_cell_weights(&my_cells, relative_slope);
             zoltan_load_balance(&my_cells, zoltan_lb, true, true);
             PAR_STOP_TIMING(lb_cost, world);
-
             window.data_container.clear();
             cell_cnt = my_cells.size();
+            pcall = step;
         }
+
         MPI_Gather(&cell_cnt, 1, MPI_INT, &PE_cells.front(), 1, MPI_INT, 0, world);
         //if(!rank) perflogger->info("step:") << step << ",cells: (" << PE_cells << ")";
         if(!rank) steplogger->info() << "Stop step "<< step;

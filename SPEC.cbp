@@ -44,7 +44,10 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
+					<Add option="-DPRODUCE_OUTPUTS=1"/>
+					<Add option="-DLB_METHOD=1"/>
 					<Add directory="/home/xetql/libraries/Zoltan/include"/>
+					<Add directory="/home/xetql/libraries/cnpy"/>
 				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 SPEC"/>
@@ -60,7 +63,10 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
+					<Add option="-DPRODUCE_OUTPUTS=1"/>
+					<Add option="-DLB_METHOD=1"/>
 					<Add directory="/home/xetql/libraries/Zoltan/include"/>
+					<Add directory="/home/xetql/libraries/cnpy"/>
 				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -f &quot;/home/xetql/SPEC/Makefile&quot;  VERBOSE=1 SPEC/fast"/>

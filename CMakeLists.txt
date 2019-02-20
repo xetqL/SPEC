@@ -46,7 +46,6 @@ endif()
 set(CMAKE_SOURCE_DIR src)
 set(CMAKE_INCLUDE_PATH include)
 
-
 add_executable(SPEC ${CMAKE_SOURCE_DIR}/main.cpp ${CMAKE_SOURCE_DIR}/zupply.cpp ${CMAKE_SOURCE_DIR}/zupply.hpp include/zoltan_fn.hpp include/cell.hpp include/communication.hpp include/utils.hpp include/io.hpp include/window.hpp)
 
 target_include_directories(SPEC INTERFACE ${CMAKE_SOURCE_DIR}/include)
@@ -57,6 +56,8 @@ target_include_directories(SPEC PRIVATE ${ZOLTAN_INCLUDES})
 target_link_libraries(SPEC ${ZOLTAN})
 target_link_libraries(SPEC z)
 target_link_libraries(SPEC ${CMAKE_THREAD_LIBS_INIT})
+
+set(ignoreMe "${PRODUCE_OUTPUTS}")
 if(DEFINED PRODUCE_OUTPUTS)
 
     message("Linking with io library")
@@ -65,6 +66,16 @@ if(DEFINED PRODUCE_OUTPUTS)
     
     target_link_libraries(SPEC ${CNPY})
 
-    target_compile_definitions(SPEC PRIVATE UNLOADING_MODEL=${UNLOADING_MODEL})
+    target_compile_definitions(SPEC PRIVATE PRODUCE_OUTPUTS=1)
 
+endif()
+
+if(DEFINED DISABLE_LB)
+    target_compile_definitions(SPEC PRIVATE LB_ENABLED=1)
+endif()
+
+if(DEFINED LB_METHOD)
+    target_compile_definitions(SPEC PRIVATE LB_METHOD=${LB_METHOD})
+else()
+    target_compile_definitions(SPEC PRIVATE LB_METHOD=1)
 endif()
