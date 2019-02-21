@@ -1,9 +1,14 @@
+# IDE
+.idea/
+.cbp
+
 # Images
 *.jpg
 *.npy
 *.npz
 *.out
 *.mp4
+
 # CMake
 CMakeCache.txt
 CMakeFiles
