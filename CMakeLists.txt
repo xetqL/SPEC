@@ -59,15 +59,10 @@ target_link_libraries(SPEC ${CMAKE_THREAD_LIBS_INIT})
 
 set(ignoreMe "${PRODUCE_OUTPUTS}")
 if(DEFINED PRODUCE_OUTPUTS)
-
     message("Linking with io library")
-
     target_include_directories(SPEC PRIVATE ${CNPY_INCLUDES})
-    
     target_link_libraries(SPEC ${CNPY})
-
     target_compile_definitions(SPEC PRIVATE PRODUCE_OUTPUTS=1)
-
 endif()
 
 if(DEFINED DISABLE_LB)
@@ -75,7 +70,8 @@ if(DEFINED DISABLE_LB)
 endif()
 
 if(DEFINED LB_METHOD)
+    message("Compiled with: Load Balancing Flags")
     target_compile_definitions(SPEC PRIVATE LB_METHOD=${LB_METHOD})
 else()
-    target_compile_definitions(SPEC PRIVATE LB_METHOD=1)
+    message("Compiled with: No Load Balancing Flags!")
 endif()
