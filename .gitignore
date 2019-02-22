@@ -2,12 +2,13 @@
 .idea/
 .cbp
 
-# Images
+# Data
 *.jpg
 *.npy
 *.npz
 *.out
 *.mp4
+log/*
 
 # CMake
 CMakeCache.txt
