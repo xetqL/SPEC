@@ -715,6 +715,7 @@ int main(int argc, char **argv) {
     }
     PAR_STOP_TIMING(loop_time, world);
     if(!rank) perflogger->info("\"total_time\":") << loop_time;
+    if(!rank) steplogger->info("\"total_time\":") << loop_time;
     datatype.free_datatypes();
     MPI_Finalize();
     return 0;
