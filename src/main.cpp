@@ -629,12 +629,9 @@ int main(int argc, char **argv) {
                     PAR_START_TIMING(current_lb_cost, world);
                     zoltan_load_balance(&my_cells, zoltan_lb, true, true);
                     PAR_STOP_TIMING(current_lb_cost, world);
-                }
-
-                avg_lb_cost = mean<double>(lb_costs.begin(), lb_costs.end());
-                if(max_slope > 0)
+                    avg_lb_cost = mean<double>(lb_costs.begin(), lb_costs.end());
                     ncall = (int) std::sqrt((2 * avg_lb_cost) / max_slope);
-                else ncall = 100;
+                } else ncall = 100;
 
                 window.data_container.clear();
                 if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
@@ -717,6 +714,7 @@ int main(int argc, char **argv) {
         if(!rank) steplogger->info() << "Stop step "<< step;
     }
     PAR_STOP_TIMING(loop_time, world);
+    if(!rank) perflogger->info("\"total_time\":") << loop_time;
     datatype.free_datatypes();
     MPI_Finalize();
     return 0;
