@@ -202,8 +202,15 @@ inline void zoltan_load_balance(std::vector<Cell>* mesh_data,
                         &exportProcs,       /* Process to which I send each of the vertices */
                         &exportToPart);     /* Partition to which each vertex will belong */
 
+
+    /*std::vector<int> to_send(numExport), to_recv(numImport);
+    for (int i = 0; i < numImport; ++i) to_recv[i] = importGlobalGids[i];
+    for (int i = 0; i < numExport; ++i) to_send[i] = exportGlobalGids[i];
+*/
     Zoltan_LB_Free_Part(&importGlobalGids, &importLocalGids, &importProcs, &importToPart);
     Zoltan_LB_Free_Part(&exportGlobalGids, &exportLocalGids, &exportProcs, &exportToPart);
+
+    //return std::make_pair(to_send, to_recv);
 }
 
 #endif //SPEC_ZOLTAN_FN_HPP

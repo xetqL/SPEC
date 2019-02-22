@@ -68,8 +68,8 @@ Realtype get_slope(const ContainerA& y){
     Realtype numerator = 0.0;
     Realtype denominator = 0.0;
 
-    for(int i=0; i<n; ++i) {
-        numerator += (x[i] - avgX) * (y[i] - avgY);
+    for(int i=0; i < n; ++i) {
+        numerator   += (x[i] - avgX) * (y[i] - avgY);
         denominator += (x[i] - avgX) * (x[i] - avgX);
     }
 
@@ -85,5 +85,15 @@ double slope(const std::vector<double>& y) {
     const auto s_xy = std::inner_product(x.begin(), x.end(), y.begin(), 0.0);
     const auto a    = (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
     return a;
+}
+
+
+int get_max(int* data, int n) {
+    int max = -1;
+    while(n >= 0) {
+        max = std::max(max, data[n]);
+        n--;
+    }
+    return max;
 }
 #endif //SPEC_UTILS_HPP

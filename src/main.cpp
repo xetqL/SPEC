@@ -381,11 +381,51 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
                 main_type = ROCK_TYPE;
                 main_weight = 0.0;
             }
-
             my_cells.emplace_back(id, is_rock ? ROCK_TYPE : main_type, is_rock ? 0.0 : main_weight, is_rock ? eprob : 1.0);
         }
     }
     return my_cells;
+}
+
+#ifdef PRODUCE_OUTPUTS
+std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy, int x_proc_idx, int y_proc_idx,
+                                                         int cell_in_my_cols, int cell_in_my_rows,
+                                                         const std::vector<int>& water_cols,
+                                                         std::string rock_filename) {
+    std::uniform_real_distribution<float> erosion_dist(0.005f, 0.1f);
+    auto rock_shapes = cnpy::npy_load(std::move(rock_filename));
+    auto rock_msx = rock_shapes.shape[1]; auto rock_msy = rock_shapes.shape[0];
+    assert(cell_in_my_cols == rock_msx); assert(cell_in_my_rows == rock_msy);
+    auto cell_per_process = cell_in_my_cols * cell_in_my_rows;
+    std::vector<Cell> my_cells; my_cells.reserve(cell_per_process);
+    auto lattice = rock_shapes.data<int>();
+    int nb_labels = get_max(lattice, cell_per_process) + 1;
+    std::vector<float> erosion_probabilities(nb_labels, 0);
+    for(float& p : erosion_probabilities) p = erosion_dist(gen);
+    int main_type;
+    float main_weight;
+    for(unsigned long k = 0; k < cell_per_process; ++k) {
+        int i,j; std::tie(i,j) = cell_to_position(cell_in_my_cols, cell_in_my_rows, k);
+        int id = cell_in_my_rows * x_proc_idx + i + msx * (j + (y_proc_idx * cell_in_my_cols));
+        if(x_proc_idx+i == 0){
+            main_type = WATER_TYPE;
+            main_weight = 1.0;
+        } else {
+            main_type = ROCK_TYPE;
+            main_weight = 0.0;
+        }
+        auto val = lattice[k];
+        my_cells.emplace_back(id, val > 0 ? ROCK_TYPE : main_type, val > 0 ? 0.0 : main_weight, val > 0 ? erosion_probabilities[val] : 1.0);
+    }
+    std::sort(my_cells.begin(), my_cells.end(), [](auto a, auto b){return a.gid < b.gid;});
+    return my_cells;
+}
+#endif
+
+float compute_load(const std::vector<Cell>& _my_cells) {
+    float load = 0;
+    for (const auto& cell : _my_cells) load += cell.weight;
+    return load;
 }
 
 void update_cell_weights(std::vector<Cell>* _my_cells, double relative_slope){
@@ -441,13 +481,13 @@ int main(int argc, char **argv) {
     int& msy = Cell::get_msy(); msy = ycells;
 
     int shape[2] = {msx,msy};
+
 #ifdef PRODUCE_OUTPUTS
-    //if(!rank) cnpy::npz_save("out.npz", "shape", &shape[0], {2}, "w");
     if(!rank) cnpy::npz_save("gids-out.npz", "shape", &shape[0], {2}, "w");
 #endif
+
     int x_proc_idx, y_proc_idx;
     std::tie(x_proc_idx, y_proc_idx) = cell_to_global_position(xprocs, yprocs, rank);
-    //std::cout << x_proc_idx << " ; " << y_proc_idx << std::endl;
     unsigned long total_cell = cell_per_process * worldsize;
     auto datatype   = Cell::register_datatype();
     if(!rank) {
@@ -460,7 +500,18 @@ int main(int argc, char **argv) {
         steplogger->info("EACH SIZE  Y:") << ycells;
     }
     if(!rank) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
-    auto my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
+    std::vector<Cell> my_cells;
+#ifndef PRODUCE_OUTPUTS
+    my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
+#else
+    if(argc == 7){
+        auto lattice_fname = argv[6];
+        my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols, lattice_fname);
+    } else{
+        my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
+    }
+#endif
+
     const int my_cell_count = my_cells.size();
 
 #ifdef PRODUCE_OUTPUTS
@@ -482,6 +533,7 @@ int main(int argc, char **argv) {
 
     int recv, sent;
     if(!rank) steplogger->info() << "End of map generation";
+
     /* Initial load balancing */
     std::vector<double> lb_costs;
     auto zoltan_lb = zoltan_create_wrapper(true, world);
@@ -494,57 +546,162 @@ int main(int argc, char **argv) {
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
     std::vector<size_t> data_pointers;
+
 #ifdef LB_METHOD
-    auto avg_lb_cost = mean(lb_costs.begin(), lb_costs.end());
+    auto avg_lb_cost = mean<double>(lb_costs.begin(), lb_costs.end());
     auto tau = 25; // ???
 #endif
 
     SlidingWindow<double> window(20); //sliding window with max size = TODO: tune it?
-
     int ncall = 20, pcall=0;
+#if LB_METHOD==1
+    std::cout << "SALE PUTE"<< std::endl;
+    ncall = 100;
+#endif
+
+    float average_load_at_lb;
+    double skew = 0, relative_slope, my_time_slope, total_slope;
+    std::vector<double> timings(worldsize);
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
+        const int my_cell_count = my_cells.size(); //TODO: impl. iterative mean formula..
 
-        const int my_cell_count = my_cells.size();
-         //TODO: impl. iterative mean formula..
+#ifdef LB_METHOD
+        PAR_START_TIMING(step_time, world);
+#if LB_METHOD==1   // load balance every 100 iterations
+        if((pcall + ncall) == step) {
+            if(!rank) steplogger->info("call LB at: ") << step;
+            PAR_START_TIMING(current_lb_cost, world);
+            zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            PAR_STOP_TIMING(current_lb_cost, world);
+            lb_costs.push_back(current_lb_cost);
+            ncall = 100;
+            if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
+            pcall = step;
+        }
+#elif LB_METHOD == 2 // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf
+        double my_time_slope = get_slope<double>(window.data_container), total_slope, relative_slope;
+        if (ncall + pcall == step) {
+            if(!rank) steplogger->info("call LB at: ") << step;
+            PAR_START_TIMING(current_lb_cost, world);
+            zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            PAR_STOP_TIMING(current_lb_cost, world);
+            lb_costs.push_back(current_lb_cost);
+            avg_lb_cost = mean<double>(lb_costs.begin(), lb_costs.end());
+            std::vector<double> slopes(worldsize);
+            MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+            auto max_slope  = *std::max_element(slopes.begin(), slopes.end());
+            if(max_slope > 0) ncall = std::sqrt((2 * avg_lb_cost) / max_slope);
+            else ncall = MAX_STEP;
+            window.data_container.clear();
+            if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
+            pcall = step;
+        }
+#elif LB_METHOD == 3 // Unloading Model
+        double my_slope_before_lb;
+        double my_last_step_time;
+
+        if(pcall + ncall <= step) {
+            my_slope_before_lb = my_time_slope;
+            std::vector<double> slopes(worldsize);
+            my_time_slope = get_slope<double>(window.data_container);
+
+            MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+            auto avg_slope = mean<double>(slopes.begin(), slopes.end());
+            int overloaded = std::count_if(slopes.begin(), slopes.end(), [&](auto s){ return s > avg_slope; });
+            if(overloaded < worldsize / 2) {
+                if(!rank) steplogger->info("call LB at: ") << step;
+                my_last_step_time  = window.data_container.back();
+                total_slope = std::max(std::accumulate(slopes.begin(), slopes.end(), 0.0), 0.0);
+                relative_slope = std::max(my_time_slope / total_slope, 0.0); // TODO: OVERLOADED PROCESSORS ARE THOSE WITH POSITIVE MYSLOPE-MEAN(ALL_WORKLOAD_SLOPE).
+                update_cell_weights(&my_cells, relative_slope);
+                PAR_START_TIMING(current_lb_cost, world);
+                zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+                PAR_STOP_TIMING(current_lb_cost, world);
+                lb_costs.push_back(current_lb_cost);
+                window.data_container.clear();
+            } else {
+                if(!rank) steplogger->info("call LB at: ") << step;
+                std::vector<double> slopes(worldsize);
+                MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+                auto max_slope  = *std::max_element(slopes.begin(), slopes.end());
+                if(max_slope > 0){
+                    PAR_START_TIMING(current_lb_cost, world);
+                    zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+                    PAR_STOP_TIMING(current_lb_cost, world);
+                }
+
+                avg_lb_cost = mean<double>(lb_costs.begin(), lb_costs.end());
+                if(max_slope > 0)
+                    ncall = (int) std::sqrt((2 * avg_lb_cost) / max_slope);
+                else ncall = 100;
+
+                window.data_container.clear();
+                if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
+                pcall = step;
+            }
+        }
+#endif
+        PAR_STOP_TIMING(step_time, world);
+
+#endif
 
         if(!rank) steplogger->info() << "Beginning step "<< step;
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
-        PAR_START_TIMING(step_time, world);
+        PAR_RESTART_TIMING(step_time, world);
         auto remote_cells = zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         auto bbox = get_bounding_box(my_cells, remote_cells);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
         my_cells = dummy_erosion_computation2(msx, msy, my_cells, remote_cells, data_pointers, bbox);
         CHECKPOINT_TIMING(step_time, my_step_time);
         window.add(my_step_time);
+
+#if LB_METHOD==3 // compute ncall
+        if(pcall + ncall <= step) {
+            std::vector<double> slopes(worldsize), times_and_slopes(worldsize * 2);
+            auto my_slope_after_lb   = my_last_step_time - my_step_time;
+            auto my_slope_prediction = my_slope_before_lb - my_slope_after_lb;
+            double time_and_slope[2] ={my_step_time, my_slope_prediction};
+            MPI_Allgather(time_and_slope, 2, MPI_DOUBLE, &times_and_slopes.front(), 2, MPI_DOUBLE, world); // TODO: propagate information differently
+            for (unsigned int i = 0; i < worldsize; ++i) {
+                timings[i] = times_and_slopes[2 * i];
+                slopes[i]  = times_and_slopes[2 * i + 1];
+            }
+            auto mu = mean<double>(timings.begin(), timings.end());
+            // auto min_timing = *std::min_element(timings.begin(), timings.end());
+            // auto max_slope  = *std::max_element(slopes.begin(), slopes.end());
+            ncall = 1; for (int j = 0; j < worldsize; ++j) ncall = std::max(ncall, (int) ((mu-timings[j]) / slopes[j]));
+            total_slope = std::max(std::accumulate(slopes.begin(), slopes.end(), 0.0), 0.0);
+            skew = skewness<double>(timings.cbegin(), timings.cend());
+            pcall = step;
+            if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
+
+        }
+#endif
         PAR_STOP_TIMING(step_time, world);
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        std::vector<double> timings(worldsize), slopes (worldsize), rel_slopes;
-        std::vector<int>    PE_cells(worldsize);
+        std::vector<int> PE_cells(worldsize);
 
-        double my_time_slope = get_slope<double>(window.data_container), total_slope, relative_slope;
-
-        MPI_Allgather(&my_step_time, 1,  MPI_DOUBLE, &timings.front(),1, MPI_DOUBLE, world);
-        MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); //TODO: propagate information differently
-
-        total_slope = std::max(std::accumulate(slopes.begin(), slopes.end(), 0.0), 0.0);
-        std::for_each(slopes.cbegin(), slopes.cend(), [&](auto v){ rel_slopes.push_back(std::max(v/total_slope,0.0)); });
+        MPI_Allgather(&my_step_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+        std::vector<double> slopes(worldsize);
+        my_time_slope = get_slope<double>(window.data_container);
+        MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
         double max = *std::max_element(timings.cbegin(), timings.cend()),
                average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
-               load_imbalance = (max / average - 1.0) * 100.0,
-               skew = skewness<double>(timings.cbegin(), timings.cend());
+               load_imbalance = (max / average - 1.0) * 100.0;
 
         if(!rank) {
             steplogger->info("stats: ") << "load imbalance: " << load_imbalance << " skewness: " << skew;
-            perflogger->info("\"step\":") << step << ",\"load_imbalance\": " << load_imbalance << ",\"skewness\": " << skew << ",\"loads\": [" << timings << "],\"slopes\":["<<slopes<<"]";
+            perflogger->info("\"step\":") << step << ",\"time\": " << step_time << ",\"lb_cost\": " << mean<double>(lb_costs.begin(), lb_costs.end()) << ",\"load_imbalance\": " << load_imbalance << ",\"skewness\": " << skew << ",\"loads\": [" << timings << "],\"slopes\":["<<slopes<<"]";
         }
 
-        int cell_cnt = my_cells.size();
+
 #ifdef PRODUCE_OUTPUTS
+        int cell_cnt = my_cells.size();
         std::vector<std::array<int,2>> my_types(my_cell_count);
         for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
@@ -557,39 +714,9 @@ int main(int argc, char **argv) {
             cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
         }
 #endif
-#ifdef LB_METHOD
-#if LB_METHOD==1   // load balance every 100 iterations
-        if((step % 100) == 0) zoltan_load_balance(&my_cells, zoltan_lb, true, true);
-#elif LB_METHOD==2 // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf
-        if(tau + pcall == step) {
-            zoltan_load_balance(&my_cells, zoltan_lb, true, true);
-            tau = std::sqrt((2*avg_lb_cost) / my_time_slope);
-            window.data_container.clear();
-            window.window_max_size = (size_t) tau;
-        }
-#elif LB_METHOD==3
-        if(pcall + ncall <= step && total_slope > 0 && skew > 0) {
-            if(!rank) steplogger->info("call LB");
-            relative_slope = std::max(my_time_slope/total_slope, 0.0); //TODO: OVERLOADED PROCESSORS ARE THOSE WITH POSITIVE MYSLOPE-MEAN(ALL_WORKLOAD_SLOPE).
-            PAR_START_TIMING(lb_cost, world);
-            update_cell_weights(&my_cells, relative_slope);
-            zoltan_load_balance(&my_cells, zoltan_lb, true, true);
-            PAR_STOP_TIMING(lb_cost, world);
-            window.data_container.clear();
-            cell_cnt = my_cells.size();
-            pcall = step;
-        }
-
-        MPI_Gather(&cell_cnt, 1, MPI_INT, &PE_cells.front(), 1, MPI_INT, 0, world);
-        //if(!rank) perflogger->info("step:") << step << ",cells: (" << PE_cells << ")";
         if(!rank) steplogger->info() << "Stop step "<< step;
-
-#endif
-
-#endif
     }
     PAR_STOP_TIMING(loop_time, world);
-
     datatype.free_datatypes();
     MPI_Finalize();
     return 0;
