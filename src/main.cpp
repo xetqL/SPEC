@@ -430,9 +430,13 @@ float compute_load(const std::vector<Cell>& _my_cells) {
 
 void update_cell_weights(std::vector<Cell>* _my_cells, double relative_slope){
     std::vector<Cell>& my_cells = *(_my_cells);
+    int nb_rock = 0;
     for(auto& cell : my_cells) {
-        if(cell.type == ROCK_TYPE) { // rock
-            cell.weight = (float) relative_slope;
+        if(cell.type == ROCK_TYPE) nb_rock++;
+    }
+    for(auto& cell : my_cells) {
+        if(cell.type == ROCK_TYPE) {
+            cell.weight = (float) relative_slope * 1.0f / nb_rock;
         }
     }
 }
@@ -565,9 +569,9 @@ int main(int argc, char **argv) {
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         const int my_cell_count = my_cells.size(); //TODO: impl. iterative mean formula..
-
-#ifdef LB_METHOD
         PAR_START_TIMING(step_time, world);
+#ifdef LB_METHOD
+
 #if LB_METHOD==1   // load balance every 100 iterations
         if((pcall + ncall) == step) {
             if(!rank) steplogger->info("call LB at: ") << step;
@@ -589,7 +593,7 @@ int main(int argc, char **argv) {
             lb_costs.push_back(current_lb_cost);
             avg_lb_cost = mean<double>(lb_costs.begin(), lb_costs.end());
             std::vector<double> slopes(worldsize);
-            MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+            MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world);
             auto max_slope  = *std::max_element(slopes.begin(), slopes.end());
             if(max_slope > 0) ncall = std::sqrt((2 * avg_lb_cost) / max_slope);
             else ncall = MAX_STEP;
@@ -640,7 +644,6 @@ int main(int argc, char **argv) {
         }
 #endif
         PAR_STOP_TIMING(step_time, world);
-
 #endif
 
         if(!rank) steplogger->info() << "Beginning step "<< step;
@@ -693,7 +696,7 @@ int main(int argc, char **argv) {
 
         if(!rank) {
             steplogger->info("stats: ") << "load imbalance: " << load_imbalance << " skewness: " << skew;
-            perflogger->info("\"step\":") << step << ",\"time\": " << step_time << ",\"lb_cost\": " << mean<double>(lb_costs.begin(), lb_costs.end()) << ",\"load_imbalance\": " << load_imbalance << ",\"skewness\": " << skew << ",\"loads\": [" << timings << "],\"slopes\":["<<slopes<<"]";
+            perflogger->info("\"step\":") << step << ",\"time\": " << step_time << ",\"lb_cost\": " << mean<double>(lb_costs.begin(), lb_costs.end()) << ",\"load_imbalance\": " << load_imbalance << ",\"skewness\": " << skewness<double>(timings.begin(), timings.end()) << ",\"loads\": [" << timings << "],\"slopes\":["<<slopes<<"]";
         }
 
 
