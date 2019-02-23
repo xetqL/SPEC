@@ -656,7 +656,7 @@ int main(int argc, char **argv) {
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
         my_cells = dummy_erosion_computation2(msx, msy, my_cells, remote_cells, data_pointers, bbox);
         CHECKPOINT_TIMING(step_time, my_step_time);
-        window.add(my_step_time);
+        if(step > 0) window.add(my_step_time);
 
 #if LB_METHOD==3 // compute ncall
         if(pcall + ncall <= step) {
