@@ -46,7 +46,7 @@ endif()
 set(CMAKE_SOURCE_DIR src)
 set(CMAKE_INCLUDE_PATH include)
 
-add_executable(SPEC ${CMAKE_SOURCE_DIR}/main.cpp ${CMAKE_SOURCE_DIR}/zupply.cpp ${CMAKE_SOURCE_DIR}/zupply.hpp include/zoltan_fn.hpp include/cell.hpp include/communication.hpp include/utils.hpp include/io.hpp include/window.hpp)
+add_executable(SPEC ${CMAKE_SOURCE_DIR}/main.cpp ${CMAKE_SOURCE_DIR}/zupply.cpp ${CMAKE_SOURCE_DIR}/zupply.hpp include/zoltan_fn.hpp include/cell.hpp include/communication.hpp include/utils.hpp include/io.hpp include/window.hpp include/CPULoadDatabase.hpp)
 
 target_include_directories(SPEC INTERFACE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(SPEC PRIVATE ${ZOLTAN_INCLUDES})

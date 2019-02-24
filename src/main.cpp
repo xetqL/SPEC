@@ -422,27 +422,32 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy, int x
 }
 #endif
 
-float compute_load(const std::vector<Cell>& _my_cells) {
+float compute_estimated_workload(const std::vector<Cell>& _my_cells) {
     float load = 0;
     for (const auto& cell : _my_cells) load += cell.weight;
     return load;
 }
 
-void update_cell_weights(std::vector<Cell>* _my_cells, double relative_slope){
+float compute_effective_workload(const std::vector<Cell>& _my_cells) {
+    return std::count_if(_my_cells.begin(), _my_cells.end(), [](auto c){return c.type == WATER_TYPE;});
+}
+
+/**
+ * Divide the speed at which I am loading among all the work units that can load
+ * @param _my_cells
+ * @param slope
+ */
+void update_cell_weights(std::vector<Cell>* _my_cells, double slope){
     std::vector<Cell>& my_cells = *(_my_cells);
     int nb_rock = 0;
-    for(auto& cell : my_cells) {
-        if(cell.type == ROCK_TYPE) nb_rock++;
-    }
-    for(auto& cell : my_cells) {
-        if(cell.type == ROCK_TYPE) {
-            cell.weight = (float) relative_slope * 1.0f / nb_rock;
-        }
-    }
+    slope = std::max(slope, 0.0); // wtf is a negative slope
+    for(auto& cell : my_cells) if(cell.type == ROCK_TYPE) nb_rock++;
+    for(auto& cell : my_cells) if(cell.type == ROCK_TYPE) cell.weight = (float) slope * 1.0f / nb_rock;
 }
 
 
 #include "../include/io.hpp"
+#include "../include/CPULoadDatabase.hpp"
 
 int main(int argc, char **argv) {
     int worldsize;
@@ -556,7 +561,8 @@ int main(int argc, char **argv) {
     auto tau = 25; // ???
 #endif
 
-    SlidingWindow<double> window(20); //sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window(100); //sliding window with max size = TODO: tune it?
+
     int ncall = 20, pcall=0;
 #if LB_METHOD==1
     std::cout << "SALE PUTE"<< std::endl;
@@ -566,10 +572,13 @@ int main(int argc, char **argv) {
     float average_load_at_lb;
     double skew = 0, relative_slope, my_time_slope, total_slope;
     std::vector<double> timings(worldsize);
+
+    CPULoadDatabase gossip_workload_db(world);
+
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
-        const int my_cell_count = my_cells.size(); //TODO: impl. iterative mean formula..
         PAR_START_TIMING(step_time, world);
+
 #ifdef LB_METHOD
 
 #if LB_METHOD==1   // load balance every 100 iterations
@@ -610,15 +619,13 @@ int main(int argc, char **argv) {
             std::vector<double> slopes(worldsize);
             my_time_slope = get_slope<double>(window.data_container);
 
-            MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+            //MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
             auto avg_slope = mean<double>(slopes.begin(), slopes.end());
             int overloaded = std::count_if(slopes.begin(), slopes.end(), [&](auto s){ return s > avg_slope; });
             if(overloaded < worldsize / 2) {
                 if(!rank) steplogger->info("call LB at: ") << step;
                 my_last_step_time  = window.data_container.back();
-                total_slope = std::max(std::accumulate(slopes.begin(), slopes.end(), 0.0), 0.0);
-                relative_slope = std::max(my_time_slope / total_slope, 0.0); // TODO: OVERLOADED PROCESSORS ARE THOSE WITH POSITIVE MYSLOPE-MEAN(ALL_WORKLOAD_SLOPE).
-                update_cell_weights(&my_cells, relative_slope);
+                update_cell_weights(&my_cells, my_time_slope);
                 PAR_START_TIMING(current_lb_cost, world);
                 zoltan_load_balance(&my_cells, zoltan_lb, true, true);
                 PAR_STOP_TIMING(current_lb_cost, world);
@@ -658,26 +665,34 @@ int main(int argc, char **argv) {
         CHECKPOINT_TIMING(step_time, my_step_time);
         if(step > 0) window.add(my_step_time);
 
+        // update my data in my database
+
 #if LB_METHOD==3 // compute ncall
+        if(step > 0) {
+            gossip_workload_db.gossip_update(my_step_time);
+            gossip_workload_db.gossip_propagate(); // propagate my database
+        }
         if(pcall + ncall <= step) {
             std::vector<double> slopes(worldsize), times_and_slopes(worldsize * 2);
             auto my_slope_after_lb   = my_last_step_time - my_step_time;
             auto my_slope_prediction = my_slope_before_lb - my_slope_after_lb;
-            double time_and_slope[2] ={my_step_time, my_slope_prediction};
+            double time_and_slope[2] = {my_step_time, my_slope_prediction};
             MPI_Allgather(time_and_slope, 2, MPI_DOUBLE, &times_and_slopes.front(), 2, MPI_DOUBLE, world); // TODO: propagate information differently
+
             for (unsigned int i = 0; i < worldsize; ++i) {
                 timings[i] = times_and_slopes[2 * i];
                 slopes[i]  = times_and_slopes[2 * i + 1];
             }
+
             auto mu = mean<double>(timings.begin(), timings.end());
             // auto min_timing = *std::min_element(timings.begin(), timings.end());
             // auto max_slope  = *std::max_element(slopes.begin(), slopes.end());
-            ncall = 1; for (int j = 0; j < worldsize; ++j) ncall = std::max(ncall, (int) ((mu-timings[j]) / slopes[j]));
+            ncall = 1;
+                for (int j = 0; j < worldsize; ++j) ncall = std::max(ncall, (int) ((mu-timings[j]) / slopes[j]));
             total_slope = std::max(std::accumulate(slopes.begin(), slopes.end(), 0.0), 0.0);
             skew = skewness<double>(timings.cbegin(), timings.cend());
             pcall = step;
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
-
         }
 #endif
         PAR_STOP_TIMING(step_time, world);
@@ -685,7 +700,6 @@ int main(int argc, char **argv) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         std::vector<int> PE_cells(worldsize);
-
         MPI_Allgather(&my_step_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
         std::vector<double> slopes(worldsize);
         my_time_slope = get_slope<double>(window.data_container);
