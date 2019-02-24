@@ -64,7 +64,7 @@ public:
         pe_load_data.resize(worldsize);
         pe_load_data[my_rank].idx = my_rank;
         gen.seed(rd());
-        ptr_uniform = std::make_unique<std::uniform_int_distribution<>>(0, worldsize);
+        ptr_uniform = std::make_unique<std::uniform_int_distribution<>>(0, worldsize-1);
         register_datatype();
     }
 
