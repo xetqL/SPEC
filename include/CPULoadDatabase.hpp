@@ -11,6 +11,7 @@
 #include <memory>
 #include <mpi.h>
 #include <algorithm>
+#include <ostream>
 
 class CPULoadDatabase {
     typedef int Index;
@@ -24,27 +25,34 @@ class CPULoadDatabase {
         Index idx;
         Age age;
         PELoad load;
+
         //PESlope slope;
         DatabaseEntry() :
                 idx(-1),
                 age(std::numeric_limits<int>::max()),
                 load(-1)
-                //, slope(0)
+        //, slope(0)
         {};
+
         DatabaseEntry(Index _idx, Age _age, PELoad _load, PESlope _slope) :
                 idx(_idx),
                 age(_age),
                 load(_load)
-                //, slope(_slope)
+        //, slope(_slope)
         {};
+
         DatabaseEntry(Index _idx, PELoad _load, PESlope _slope) :
                 idx(_idx),
                 age(0),
                 load(_load)
-                //, slope(_slope)
+        //, slope(_slope)
         {};
-    };
 
+        friend std::ostream &operator<<(std::ostream &os, const DatabaseEntry &entry) {
+            os << "idx: " << entry.idx << " age: " << entry.age << " load: " << entry.load;
+            return os;
+        }
+    };
 
     MPI_Comm world;
     MPI_Datatype entry_datatype;
@@ -64,10 +72,80 @@ public:
         pe_load_data.resize(worldsize);
         pe_load_data[my_rank].idx = my_rank;
         gen.seed(rd());
-        ptr_uniform = std::make_unique<std::uniform_int_distribution<>>(0, worldsize-1);
+        ptr_uniform = std::make_unique<std::uniform_int_distribution<>>(0, worldsize - 1);
         register_datatype();
     }
 
+    inline void reset(){
+        pe_load_data.clear(); pe_load_data.resize(worldsize);
+    }
+
+    /**
+     * Update information ages and my load
+     */
+    void gossip_update(PELoad my_load) {
+        for (DatabaseEntry &entry : pe_load_data) {
+            if (entry.idx == my_rank) {
+                entry.age = 0;
+                entry.load = my_load;
+                //entry.slope = my_slope;
+            } else if (entry.idx >= 0) {
+                entry.age++;
+            }
+        }
+    }
+
+    /**
+     * Randomly select a processing elements and "contaminate" him with my information
+     */
+    void gossip_propagate() {
+        auto &uniform = *ptr_uniform;
+        gen.seed(my_rank+rd());
+        int destination = uniform(gen);
+        std::vector<DatabaseEntry> snd_entry;
+        std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entry),
+                     [](auto e) { return e.idx >= 0; });
+        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination, CPULoadDatabase::SEND_TAG, world,
+                  &current_send_req);
+    }
+
+    void finish_gossip_step() {
+        MPI_Iprobe(MPI_ANY_SOURCE, CPULoadDatabase::SEND_TAG, world, &current_recv_flag, &current_recv_status);
+        if (current_recv_flag) {
+
+            int cnt;
+            MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
+            std::vector<DatabaseEntry> rcv_entries(cnt);
+            MPI_Recv(&rcv_entries.front(), cnt, entry_datatype, current_recv_status.MPI_SOURCE,
+                     CPULoadDatabase::SEND_TAG, world, MPI_STATUS_IGNORE);
+            merge_into_database(std::move(rcv_entries));
+        }
+        MPI_Wait(&current_send_req, MPI_STATUS_IGNORE);
+    }
+
+    PELoad skewness() {
+        std::vector<PELoad> &&loads = to_load_vector();
+        return stats::skewness<PELoad>(loads.begin(), loads.end());
+    }
+
+    PELoad mean() {
+        std::vector<PELoad> &&loads = to_load_vector();
+        return stats::mean<PELoad>(loads.begin(), loads.end());
+    }
+
+    int max_age() {
+        int age = -1;
+        for(const auto& entry : pe_load_data){
+            age = std::max(age, entry.age);
+        }
+        return age == -1 ? std::numeric_limits<int>::max() : age;
+    }
+
+    PELoad sum() {
+        return this->mean() * worldsize;
+    }
+
+private:
     void register_datatype() {
         MPI_Datatype element_datatype,
                 oldtype_element[2];
@@ -86,52 +164,24 @@ public:
         MPI_Type_commit(&entry_datatype);
     }
 
-    /**
-     * Update information ages and my load
-     */
-    void gossip_update(PELoad my_load) {
-        for(DatabaseEntry& entry : pe_load_data) {
-             if(entry.idx == my_rank){
-                 entry.age = 0;
-                 entry.load  = my_load;
-                 //entry.slope = my_slope;
-             } else if (entry.idx >= 0){
-                 entry.age++;
-             }
+    std::vector<PELoad> to_load_vector() {
+        std::vector<PELoad> loads;
+        for (auto it = pe_load_data.begin(); it != pe_load_data.end(); it++) {
+            auto i = std::distance(pe_load_data.begin(), it);
+            auto& entry = *it;
+            if(entry.idx >= 0)
+                loads.push_back((*it).load);
         }
+        return loads;
     }
 
     /**
-     * Randomly select a processing elements and "contaminate" him with my information
-     */
-     void gossip_propagate() {
-        auto& uniform = *ptr_uniform;
-        int destination = uniform(gen);
-        std::vector<DatabaseEntry> snd_entry;
-        std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entry), [](auto e){return e.idx > 0;});
-        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination, CPULoadDatabase::SEND_TAG, world, &current_send_req);
-     }
-
-     void finish_gossip_step() {
-         MPI_Iprobe(MPI_ANY_SOURCE, CPULoadDatabase::SEND_TAG, world, &current_recv_flag, &current_recv_status);
-         if(current_recv_flag) {
-             int cnt;
-             MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
-             std::vector<DatabaseEntry> rcv_entries(cnt);
-             MPI_Recv(&rcv_entries.front(), cnt, entry_datatype, current_recv_status.MPI_SOURCE, CPULoadDatabase::SEND_TAG, world, MPI_STATUS_IGNORE);
-             merge_into_database(std::move(rcv_entries));
-         }
-         MPI_Wait(&current_send_req, MPI_STATUS_IGNORE);
-     }
-
-private:
-    /**
      * Merge by keeping the most recent data
      */
-    void merge_into_database(std::vector<DatabaseEntry>&& data){
-        for(auto new_entry : data) {
-            auto& entry = pe_load_data[new_entry.idx];
-            if(entry.age > new_entry.age) {
+    void merge_into_database(std::vector<DatabaseEntry> &&data) {
+        for (auto new_entry : data) {
+            auto &entry = pe_load_data[new_entry.idx];
+            if (entry.age > new_entry.age) {
                 entry = new_entry;
             }
         }

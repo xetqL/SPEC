@@ -75,6 +75,27 @@ Realtype get_slope(const ContainerA& y){
 
     return denominator == 0 ? (Realtype) 0 : numerator / denominator;
 }
+
+template<typename Realtype, typename Iter>
+Realtype get_slope(const Iter& beginy, const Iter& endy){
+
+    const auto n = std::distance(beginy, endy);
+
+    std::vector<Realtype> x(n);
+    std::iota(x.begin(), x.end(), 0);
+
+    Realtype avgX = std::accumulate(x.begin(), x.end(), 0.0) / (Realtype) n;
+    Realtype avgY = std::accumulate(beginy, endy, 0.0) / (Realtype) n;
+    Realtype numerator = 0.0, denominator = 0.0;
+
+    for(int i=0; i < n; ++i) {
+        numerator   += (x[i] - avgX) * (*(beginy+i) - avgY);
+        denominator += (x[i] - avgX) * (x[i] - avgX);
+    }
+
+    return denominator == 0 ? (Realtype) 0 : numerator / denominator;
+}
+
 double slope(const std::vector<double>& y) {
     std::vector<double> x(y.size());
     std::iota(x.begin(), x.end(), 0);
@@ -96,4 +117,35 @@ int get_max(int* data, int n) {
     }
     return max;
 }
+namespace stats
+{
+template<class RealType, class Iter>
+inline RealType mean(Iter b, Iter e) {
+    const long N = std::distance(b, e);
+    return std::accumulate(b, e, (RealType) 0.0) / N;
+}
+
+template<class RealType, class Iter>
+inline RealType skewness(Iter b, Iter e) {
+    long N = std::distance(b, e);
+    RealType _mean = mean<RealType, Iter>(b,e);
+    RealType diff1 = 0.0;
+    std::for_each(b,e, [&diff1, mean=_mean](auto x){diff1 += std::pow(x - mean, 3.0);});
+    diff1 /= N;
+    RealType diff2 = 0.0;
+    std::for_each(b,e, [&diff2, mean=_mean](auto x){diff2 += std::pow(x - mean, 2.0);});
+    diff2 /= (N-1);
+    return diff1 / std::pow(diff2, 3.0/2.0);
+}
+
+template<class Realtype, class Iter>
+Realtype median(Iter begin, Iter  end) {
+    std::vector<typename Iter::value_type> tmp(begin, end);
+    std::sort(tmp.begin(), tmp.end());
+    return (Realtype) tmp[tmp.size() / 2];
+}
+
+
+} //end of namespace: stats
+
 #endif //SPEC_UTILS_HPP

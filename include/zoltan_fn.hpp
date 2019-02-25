@@ -134,7 +134,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, in
     auto zz = Zoltan_Create(comm);
 
     Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0");
-    Zoltan_Set_Param(zz, "LB_METHOD", "RCB");
+    Zoltan_Set_Param(zz, "LB_METHOD", "HSFC");
     Zoltan_Set_Param(zz, "DETERMINISTIC", "1");
     Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1");
 
@@ -151,7 +151,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, in
     Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
 
     if(automatic_migration)
-        Zoltan_Set_Param(zz, "AUTO_MIGRATE", "TRUE");
+        Zoltan_Set_Param(zz, "AUTO_MIGRATE", "FALSE");
 
     return zz;
 }
@@ -173,7 +173,7 @@ void zoltan_fn_init(Zoltan_Struct* zz, std::vector<Cell>* mesh_data, bool automa
     }
 }
 
-inline void zoltan_load_balance(std::vector<Cell>* mesh_data,
+inline int zoltan_load_balance(std::vector<Cell>* mesh_data,
                                 Zoltan_Struct* load_balancer,
                                 bool automatic_migration = false,
                                 bool do_migration = true) {
@@ -186,7 +186,7 @@ inline void zoltan_load_balance(std::vector<Cell>* mesh_data,
 
     automatic_migration = do_migration ? automatic_migration : false;
 
-    zoltan_fn_init(load_balancer, mesh_data, automatic_migration);
+    zoltan_fn_init(load_balancer, mesh_data, true);
     Zoltan_LB_Partition(load_balancer,      /* input (all remaining fields are output) */
                         &changes,           /* 1 if partitioning was changed, 0 otherwise */
                         &numGidEntries,     /* Number of integers used for a global ID */
@@ -201,16 +201,35 @@ inline void zoltan_load_balance(std::vector<Cell>* mesh_data,
                         &exportLocalGids,   /* Local IDs of the vertices I must send */
                         &exportProcs,       /* Process to which I send each of the vertices */
                         &exportToPart);     /* Partition to which each vertex will belong */
+    int export_load = 0;
+    int import_load = 0;
+    auto& md = *mesh_data;
+    for(const auto& cell : md) {
+        if(cell.type)
+            for(int i = 0; i < numExport; ++i){
+                if(exportGlobalGids[i] == cell.gid) {
+                    export_load++;
+                    break;
+                }
+            }
+    }
 
+    Zoltan_Migrate(load_balancer, numImport, importGlobalGids, importLocalGids, importProcs, importToPart, numExport, exportGlobalGids, exportLocalGids, exportProcs, exportToPart);
 
-    /*std::vector<int> to_send(numExport), to_recv(numImport);
-    for (int i = 0; i < numImport; ++i) to_recv[i] = importGlobalGids[i];
-    for (int i = 0; i < numExport; ++i) to_send[i] = exportGlobalGids[i];
-*/
+    for(const auto& cell : md) {
+        if(cell.type)
+            for(int i = 0; i < numImport; ++i){
+                if(importGlobalGids[i] == cell.gid) {
+                    import_load++;
+                    break;
+                }
+            }
+    }
+
     Zoltan_LB_Free_Part(&importGlobalGids, &importLocalGids, &importProcs, &importToPart);
     Zoltan_LB_Free_Part(&exportGlobalGids, &exportLocalGids, &exportProcs, &exportToPart);
 
-    //return std::make_pair(to_send, to_recv);
+    return import_load- export_load;
 }
 
 #endif //SPEC_ZOLTAN_FN_HPP

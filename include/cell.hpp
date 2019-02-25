@@ -88,4 +88,66 @@ struct Cell {
 
 };
 
+void populate_data_pointers(int msx, int msy,
+                            std::vector<size_t>* _data_pointers,
+                            const std::vector<Cell>& my_cells,
+                            const std::vector<Cell>& remote_cells,
+                            const std::tuple<int, int, int, int>& bbox) {
+    std::vector<size_t>& data_pointers = *(_data_pointers);
+    int x1, x2, y1, y2; std::tie(x1,x2, y1,y2) = bbox;
+    int my_box = (x2-x1) * (y2-y1);
+    data_pointers.resize(my_box);
+    auto mine_size   = my_cells.size();
+    auto remote_size = remote_cells.size();
+    for (size_t i = 0; i < mine_size; ++i) {
+        const Cell& cell = my_cells[i];
+        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        data_pointers[lid] = i;
+    }
+    for (size_t i = 0; i < remote_size; ++i) {
+        const Cell& cell = remote_cells[i];
+        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        data_pointers[lid] = i+mine_size;
+    }
+}
+
+float compute_estimated_workload(const std::vector<Cell>& _my_cells) {
+    float load = 0;
+    for (const auto& cell : _my_cells) load += cell.weight;
+    return load;
+}
+
+int compute_effective_workload(const std::vector<Cell>& _my_cells, int type) {
+    return std::count_if(_my_cells.begin(), _my_cells.end(), [&](auto c){return c.type == type;});
+}
+
+/**
+ * Divide the speed at which I am loading among all the work units that can load
+ * @param _my_cells
+ * @param slope
+ */
+template<class Predicate>
+void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, Predicate f){
+    std::vector<Cell>& my_cells = *(_my_cells);
+    int nb_type = 0;
+    slope = std::max(slope, 0.0); // wtf is a negative slope
+    for(auto& cell : my_cells) if(cell.type == type) nb_type++;
+    for(auto& cell : my_cells) if(cell.type == type) {
+        cell.weight = f(cell.weight, (float) slope);
+    }
+
+}
+void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type){
+    std::vector<Cell>& my_cells = *(_my_cells);
+    int nb_type = 0;
+    slope = std::max(slope, 0.0); // wtf is a negative slope
+    for(auto& cell : my_cells) if(cell.type == type) nb_type++;
+    for(auto& cell : my_cells) if(cell.type == type) cell.weight = cell.weight - (float) slope * 1.0f / nb_type;
+}
+
+void reset_cell_weights(std::vector<Cell>* _my_cells){
+    std::vector<Cell>& my_cells = *(_my_cells);
+    for(auto& cell : my_cells) cell.weight = cell.type ? 1.0f : 0.0f;
+}
+
 #endif //SPEC_CELL_HPP

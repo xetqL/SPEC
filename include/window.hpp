@@ -6,7 +6,7 @@
 #define CA_ROAD_WINDOW_HPP
 
 #include <deque>
-
+#include "utils.hpp"
 template<class T>
 struct SlidingWindow {
     std::deque<T> data_container;
@@ -36,6 +36,20 @@ struct SlidingWindow {
         return data_container.size();
     }
 
+    template<class Iter>
+    T median(Iter begin, Iter end) {
+        std::deque<T> tmp(begin, end);
+        std::sort(tmp.begin(), tmp.end());
+        return tmp[tmp.size() / 2];
+    }
+
+    T mean() {
+        return stats::mean<T>(data_container.begin(), data_container.end());
+    }
+
+    T slope(T t) {
+        return (median() - mean()) / t;
+    }
 };
 
 #endif //CA_ROAD_WINDOW_HPP
