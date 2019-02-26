@@ -7,7 +7,6 @@
 
 #include <vector>
 #include <random>
-#include <cnpy.h>
 #include <algorithm>
 #include "../include/cell.hpp"
 
@@ -125,6 +124,7 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
 }
 
 #ifdef PRODUCE_OUTPUTS
+#include <cnpy.h>
 std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy, int x_proc_idx, int y_proc_idx,
                                                          int cell_in_my_cols, int cell_in_my_rows,
                                                          const std::vector<int>& water_cols,
@@ -223,57 +223,59 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
     std::vector<float>  thetas(8, 0);
     for(unsigned int i = 0; i < all_count; ++i) {
         const Cell* cell;
+
         if(i < my_cell_count) cell = &my_old_cells[i];
         else cell = &remote_cells[i - my_cell_count];
+
         if(cell->type) { // Do nothing if type == ROCK_TYPE
             auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
             auto lid = position_to_cell(x2-x1, y2-y1, __pos);
-            if(cell->type) {
-                std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
-                if(lid+1 < total_box) {
-                    idx_neighbors[0] = (data_pointers[lid+1]);
-                    thetas[0]        = 1.0f;
-                }
-                if((lid-(x2-x1))+1 >= 0) {
-                    idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
-                    thetas[1]        = 1.0f/1.4142135f;
-                }
-                if(lid-(x2-x1) >= 0) {
-                    idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
-                    thetas[2]        = 0;
-                }
-                if(lid+(x2-x1) < total_box) {
-                    idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
-                    thetas[6]        = 0;
-                }
-                if(lid+(x2-x1)+1 < total_box) {
-                    idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
-                    thetas[7]        = 1.0f/1.4142135f;
-                }
-                for (int j = 0; j < 8; ++j) {
-                    auto idx_neighbor = idx_neighbors[j];
-                    auto theta = thetas[j];
-                    if(idx_neighbor >= my_cell_count) continue;
-                    if(my_cells[idx_neighbor].type) continue;
-                    auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
-                    auto p = udist(gen);
-                    if( erosion_proba < 1.0 ){
-                        if (p < (theta) * erosion_proba) {
-                            my_cells[idx_neighbor].type   = 1;
-                            my_cells[idx_neighbor].weight = 1;
-                        }
-                    } else {
-                        if (p < (msx - __pos.first) / (float) msx) {
-                            my_cells[idx_neighbor].type   = 1;
-                            my_cells[idx_neighbor].weight = 1;
-                        }
+            std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
+            if(lid+1 < total_box) {
+                idx_neighbors[0] = (data_pointers[lid+1]);
+                thetas[0]        = 1.0f;
+            }
+            if((lid-(x2-x1))+1 >= 0) {
+                idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
+                thetas[1]        = 1.0f/1.4142135f;
+            }
+            if(lid-(x2-x1) >= 0) {
+                idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
+                thetas[2]        = 0;
+            }
+            if(lid+(x2-x1) < total_box) {
+                idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
+                thetas[6]        = 0;
+            }
+            if(lid+(x2-x1)+1 < total_box) {
+                idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
+                thetas[7]        = 1.0f/1.4142135f;
+            }
+            for (int j = 0; j < 8; ++j) {
+                auto idx_neighbor = idx_neighbors[j];
+                auto theta = thetas[j];
+                if(idx_neighbor >= my_cell_count) continue;
+                if(my_cells[idx_neighbor].type) continue;
+                auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
+                auto x = cell_to_global_position(msx, msy, idx_neighbor);
+                auto p = udist(gen);
+                if( erosion_proba < 1.0 ) {
+                    if (p < (theta) * erosion_proba) {
+                        my_cells[idx_neighbor].type   = 1;
+                        my_cells[idx_neighbor].weight = 1;
+                    }
+                } else {
+                    if (p < (msx - __pos.first) / (float) msx) {
+                        my_cells[idx_neighbor].type   = 1;
+                        my_cells[idx_neighbor].weight = 1;
                     }
                 }
-
-                /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
-                consume_cpu_flops(flopdist(gen));
-                /* stop */
             }
+
+            /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
+            consume_cpu_flops(flopdist(gen));
+            /* stop */
+
         }
     }
     return my_cells;

@@ -101,7 +101,12 @@ public:
     void gossip_propagate() {
         auto &uniform = *ptr_uniform;
         gen.seed(my_rank+rd());
-        int destination = uniform(gen);
+        int destination;
+
+        do {
+            destination = uniform(gen);
+        } while(destination == my_rank);
+
         std::vector<DatabaseEntry> snd_entry;
         std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entry),
                      [](auto e) { return e.idx >= 0; });

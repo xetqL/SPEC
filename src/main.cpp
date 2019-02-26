@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 #ifndef PRODUCE_OUTPUTS
     my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
 #else
-    if(argc == 7){
+    if(argc == 7) {
         auto lattice_fname = argv[6];
         my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols, lattice_fname);
     } else {
@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
                     double W = gossip_workload_db.sum();
                     bool I_belong_to_slowest = ( *(window_my_time.end()-1) >= *(window_my_time.end()-1)*0.95f );
                     double biggest_slope;
-                    ncall = 10;
+                    ncall = 20;
                 } else {
                     PAR_START_TIMING(current_lb_cost, world);
                     zoltan_load_balance(&my_cells, zoltan_lb, true, true);
