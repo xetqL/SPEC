@@ -102,11 +102,7 @@ public:
         auto &uniform = *ptr_uniform;
         gen.seed(my_rank+rd());
         int destination;
-
-        do {
-            destination = uniform(gen);
-        } while(destination == my_rank);
-
+        destination = uniform(gen);
         std::vector<DatabaseEntry> snd_entry;
         std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entry),
                      [](auto e) { return e.idx >= 0; });
@@ -117,7 +113,6 @@ public:
     void finish_gossip_step() {
         MPI_Iprobe(MPI_ANY_SOURCE, CPULoadDatabase::SEND_TAG, world, &current_recv_flag, &current_recv_status);
         if (current_recv_flag) {
-
             int cnt;
             MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
             std::vector<DatabaseEntry> rcv_entries(cnt);
