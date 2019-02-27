@@ -130,14 +130,14 @@ int main(int argc, char **argv) {
     PAR_START_TIMING(current_lb_cost, world);
     zoltan_load_balance(&my_cells, zoltan_lb, true, true);
     PAR_STOP_TIMING(current_lb_cost, world);
-    lb_costs.push_back(current_lb_cost);
+    //lb_costs.push_back(current_lb_cost/2.0);
 
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
     std::vector<size_t> data_pointers;
 
 #ifdef LB_METHOD
-    auto avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
+    double avg_lb_cost = 100.0; //stats::mean<double>(lb_costs.begin(), lb_costs.end());
     auto tau = 25; // ???
 #endif
 
@@ -150,9 +150,10 @@ int main(int argc, char **argv) {
 #endif
 
     float average_load_at_lb;
-    double skew = 0, relative_slope, my_time_slope, total_slope, degradation=0.0;
-    std::vector<double> timings(worldsize);
+    double skew = 0, relative_slope, my_time_slope, total_slope, degradation=0.0,
+           degradation_since_last_lb = 0.0;
 
+    std::vector<double> timings(worldsize);
     CPULoadDatabase gossip_workload_db(world);
 
     PAR_START_TIMING(loop_time, world);
@@ -172,7 +173,8 @@ int main(int argc, char **argv) {
             pcall = step;
         }
 #elif LB_METHOD == 2 // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf
-        if (ncall + pcall == step) {
+        if(!rank) steplogger->info("degradation: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
+        if (ncall + pcall == step || degradation_since_last_lb > avg_lb_cost) {
             double total_slope = get_slope<double>(window_step_time.data_container);
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
@@ -182,54 +184,44 @@ int main(int argc, char **argv) {
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
             if(total_slope > 0) ncall = std::sqrt((2 * avg_lb_cost) / total_slope);
             else ncall = MAX_STEP;
+            degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
             pcall = step;
         }
 #elif LB_METHOD == 3 // Unloading Model
+        constexpr double alpha = 1.0/4.0;
+        if(!rank) steplogger->info("degradation: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
+        if( pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost) {
+            double my_slope =  (std::floor(get_slope<double>(window_my_time.data_container)*1000.0)) / 1000.0;
+            double step_slope =  (std::floor(get_slope<double>(window_step_time.data_container)*1000.0)) / 1000.0;
+            auto total_last_step_time = *(window_step_time.end()-1);
+            auto my_last_step_time    = *(window_my_time.end()-1);
 
-        if( pcall + ncall <= step || degradation > avg_lb_cost) {
-            int gossip_max_age = gossip_workload_db.max_age();
-            double gossip_skew = gossip_workload_db.skewness();
-            bool call_lb = true;//(gossip_max_age > 3) || ((gossip_max_age <= 3) && gossip_skew > 0.0);
-            //std::cout << call_lb << " " << gossip_max_age << " " << gossip_skew << std ::endl;
-            if(call_lb || degradation > avg_lb_cost) {
-                if(!rank) steplogger->info("call ! NEW ! LB at: ") << step;
-                double my_time_slope = (std::floor(get_slope<double>(window_my_time.data_container)*1000.0)) / 1000.0;
-                double total_slope   = get_slope<double>(window_step_time.data_container);
-                std::vector<double> slopes(worldsize);
-                MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
-                auto avg_slope = stats::mean<double>(slopes.begin(), slopes.end());
-                int overloaded = std::count_if(slopes.begin(), slopes.end(), [&](auto s){ return s > avg_slope; });
-                if(overloaded < worldsize / 2 && overloaded > 0) {
-                    update_cell_weights(&my_cells, my_time_slope > avg_slope ? 0.9 : 0.0, WATER_TYPE, [] (auto a, auto b){return a + b;});
-                    PAR_START_TIMING(current_lb_cost, world);
-                    int load_diff = zoltan_load_balance(&my_cells, zoltan_lb, true, true);
-                    PAR_STOP_TIMING(current_lb_cost, world);
-                    //std::cout << rank << " " << load_diff << std::endl;
-                    reset_cell_weights(&my_cells);
-                    lb_costs.push_back(current_lb_cost);
-                    double W = gossip_workload_db.sum();
-                    bool I_belong_to_slowest = ( *(window_my_time.end()-1) >= *(window_my_time.end()-1)*0.95f );
-                    double biggest_slope;
-                    ncall = 20;
-                } else {
-                    PAR_START_TIMING(current_lb_cost, world);
-                    zoltan_load_balance(&my_cells, zoltan_lb, true, true);
-                    PAR_STOP_TIMING(current_lb_cost, world);
-                    lb_costs.push_back(current_lb_cost);
-                    avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-                    if(total_slope > 0) ncall = (int) std::sqrt((2 * avg_lb_cost) / total_slope);
-                    else ncall = MAX_STEP;
-                }
-                if(!rank) steplogger->info("next LB call at: ") << (step+ncall) << " '' " << total_slope;
-                gossip_workload_db.reset();
-                window_my_time.data_container.clear();
-                window_step_time.data_container.clear();
-                degradation = 0.0;
-                pcall = step;
-            }
+            PAR_START_TIMING(current_lb_cost, world);
+            //if(i_am_overloaded && i_am_increasing) {
+                //std::cout << rank << " !!!!!!!!!!!!!!!!!!! " << step_slope << " " << my_slope << std::endl;
+            int parts_num[1] = {rank}, weight_per_obj[1] = {0};
+            float part_size[1] = {(1.0f - (float) my_slope)};
+            Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
+                //update_cell_weights(&my_cells, alpha, WATER_TYPE, [](auto a, auto b){return a * 1.0/b;});
+            /*} else {
+                int parts_num[1] = {rank}, weight_per_obj[1] = {0};
+                float part_size[1] = {1.0};
+                Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
+            }*/
+
+            auto data = zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            PAR_STOP_TIMING(current_lb_cost, world);
+            lb_costs.push_back(current_lb_cost);
+            avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
+            std::cout << rank << " number of cells: " << compute_effective_workload(my_cells, WATER_TYPE) << " effective load " << compute_estimated_workload(my_cells) << std::endl ;
+            degradation_since_last_lb = 0.0;
+            window_my_time.data_container.clear();
+            window_step_time.data_container.clear();
+            pcall = step;
+            ncall = 100;
         }
 #endif
 #endif
@@ -254,6 +246,9 @@ int main(int argc, char **argv) {
 
         if(window_step_time.size() > 2)
             degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end() - 1)); // median among [cts-2, cts]
+
+        if(pcall+1 < step)
+            degradation_since_last_lb += *(window_step_time.end() - 1) - *(window_step_time.end() - 2) ;
 
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////

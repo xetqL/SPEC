@@ -204,6 +204,7 @@ inline int zoltan_load_balance(std::vector<Cell>* mesh_data,
     int export_load = 0;
     int import_load = 0;
     auto& md = *mesh_data;
+
     for(const auto& cell : md) {
         if(cell.type)
             for(int i = 0; i < numExport; ++i){
