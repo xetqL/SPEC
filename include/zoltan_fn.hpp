@@ -147,7 +147,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, in
 
     Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "0");
     Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "0");
-    //Zoltan_Set_Param(zz, "KEEP_CUTS", "1");
+    Zoltan_Set_Param(zz, "KEEP_CUTS", "0");
     Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
 
     if(automatic_migration)
