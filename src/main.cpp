@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
         }
 #elif LB_METHOD == 2 // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf
         if(!rank) steplogger->info("degradation: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
-        if (ncall + pcall == step || degradation_since_last_lb > avg_lb_cost) {
+        if (ncall + pcall == step) {
             double total_slope = get_slope<double>(window_step_time.data_container);
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
                 //std::cout << rank << " !!!!!!!!!!!!!!!!!!! " << step_slope << " " << my_slope << std::endl;
             int parts_num[1] = {rank}, weight_per_obj[1] = {0};
             float part_size[1] = {(1.0f - (float) my_slope)};
-            Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
+            //Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
                 //update_cell_weights(&my_cells, alpha, WATER_TYPE, [](auto a, auto b){return a * 1.0/b;});
             /*} else {
                 int parts_num[1] = {rank}, weight_per_obj[1] = {0};
@@ -217,7 +217,7 @@ int main(int argc, char **argv) {
             PAR_STOP_TIMING(current_lb_cost, world);
             lb_costs.push_back(current_lb_cost);
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-            std::cout << rank << " number of cells: " << compute_effective_workload(my_cells, WATER_TYPE) << " effective load " << compute_estimated_workload(my_cells) << std::endl ;
+            //std::cout << rank << " number of cells: " << compute_effective_workload(my_cells, WATER_TYPE) << " effective load " << compute_estimated_workload(my_cells) << std::endl ;
             degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();

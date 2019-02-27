@@ -134,7 +134,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, in
     auto zz = Zoltan_Create(comm);
 
     Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0");
-    Zoltan_Set_Param(zz, "LB_METHOD", "HSFC");
+    Zoltan_Set_Param(zz, "LB_METHOD", "RCB");
     Zoltan_Set_Param(zz, "DETERMINISTIC", "1");
     Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1");
 
