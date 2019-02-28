@@ -145,7 +145,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, in
     Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "1");
     Zoltan_Set_Param(zz, "RETURN_LISTS", "ALL");
 
-    Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "2");
+    Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "0");
     Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "0"); 
     Zoltan_Set_Param(zz, "RCB_REUSE", "1");
     Zoltan_Set_Param(zz, "KEEP_CUTS", "1");
