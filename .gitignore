@@ -1,7 +1,7 @@
 # IDE
 .idea/
 .cbp
-
+.cpb
 # Data
 *.jpg
 *.npy
