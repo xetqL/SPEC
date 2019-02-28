@@ -2,6 +2,8 @@
 .idea/
 .cbp
 .cpb
+SPEC.cbp
+
 # Data
 *.jpg
 *.npy
