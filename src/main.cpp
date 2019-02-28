@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
                 //std::cout << rank << " !!!!!!!!!!!!!!!!!!! " << step_slope << " " << my_slope << std::endl;
             int parts_num[1] = {rank}, weight_per_obj[1] = {0};
             float part_size[1] = {(1.0f - (float) my_slope)};
-            //Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
+            Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
                 //update_cell_weights(&my_cells, alpha, WATER_TYPE, [](auto a, auto b){return a * 1.0/b;});
             /*} else {
                 int parts_num[1] = {rank}, weight_per_obj[1] = {0};
