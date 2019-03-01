@@ -19,11 +19,13 @@ struct CellStatistics {
 struct Cell {
     int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
-    double average_load;
+    double average_load = 1.0;
 
     Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0) {};
     Cell(int gid, int type, float weight, float erosion_probability)
             : gid(gid), type(type), weight(weight), erosion_probability(erosion_probability) {};
+    Cell(int gid, int type, float weight, float erosion_probability, double average_load)
+            : gid(gid), type(type), weight(weight), erosion_probability(erosion_probability), average_load(average_load) {};
 
     template<class NumericType>
     std::array<NumericType, 2> get_position_as_array() const {
@@ -38,45 +40,40 @@ struct Cell {
 
     static CommunicationDatatype register_datatype() {
 
-        MPI_Datatype element_datatype,
-                     gid_type_datatype,
-                     weight_prob_datatype,
-                     oldtype_element[3];
-        MPI_Aint offset[3], intex, floats_offset, pos_offset;
+        MPI_Datatype cell_datatype, gid_type_datatype;
+
+        MPI_Aint intex, floatex;
 
         const int number_of_int_elements = 2;
         const int number_of_float_elements = 2;
         const int number_of_double_elements = 1;
 
-        int blockcount_element[2];
+        int blockcount_element[3];
 
+        blockcount_element[0] = number_of_int_elements; // gid, lid, exit, waiting_time
+        blockcount_element[1] = number_of_float_elements; // position <x,y>
+        blockcount_element[2] = number_of_double_elements; // position <x,y>
         //int
         MPI_Type_contiguous(number_of_int_elements, MPI_INT, &gid_type_datatype); // position
         MPI_Type_commit(&gid_type_datatype);
-        //float
-        MPI_Type_contiguous(number_of_float_elements, MPI_FLOAT, &weight_prob_datatype); // position
-        MPI_Type_commit(&weight_prob_datatype);
 
-        blockcount_element[0] = 1; // gid, lid, exit, waiting_time
-        blockcount_element[1] = 1; // position <x,y>
-        blockcount_element[2] = 1; // position <x,y>
+        MPI_Datatype blocktypes[3];
+        blocktypes[0] = MPI_INT;
+        blocktypes[1] = MPI_FLOAT;
+        blocktypes[2] = MPI_DOUBLE;
 
-        oldtype_element[0] = gid_type_datatype;
-        oldtype_element[1] = weight_prob_datatype;
-        oldtype_element[2] = MPI_DOUBLE;
+        MPI_Type_extent(MPI_INT, &intex);
+        MPI_Type_extent(MPI_FLOAT, &floatex);
 
-        MPI_Type_extent(gid_type_datatype, &pos_offset);
-        MPI_Type_extent(weight_prob_datatype, &floats_offset);
-
+        MPI_Aint offset[3];
         offset[0] = static_cast<MPI_Aint>(0);
-        offset[1] = pos_offset;
-        offset[2] = pos_offset + floats_offset;
+        offset[1] = 2*intex;
+        offset[2] = 2*intex + 2*floatex;
 
-        MPI_Type_struct(2, blockcount_element, offset, oldtype_element, &element_datatype);
+        MPI_Type_struct(3, blockcount_element, offset, blocktypes, &cell_datatype);
+        MPI_Type_commit(&cell_datatype);
 
-        MPI_Type_commit(&element_datatype);
-
-        return CommunicationDatatype(element_datatype, gid_type_datatype);
+        return CommunicationDatatype(cell_datatype, gid_type_datatype);
     }
 
     static int set_msx(int _msx){

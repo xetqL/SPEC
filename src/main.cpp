@@ -18,14 +18,17 @@
 
 #include "../include/cell.hpp"
 #include "../include/utils.hpp"
-#include "zupply.hpp"
+
 #include "../include/zoltan_fn.hpp"
 #include "../include/window.hpp"
 #include "../include/io.hpp"
 #include "../include/CPULoadDatabase.hpp"
-#include "main.hpp"
-#include "../include/time.hpp"
 
+#include "../include/time.hpp"
+#include "../include/band_partitioner.hpp"
+
+#include "zupply.hpp"
+#include "main.hpp"
 
 zz::log::LoggerPtr perflogger, steplogger;
 
@@ -37,6 +40,8 @@ int main(int argc, char **argv) {
     auto world = MPI_COMM_WORLD;
     MPI_Comm_size(world, &worldsize);
     MPI_Comm_rank(world, &rank);
+    auto datatype   = Cell::register_datatype();
+
     std::string str_rank = "[RANK " + std::to_string(rank) + "] ";
     // Generate data
     int xprocs = std::atoi(argv[2]), yprocs = std::atoi(argv[1]);
@@ -79,7 +84,7 @@ int main(int argc, char **argv) {
     int x_proc_idx, y_proc_idx;
     std::tie(x_proc_idx, y_proc_idx) = cell_to_global_position(xprocs, yprocs, rank);
     unsigned long total_cell = cell_per_process * worldsize;
-    auto datatype   = Cell::register_datatype();
+
     if(!rank) {
         steplogger->info("CPU COUNT:")    << worldsize;
         steplogger->info("GRID PSIZE X:") << xprocs;
@@ -101,9 +106,7 @@ int main(int argc, char **argv) {
         my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
     }
 #endif
-
     const int my_cell_count = my_cells.size();
-
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
     std::vector<std::array<int,2>> my_types(my_cell_count);
@@ -126,16 +129,20 @@ int main(int argc, char **argv) {
     /* Initial load balancing */
 
     std::vector<double> lb_costs;
-    auto zoltan_lb = zoltan_create_wrapper(true, world);
+    // auto zoltan_lb = zoltan_create_wrapper(true, world);
+    StripeLoadBalancer stripe_lb(msx, msy, datatype.element_datatype, world);
 
     PAR_START_TIMING(current_lb_cost, world);
-    zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+    // zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+    stripe_lb.load_balance(&my_cells, 0.0);
     PAR_STOP_TIMING(current_lb_cost, world);
     if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
 
     auto my_water_ptr = create_water_ptr_vector(my_cells);
-    //lb_costs.push_back(current_lb_cost/2.0);
-
+    std::vector<size_t> data_pointers, remote_data_pointers;
+    my_water_ptr = create_water_ptr_vector(my_cells);
+    std::tuple<int,int,int,int> bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
+    populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
 
@@ -156,10 +163,7 @@ int main(int argc, char **argv) {
     double skew = 0, relative_slope, my_time_slope, total_slope, degradation=0.0,
            degradation_since_last_lb = 0.0;
 
-    std::vector<size_t> data_pointers, remote_data_pointers;
-    std::tuple<int,int,int,int> bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
 
-    populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
 
     std::vector<double> timings(worldsize);
     std::vector<double> all_degradations;
@@ -176,7 +180,7 @@ int main(int argc, char **argv) {
         if(lb_condition) {
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
-            zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            //zoltan_load_balance(&my_cells, zoltan_lb, true, true);
             PAR_STOP_TIMING(current_lb_cost, world);
             if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
 
@@ -192,7 +196,7 @@ int main(int argc, char **argv) {
             double total_slope = get_slope<double>(window_step_time.data_container);
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
-            zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            //zoltan_load_balance(&my_cells, zoltan_lb, true, true);
             PAR_STOP_TIMING(current_lb_cost, world);
             if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
 
@@ -211,25 +215,25 @@ int main(int argc, char **argv) {
         if(!rank) steplogger->info("degradation: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
         if( lb_condition ) {
-            double my_slope =  (std::floor(get_slope<double>(window_my_time.data_container)*1000.0)) / 1000.0;
-            double step_slope =  (std::floor(get_slope<double>(window_step_time.data_container)*1000.0)) / 1000.0;
+            double my_slope           = (std::floor(get_slope<double>(window_my_time.data_container)*1000.0)) / 1000.0;
+            double step_slope         = (std::floor(get_slope<double>(window_step_time.data_container)*1000.0)) / 1000.0;
             auto total_last_step_time = *(window_step_time.end()-1);
             auto my_last_step_time    = *(window_my_time.end()-1);
 
             PAR_START_TIMING(current_lb_cost, world);
-            //if(i_am_overloaded && i_am_increasing) {
-                //std::cout << rank << " !!!!!!!!!!!!!!!!!!! " << step_slope << " " << my_slope << std::endl;
+            // if(i_am_overloaded && i_am_increasing) {
+            // std::cout << rank << " !!!!!!!!!!!!!!!!!!! " << step_slope << " " << my_slope << std::endl;
             int parts_num[1] = {rank}, weight_per_obj[1] = {0};
             float part_size[1] = {(1.0f - (float) my_slope)};
-            Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
+            // Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
             update_cell_weights(&my_cells, part_size[0], WATER_TYPE, [](auto a, auto b){return a * 1.0/b;});
             /*} else {
                 int parts_num[1] = {rank}, weight_per_obj[1] = {0};
                 float part_size[1] = {1.0};
                 Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
             }*/
-            auto data = zoltan_load_balance(&my_cells, zoltan_lb, true, true);
-            std::cout << rank << " " << data << std::endl;
+            // auto data = zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            // std::cout << rank << " " << data << std::endl;
             PAR_STOP_TIMING(current_lb_cost, world);
             if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
             lb_costs.push_back(current_lb_cost);
@@ -240,6 +244,11 @@ int main(int argc, char **argv) {
             window_step_time.data_container.clear();
             pcall = step;
             ncall = 10;
+        }
+#elif LB_METHOD=4
+        lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
+        if( lb_condition ) {
+            stripe_lb.load_balance(&my_cells, !rank ? 0.1 : 0.0);
         }
 #endif
         if(lb_condition) {
@@ -252,18 +261,14 @@ int main(int argc, char **argv) {
         /// COMPUTATION START
 
         PAR_START_TIMING(comp_time, world);
-        auto remote_cells = zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
+        auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         auto remote_water_ptr = create_water_ptr_vector(remote_cells);
         decltype(my_water_ptr) new_water_ptr;
         //print_bbox(rank, bbox);
         //print_bbox(rank, get_bounding_box(my_cells, remote_cells));
-        populate_data_pointers(msx, msy, &data_pointers, remote_cells, my_cells.size(), bbox);
-        if(bbox != get_bounding_box(my_cells, remote_cells)){
-            steplogger->fatal(str_rank.c_str()) << bbox << "=/=" <<get_bounding_box(my_cells, remote_cells);
-        }
-        //bbox = get_bounding_box(my_cells, remote_cells);
-        //populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
-        populate_data_pointers(msx, msy, &data_pointers, remote_cells, my_cells.size(), bbox);
+        bbox = get_bounding_box(my_cells, remote_cells);
+        populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
+        //populate_data_pointers(msx, msy, &data_pointers, remote_cells, my_cells.size(), bbox);
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         CHECKPOINT_TIMING(comp_time, my_comp_time);

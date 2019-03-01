@@ -17,7 +17,7 @@ struct CommunicationDatatype {
 template<class A>
 inline std::vector<A> gather_elements_on(const std::vector<A> &local_el,
                                          const int dest_rank,
-                                         const MPI_Datatype &sendtype,
+                                         const MPI_Datatype& sendtype,
                                          const MPI_Comm &comm) {
     std::vector<A> dest_el;
     int nlocal = local_el.size();
@@ -26,7 +26,8 @@ inline std::vector<A> gather_elements_on(const std::vector<A> &local_el,
     std::vector<int> counts(world_size, 0), displs(world_size, 0);
     MPI_Gather(&nlocal, 1, MPI_INT, &counts.front(), 1, MPI_INT, dest_rank, comm);
     int nb_elements = std::accumulate(counts.begin(), counts.end(), 0);
-    for (int cpt = 0; cpt < world_size; ++cpt) displs[cpt] = cpt == 0 ? 0 : displs[cpt - 1] + counts[cpt - 1];
+    for (int cpt = 0; cpt < world_size; ++cpt)
+        displs[cpt] = cpt == 0 ? 0 : displs[cpt - 1] + counts[cpt - 1];
     if (my_rank == dest_rank) dest_el.resize(nb_elements);
     MPI_Gatherv(&local_el.front(), nlocal, sendtype,
                 &dest_el.front(), &counts.front(), &displs.front(), sendtype, dest_rank, comm);
@@ -35,11 +36,12 @@ inline std::vector<A> gather_elements_on(const std::vector<A> &local_el,
 }
 
 template<class A>
-inline std::vector<A> gather_elements_on(const std::initializer_list<A> &&local_el,
+inline std::vector<A> gather_elements_on(const std::initializer_list<A> &&_local_el,
                                          const int dest_rank,
                                          const MPI_Datatype &sendtype,
                                          const MPI_Comm &comm) {
     std::vector<A> dest_el;
+    std::vector<A> local_el(_local_el.begin(), _local_el.end());
     int nlocal = local_el.size();
     int my_rank; MPI_Comm_rank(comm, &my_rank);
     int world_size; MPI_Comm_size(comm, &world_size);
