@@ -138,7 +138,6 @@ int main(int argc, char **argv) {
 
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
-    std::vector<size_t> data_pointers;
 
 #ifdef LB_METHOD
     double avg_lb_cost = 100.0; //stats::mean<double>(lb_costs.begin(), lb_costs.end());
@@ -156,6 +155,10 @@ int main(int argc, char **argv) {
     float average_load_at_lb;
     double skew = 0, relative_slope, my_time_slope, total_slope, degradation=0.0,
            degradation_since_last_lb = 0.0;
+
+    std::vector<size_t> data_pointers, remote_data_pointers;
+    std::tuple<int,int,int,int> bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -1, 1, -1, 1);
+    populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
 
     std::vector<double> timings(worldsize);
     std::vector<double> all_degradations;
@@ -240,6 +243,8 @@ int main(int argc, char **argv) {
 #endif
         if(lb_condition) {
             my_water_ptr = create_water_ptr_vector(my_cells);
+            bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -1, 1, -1, 1);
+            populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
         }
 #endif
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -248,14 +253,9 @@ int main(int argc, char **argv) {
         PAR_START_TIMING(comp_time, world);
         auto remote_cells = zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         auto remote_water_ptr = create_water_ptr_vector(remote_cells);
-        auto bbox = get_bounding_box(my_cells, remote_cells);
-        populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
-        //my_cells = dummy_erosion_computation2(msx, msy, my_cells,  remote_cells,  data_pointers, bbox);
         decltype(my_water_ptr) new_water_ptr;
-        CHECKPOINT_TIMING(comp_time, my_cpt_time1);
+        populate_data_pointers(msx, msy, &data_pointers, remote_cells, my_cells.size(), bbox);
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
-        CHECKPOINT_TIMING(comp_time, my_cpt_time2);
-
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
@@ -274,11 +274,10 @@ int main(int argc, char **argv) {
 
         if(pcall+1 < step)
             degradation_since_last_lb += *(window_step_time.end() - 1) - *(window_step_time.end() - 2) ;
-        double cpt = my_cpt_time2 - my_cpt_time1;
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         std::vector<double> exch_timings(worldsize);
-        MPI_Allgather(&cpt, 1, MPI_DOUBLE, &exch_timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+        //MPI_Allgather(&cpt, 1, MPI_DOUBLE, &exch_timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
         MPI_Allgather(&my_comp_time,     1, MPI_DOUBLE, &timings.front(),      1, MPI_DOUBLE, world); // TODO: propagate information differently
         std::vector<double> slopes(worldsize);
         std::vector<int> tloads(worldsize);
@@ -300,7 +299,7 @@ int main(int argc, char **argv) {
             << ",\"load_imbalance\": " << load_imbalance
             << ",\"skewness\": " << stats::skewness<double>(timings.begin(), timings.end())
             << ",\"loads\": ["   << timings
-            << ",\"exch\": ["    << exch_timings
+            //<< ",\"exch\": ["    << exch_timings
             << "],\"tloads\":["  << tloads
             << "],\"slopes\":["  << slopes<<"]";
         }
