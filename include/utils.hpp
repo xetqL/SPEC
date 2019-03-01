@@ -20,8 +20,9 @@ inline std::pair<int, int> cell_to_global_position(int msx, int msy, long long p
     return std::make_pair(position % msx, (int) position / msx);
 }
 
-inline std::pair<int, int> cell_to_position(int msx, int msy, long long position){
-    return std::make_pair(position % msx, (int) position / msx);
+template<class IntegerType=unsigned int>
+inline std::pair<IntegerType, IntegerType> cell_to_position(IntegerType msx, IntegerType msy, long long position){
+    return std::make_pair(position % msx, (IntegerType) position / msx);
 }
 
 inline std::pair<int, int> cell_to_local_position(int msx, int msy, std::tuple<int,int,int,int> bounding_box, long long position){
@@ -47,6 +48,7 @@ std::tuple<int, int, int, int> get_bounding_box(
         minx = std::min(x, minx); miny = std::min(y, miny);
         maxx = std::max(x, maxx); maxy = std::max(y, maxy);
     }
+
     maxx++;maxy++;
     assert(minx >= 0);
     assert(miny >= 0);

@@ -12,9 +12,14 @@
 #define ROCK_WEIGHT 0.0
 #define WATER_WEIGHT 1.0
 
+struct CellStatistics {
+    double average_load;
+};
+
 struct Cell {
     int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
+    double average_load;
 
     Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0) {};
     Cell(int gid, int type, float weight, float erosion_probability)
@@ -36,11 +41,12 @@ struct Cell {
         MPI_Datatype element_datatype,
                      gid_type_datatype,
                      weight_prob_datatype,
-                     oldtype_element[2];
-        MPI_Aint offset[2], intex, pos_offset;
+                     oldtype_element[3];
+        MPI_Aint offset[3], intex, floats_offset, pos_offset;
 
         const int number_of_int_elements = 2;
         const int number_of_float_elements = 2;
+        const int number_of_double_elements = 1;
 
         int blockcount_element[2];
 
@@ -53,14 +59,18 @@ struct Cell {
 
         blockcount_element[0] = 1; // gid, lid, exit, waiting_time
         blockcount_element[1] = 1; // position <x,y>
+        blockcount_element[2] = 1; // position <x,y>
 
         oldtype_element[0] = gid_type_datatype;
         oldtype_element[1] = weight_prob_datatype;
+        oldtype_element[2] = MPI_DOUBLE;
 
         MPI_Type_extent(gid_type_datatype, &pos_offset);
+        MPI_Type_extent(weight_prob_datatype, &floats_offset);
 
         offset[0] = static_cast<MPI_Aint>(0);
         offset[1] = pos_offset;
+        offset[2] = pos_offset + floats_offset;
 
         MPI_Type_struct(2, blockcount_element, offset, oldtype_element, &element_datatype);
 
@@ -68,6 +78,7 @@ struct Cell {
 
         return CommunicationDatatype(element_datatype, gid_type_datatype);
     }
+
     static int set_msx(int _msx){
         static int msx = _msx;
     }

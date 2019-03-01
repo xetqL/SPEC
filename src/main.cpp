@@ -157,7 +157,8 @@ int main(int argc, char **argv) {
            degradation_since_last_lb = 0.0;
 
     std::vector<size_t> data_pointers, remote_data_pointers;
-    std::tuple<int,int,int,int> bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -1, 1, -1, 1);
+    std::tuple<int,int,int,int> bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
+
     populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
 
     std::vector<double> timings(worldsize);
@@ -243,7 +244,7 @@ int main(int argc, char **argv) {
 #endif
         if(lb_condition) {
             my_water_ptr = create_water_ptr_vector(my_cells);
-            bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -1, 1, -1, 1);
+            bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
             populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
         }
 #endif
@@ -254,6 +255,14 @@ int main(int argc, char **argv) {
         auto remote_cells = zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         auto remote_water_ptr = create_water_ptr_vector(remote_cells);
         decltype(my_water_ptr) new_water_ptr;
+        //print_bbox(rank, bbox);
+        //print_bbox(rank, get_bounding_box(my_cells, remote_cells));
+        populate_data_pointers(msx, msy, &data_pointers, remote_cells, my_cells.size(), bbox);
+        if(bbox != get_bounding_box(my_cells, remote_cells)){
+            steplogger->fatal(str_rank.c_str()) << bbox << "=/=" <<get_bounding_box(my_cells, remote_cells);
+        }
+        //bbox = get_bounding_box(my_cells, remote_cells);
+        //populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
         populate_data_pointers(msx, msy, &data_pointers, remote_cells, my_cells.size(), bbox);
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));

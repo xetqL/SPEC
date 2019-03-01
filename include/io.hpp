@@ -29,7 +29,17 @@ std::ostream &operator<<(std::ostream &os, const std::deque<A> &data) {
     os << data.at(sz-1);
     return os;
 }
+
+std::ostream &operator<<(std::ostream &os, const std::tuple<int, int, int , int>& bbox) {
+    os << std::get<0>(bbox) << ", " << std::get<1>(bbox) << ", " << std::get<2>(bbox) << ", " << std::get<3>(bbox);
+    return os;
+}
+
 void print_bbox(std::tuple<int, int, int , int> bbox) {
     std::cout << std::get<0>(bbox) << ", " << std::get<1>(bbox) << ", " << std::get<2>(bbox) << ", " << std::get<3>(bbox) << std::endl;
+}
+
+void print_bbox(int rank, std::tuple<int, int, int , int> bbox) {
+    std::cout << rank << " " << std::get<0>(bbox) << ", " << std::get<1>(bbox) << ", " << std::get<2>(bbox) << ", " << std::get<3>(bbox) << std::endl;
 }
 #endif //SPEC_IO_HPP

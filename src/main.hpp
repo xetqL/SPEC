@@ -212,8 +212,6 @@ std::vector<unsigned long> create_water_ptr_vector(const std::vector<Cell>& cell
     return res;
 }
 
-
-
 const std::vector<const Cell*> create_water_ptr(const std::vector<Cell>& cells){
     std::vector<const Cell*> res;
     for(const auto& cell: cells) {
