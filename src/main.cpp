@@ -247,13 +247,15 @@ int main(int argc, char **argv) {
 
         PAR_START_TIMING(comp_time, world);
         auto remote_cells = zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
-        CHECKPOINT_TIMING(comp_time, my_exchange_time);
         auto remote_water_ptr = create_water_ptr_vector(remote_cells);
         auto bbox = get_bounding_box(my_cells, remote_cells);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
         //my_cells = dummy_erosion_computation2(msx, msy, my_cells,  remote_cells,  data_pointers, bbox);
         decltype(my_water_ptr) new_water_ptr;
+        CHECKPOINT_TIMING(comp_time, my_cpt_time1);
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
+        CHECKPOINT_TIMING(comp_time, my_cpt_time2);
+
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
@@ -272,11 +274,11 @@ int main(int argc, char **argv) {
 
         if(pcall+1 < step)
             degradation_since_last_lb += *(window_step_time.end() - 1) - *(window_step_time.end() - 2) ;
-
+        double cpt = my_cpt_time2 - my_cpt_time1;
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         std::vector<double> exch_timings(worldsize);
-        MPI_Allgather(&my_exchange_time, 1, MPI_DOUBLE, &exch_timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+        MPI_Allgather(&cpt, 1, MPI_DOUBLE, &exch_timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
         MPI_Allgather(&my_comp_time,     1, MPI_DOUBLE, &timings.front(),      1, MPI_DOUBLE, world); // TODO: propagate information differently
         std::vector<double> slopes(worldsize);
         std::vector<int> tloads(worldsize);
@@ -294,15 +296,14 @@ int main(int argc, char **argv) {
             perflogger->info("\"step\":") << step
             << ",\"step_time\": " << step_time
             << ",\"total_time\": " << std::accumulate(timings.begin(), timings.end(), 0.0)
-            << ",\"lb_cost\": " << stats::mean<double>(lb_costs.begin(), lb_costs.end())
+            << ",\"lb_cost\": "  << stats::mean<double>(lb_costs.begin(), lb_costs.end())
             << ",\"load_imbalance\": " << load_imbalance
             << ",\"skewness\": " << stats::skewness<double>(timings.begin(), timings.end())
-            << ",\"loads\": [" << timings
-            << ",\"exch\": ["  << exch_timings
-            << "],\"tloads\":["<<tloads
-            << "],\"slopes\":["<<slopes<<"]";
+            << ",\"loads\": ["   << timings
+            << ",\"exch\": ["    << exch_timings
+            << "],\"tloads\":["  << tloads
+            << "],\"slopes\":["  << slopes<<"]";
         }
-
 
 #ifdef PRODUCE_OUTPUTS
         unsigned long cell_cnt = my_cells.size();
