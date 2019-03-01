@@ -109,11 +109,14 @@ void populate_data_pointers(int msx, int msy,
         auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
         data_pointers[lid] = i;
     }
+
     for (size_t i = 0; i < remote_size; ++i) {
         const Cell& cell = remote_cells[i];
         auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
         data_pointers[lid] = i+mine_size;
     }
+
+
 }
 
 float compute_estimated_workload(const std::vector<Cell>& _my_cells) {

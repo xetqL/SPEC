@@ -173,7 +173,7 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
     std::tie(x1, x2, y1, y2) = bbox;
     int total_box = (x2 - x1) * (y2 - y1);
     const size_t my_cell_count = my_cells.size();
-    const size_t remote_count = remote_cells.size();
+    const size_t remote_count  = remote_cells.size();
     const size_t all_count = my_cell_count + remote_count;
     std::vector<size_t> idx_neighbors(3, -1);
     for (unsigned int i = 0; i < all_count; ++i) {
@@ -206,9 +206,19 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
 std::vector<unsigned long> create_water_ptr_vector(const std::vector<Cell>& cells){
     std::vector<unsigned long> res;
     const auto size = cells.size();
-    for(unsigned long i = 0; i < size; ++i){
-    	if(cells.type) res.push_back(i);
-        i++;
+    for(unsigned long i = 0; i < size; ++i) {
+    	if(cells[i].type) res.push_back(i);
+    }
+    return res;
+}
+
+
+
+const std::vector<const Cell*> create_water_ptr(const std::vector<Cell>& cells){
+    std::vector<const Cell*> res;
+    for(const auto& cell: cells) {
+        const Cell* c = &cell;
+        if(c->type) res.push_back(c);
     }
     return res;
 }
@@ -293,31 +303,43 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
 
 
 
-std::vector<Cell> dummy_erosion_computation3(int msx, int msy,
-                                             const std::vector<Cell>& _my_cells,
+std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computation3(int msx, int msy,
+                                             const std::vector<Cell>& my_old_cells,
                                              const std::vector<unsigned long>& my_water_ptr,
                                              const std::vector<Cell>& remote_cells,
-                                             const std::vector<Cell>& remote_water_ptr,
+                                             const std::vector<unsigned long>& remote_water_ptr,
                                              const std::vector<size_t>& data_pointers,
                                              const std::tuple<int, int, int, int>& bbox) {
 
 
-    std::vector<Cell> my_cells = _my_cells;
-    const std::vector<Cell>& my_old_cells = _my_cells;
+    std::vector<Cell> my_cells = my_old_cells;
 
     int x1,x2,y1,y2; std::tie(x1,x2, y1,y2) = bbox;
     int total_box = (x2-x1) * (y2-y1);
+    const size_t my_water_cell_count = my_water_ptr.size();
+    const size_t remote_water_count  = remote_water_ptr.size();
+    const size_t all_water_count     = my_water_cell_count + remote_water_count;
+
     const size_t my_cell_count = my_cells.size();
     const size_t remote_count  = remote_cells.size();
-    const size_t all_count     = my_cell_count + remote_count;
 
     std::vector<size_t> idx_neighbors(8, -1);
     std::vector<float>  thetas(8, 0);
-    for(auto i : my_water_ptr) {
+    std::vector<unsigned long> new_water_cells;
+
+    for(unsigned int i = 0; i < all_water_count; ++i) {
         const Cell* cell;
 
-        cell = &my_old_cells[i];
-        
+        if(i < my_water_cell_count) {
+            auto cell_idx = my_water_ptr[i];
+            cell = &my_old_cells[cell_idx];
+        }
+        else {
+            auto cell_idx = remote_water_ptr[i - my_water_cell_count];
+            cell = &remote_cells[cell_idx];
+        }
+        //std::cout << i << " " << all_water_count << std::endl;
+        //std::cout << cell->gid << std::endl;
         if(cell->type) { // Do nothing if type == ROCK_TYPE
             auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
             auto lid = position_to_cell(x2-x1, y2-y1, __pos);
@@ -345,88 +367,35 @@ std::vector<Cell> dummy_erosion_computation3(int msx, int msy,
             for (int j = 0; j < 8; ++j) {
                 auto idx_neighbor = idx_neighbors[j];
                 auto theta = thetas[j];
-                if(idx_neighbor >= my_cell_count) continue;
+                if(idx_neighbor >= my_old_cells.size()) continue;
                 if(my_cells[idx_neighbor].type) continue;
                 auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
                 auto x = cell_to_global_position(msx, msy, idx_neighbor);
                 auto p = udist(gen);
+
+                bool eroded;
+
                 if( erosion_proba < 1.0 ) {
-                    if (p < (theta) * erosion_proba) {
-                        my_cells[idx_neighbor].type   = 1;
-                        my_cells[idx_neighbor].weight = 1;
-                    }
+                    eroded = p < (theta) * erosion_proba;
                 } else {
-                    if (p < (msx - __pos.first) / (float) msx) {
-                        my_cells[idx_neighbor].type   = 1;
-                        my_cells[idx_neighbor].weight = 1;
-                    }
+                    eroded = p < (msx - __pos.first) / (float) msx;
+                }
+
+                if(eroded) {
+                    my_cells[idx_neighbor].type   = 1;
+                    my_cells[idx_neighbor].weight = 1;
+                    new_water_cells.push_back(idx_neighbor);
                 }
             }
 
             /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
-            consume_cpu_flops(flopdist(gen));
+            if(i < my_water_cell_count) consume_cpu_flops(flopdist(gen));
             /* stop */
 
         }
     }
 
-
-    for(auto i : remote_water_ptr) {
-        const Cell* cell;
-
-        cell = &remote_cells[i];
-        
-        if(cell->type) { // Do nothing if type == ROCK_TYPE
-            auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
-            auto lid = position_to_cell(x2-x1, y2-y1, __pos);
-            std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
-            if(lid+1 < total_box) {
-                idx_neighbors[0] = (data_pointers[lid+1]);
-                thetas[0]        = 1.0f;
-            }
-            if((lid-(x2-x1))+1 >= 0) {
-                idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
-                thetas[1]        = 1.0f/1.4142135f;
-            }
-            if(lid-(x2-x1) >= 0) {
-                idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
-                thetas[2]        = 0;
-            }
-            if(lid+(x2-x1) < total_box) {
-                idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
-                thetas[6]        = 0;
-            }
-            if(lid+(x2-x1)+1 < total_box) {
-                idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
-                thetas[7]        = 1.0f/1.4142135f;
-            }
-            for (int j = 0; j < 8; ++j) {
-                auto idx_neighbor = idx_neighbors[j];
-                auto theta = thetas[j];
-                if(idx_neighbor >= my_cell_count) continue;
-                if(my_cells[idx_neighbor].type) continue;
-                auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
-                auto x = cell_to_global_position(msx, msy, idx_neighbor);
-                auto p = udist(gen);
-                if( erosion_proba < 1.0 ) {
-                    if (p < (theta) * erosion_proba) {
-                        my_cells[idx_neighbor].type   = 1;
-                        my_cells[idx_neighbor].weight = 1;
-                    }
-                } else {
-                    if (p < (msx - __pos.first) / (float) msx) {
-                        my_cells[idx_neighbor].type   = 1;
-                        my_cells[idx_neighbor].weight = 1;
-                    }
-                }
-            }		
-/**
- * DO NOT SIMULATE FLUID HERE, BECAUSE IT CONCERNS ONLY REMOTE WATER CELLS
- * */
-        }
-    }
-
-    return my_cells;
+    return std::make_pair(my_cells, new_water_cells);
 }
 
 #endif //SPEC_MAIN_HPP

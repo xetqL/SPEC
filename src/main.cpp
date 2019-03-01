@@ -124,12 +124,15 @@ int main(int argc, char **argv) {
     if(!rank) steplogger->info() << "End of map generation";
 
     /* Initial load balancing */
+
     std::vector<double> lb_costs;
     auto zoltan_lb = zoltan_create_wrapper(true, world);
 
     PAR_START_TIMING(current_lb_cost, world);
     zoltan_load_balance(&my_cells, zoltan_lb, true, true);
     PAR_STOP_TIMING(current_lb_cost, world);
+
+    auto my_water_ptr = create_water_ptr_vector(my_cells);
     //lb_costs.push_back(current_lb_cost/2.0);
 
     /* lets make it fun now...*/
@@ -162,8 +165,10 @@ int main(int argc, char **argv) {
         if(!rank) steplogger->info() << "Beginning step "<< step;
         PAR_START_TIMING(step_time, world);
 #ifdef LB_METHOD
+        bool lb_condition = false;
 #if LB_METHOD==1   // load balance every 100 iterations
-        if((pcall + ncall) == step) {
+        lb_condition = (pcall + ncall) == step;
+        if(lb_condition) {
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
             zoltan_load_balance(&my_cells, zoltan_lb, true, true);
@@ -175,7 +180,8 @@ int main(int argc, char **argv) {
         }
 #elif LB_METHOD == 2 // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf
         if(!rank) steplogger->info("degradation: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
-        if (ncall + pcall == step) {
+        lb_condition = (pcall + ncall) == step;
+        if(lb_condition) {
             double total_slope = get_slope<double>(window_step_time.data_container);
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
@@ -194,7 +200,8 @@ int main(int argc, char **argv) {
 #elif LB_METHOD == 3 // Unloading Model
         constexpr double alpha = 1.0/4.0;
         if(!rank) steplogger->info("degradation: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
-        if( pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost) {
+        lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
+        if( lb_condition ) {
             double my_slope =  (std::floor(get_slope<double>(window_my_time.data_container)*1000.0)) / 1000.0;
             double step_slope =  (std::floor(get_slope<double>(window_step_time.data_container)*1000.0)) / 1000.0;
             auto total_last_step_time = *(window_step_time.end()-1);
@@ -225,14 +232,22 @@ int main(int argc, char **argv) {
             ncall = 100;
         }
 #endif
+        if(lb_condition) {
+            my_water_ptr = create_water_ptr_vector(my_cells);
+        }
 #endif
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
         PAR_START_TIMING(comp_time, world);
         auto remote_cells = zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
+        auto remote_water_ptr = create_water_ptr_vector(remote_cells);
         auto bbox = get_bounding_box(my_cells, remote_cells);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
-        my_cells = dummy_erosion_computation2(msx, msy, my_cells, remote_cells, data_pointers, bbox);
+        //my_cells = dummy_erosion_computation2(msx, msy, my_cells,  remote_cells,  data_pointers, bbox);
+        decltype(my_water_ptr) new_water_ptr;
+        std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
+        my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
+
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
