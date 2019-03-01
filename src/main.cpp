@@ -131,6 +131,7 @@ int main(int argc, char **argv) {
     PAR_START_TIMING(current_lb_cost, world);
     zoltan_load_balance(&my_cells, zoltan_lb, true, true);
     PAR_STOP_TIMING(current_lb_cost, world);
+    if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
 
     auto my_water_ptr = create_water_ptr_vector(my_cells);
     //lb_costs.push_back(current_lb_cost/2.0);
@@ -173,6 +174,8 @@ int main(int argc, char **argv) {
             PAR_START_TIMING(current_lb_cost, world);
             zoltan_load_balance(&my_cells, zoltan_lb, true, true);
             PAR_STOP_TIMING(current_lb_cost, world);
+            if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
+
             lb_costs.push_back(current_lb_cost);
             ncall = 25;
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
@@ -187,6 +190,8 @@ int main(int argc, char **argv) {
             PAR_START_TIMING(current_lb_cost, world);
             zoltan_load_balance(&my_cells, zoltan_lb, true, true);
             PAR_STOP_TIMING(current_lb_cost, world);
+            if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
+
             lb_costs.push_back(current_lb_cost);
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
             if(total_slope > 0) ncall = std::sqrt((2 * avg_lb_cost) / total_slope);
@@ -222,6 +227,7 @@ int main(int argc, char **argv) {
 
             auto data = zoltan_load_balance(&my_cells, zoltan_lb, true, true);
             PAR_STOP_TIMING(current_lb_cost, world);
+            if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
             lb_costs.push_back(current_lb_cost);
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
             //std::cout << rank << " number of cells: " << compute_effective_workload(my_cells, WATER_TYPE) << " effective load " << compute_estimated_workload(my_cells) << std::endl ;
