@@ -218,14 +218,14 @@ int main(int argc, char **argv) {
             int parts_num[1] = {rank}, weight_per_obj[1] = {0};
             float part_size[1] = {(1.0f - (float) my_slope)};
             Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
-                //update_cell_weights(&my_cells, alpha, WATER_TYPE, [](auto a, auto b){return a * 1.0/b;});
+            update_cell_weights(&my_cells, part_size[0], WATER_TYPE, [](auto a, auto b){return a * 1.0/b;});
             /*} else {
                 int parts_num[1] = {rank}, weight_per_obj[1] = {0};
                 float part_size[1] = {1.0};
                 Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
             }*/
-
             auto data = zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            std::cout << rank << " " << data << std::endl;
             PAR_STOP_TIMING(current_lb_cost, world);
             if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
             lb_costs.push_back(current_lb_cost);
@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
             pcall = step;
-            ncall = 100;
+            ncall = 10;
         }
 #endif
         if(lb_condition) {
@@ -253,7 +253,6 @@ int main(int argc, char **argv) {
         decltype(my_water_ptr) new_water_ptr;
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
-
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);

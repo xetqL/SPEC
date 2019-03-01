@@ -107,17 +107,17 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
 
             if(pos.first < (msx / 4)){
                 main_type = WATER_TYPE;
-                main_weight = 1.0;
+                main_weight = WATER_WEIGHT;
             } else {
                 main_type = ROCK_TYPE;
-                main_weight = 0.0;
+                main_weight = ROCK_WEIGHT;
             }
             for ( auto circle : rock_fn) {
                 int x2, y2, r; std::tie(x2, y2, r, eprob) = circle;
                 is_rock = std::sqrt( std::pow(x2-pos.first,2) + std::pow(y2 - pos.second,2) ) < r;
                 if(is_rock) break;
             }
-            my_cells.emplace_back(id, is_rock ? ROCK_TYPE : main_type, is_rock ? 0.0 : main_weight, is_rock ? eprob : 1.0);
+            my_cells.emplace_back(id, is_rock ? ROCK_TYPE : main_type, is_rock ? ROCK_WEIGHT : main_weight, is_rock ? eprob : 1.0);
         }
     }
     return my_cells;
@@ -146,13 +146,13 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy, int x
         int id = cell_in_my_rows * x_proc_idx + i + msx * (j + (y_proc_idx * cell_in_my_cols));
         if(x_proc_idx+i == 0){
             main_type = WATER_TYPE;
-            main_weight = 1.0;
+            main_weight = WATER_WEIGHT;
         } else {
             main_type = ROCK_TYPE;
-            main_weight = 0.0;
+            main_weight = ROCK_WEIGHT;
         }
         auto val = lattice[k];
-        my_cells.emplace_back(id, val > 0 ? ROCK_TYPE : main_type, val > 0 ? 0.0 : main_weight, val > 0 ? erosion_probabilities[val] : 1.0);
+        my_cells.emplace_back(id, val > 0 ? ROCK_TYPE : main_type, val > 0 ? ROCK_WEIGHT : main_weight, val > 0 ? erosion_probabilities[val] : 1.0);
     }
     std::sort(my_cells.begin(), my_cells.end(), [](auto a, auto b){return a.gid < b.gid;});
     return my_cells;

@@ -9,11 +9,14 @@
 #include "communication.hpp"
 #include "utils.hpp"
 
+#define ROCK_WEIGHT 0.0
+#define WATER_WEIGHT 1.0
+
 struct Cell {
     int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
 
-    Cell() : gid(0), type(0), weight(0), erosion_probability(0) {};
+    Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0) {};
     Cell(int gid, int type, float weight, float erosion_probability)
             : gid(gid), type(type), weight(weight), erosion_probability(erosion_probability) {};
 
@@ -125,7 +128,7 @@ float compute_estimated_workload(const std::vector<Cell>& _my_cells) {
     return load;
 }
 
-int compute_effective_workload(const std::vector<Cell>& _my_cells, int type) {
+long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) {
     return std::count_if(_my_cells.begin(), _my_cells.end(), [&](auto c){return c.type == type;});
 }
 
@@ -155,7 +158,7 @@ void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type){
 
 void reset_cell_weights(std::vector<Cell>* _my_cells){
     std::vector<Cell>& my_cells = *(_my_cells);
-    for(auto& cell : my_cells) cell.weight = cell.type ? 1.0f : 0.0f;
+    for(auto& cell : my_cells) cell.weight = cell.type ? WATER_WEIGHT : ROCK_WEIGHT;
 }
 
 #endif //SPEC_CELL_HPP
