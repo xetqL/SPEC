@@ -244,8 +244,10 @@ int main(int argc, char **argv) {
 #endif
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
+
         PAR_START_TIMING(comp_time, world);
         auto remote_cells = zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
+        CHECKPOINT_TIMING(comp_time, my_exchange_time);
         auto remote_water_ptr = create_water_ptr_vector(remote_cells);
         auto bbox = get_bounding_box(my_cells, remote_cells);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
@@ -273,8 +275,9 @@ int main(int argc, char **argv) {
 
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        MPI_Allgather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+        std::vector<double> exch_timings(worldsize);
+        MPI_Allgather(&my_exchange_time, 1, MPI_DOUBLE, &exch_timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+        MPI_Allgather(&my_comp_time,     1, MPI_DOUBLE, &timings.front(),      1, MPI_DOUBLE, world); // TODO: propagate information differently
         std::vector<double> slopes(worldsize);
         std::vector<int> tloads(worldsize);
         my_time_slope = (std::floor(get_slope<double>(window_my_time.data_container)*1000.0)) / 1000.0;
@@ -295,6 +298,7 @@ int main(int argc, char **argv) {
             << ",\"load_imbalance\": " << load_imbalance
             << ",\"skewness\": " << stats::skewness<double>(timings.begin(), timings.end())
             << ",\"loads\": [" << timings
+            << ",\"exch\": ["  << exch_timings
             << "],\"tloads\":["<<tloads
             << "],\"slopes\":["<<slopes<<"]";
         }
