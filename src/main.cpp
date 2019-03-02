@@ -74,11 +74,12 @@ int main(int argc, char **argv) {
 
     int& msx = Cell::get_msx(); msx = xcells;
     int& msy = Cell::get_msy(); msy = ycells;
-
+    int inner_type = WATER_TYPE;
     int shape[2] = {msx,msy};
 
 #ifdef PRODUCE_OUTPUTS
-    if(!rank) cnpy::npz_save("gids-out.npz", "shape", &shape[0], {2}, "w");
+    if(!rank) cnpy::npz_save("gids-out.npz", "shape", &shape[0],   {2}, "w");
+    if(!rank) cnpy::npz_save("gids-out.npz", "type",  &inner_type, {1}, "a");
 #endif
 
     int x_proc_idx, y_proc_idx;
@@ -97,31 +98,22 @@ int main(int argc, char **argv) {
     if(!rank) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
     std::vector<Cell> my_cells;
 #ifndef PRODUCE_OUTPUTS
-    my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
+    //my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
+    my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, WATER_TYPE, 1.0, 0.0);
 #else
     if(argc == 7) {
         auto lattice_fname = argv[6];
         my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols, lattice_fname);
     } else {
-        my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
+
+
+        //my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
+
+        my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, inner_type, 1.0, 0.0);
     }
 #endif
     const int my_cell_count = my_cells.size();
-#ifdef PRODUCE_OUTPUTS
-    std::vector<std::array<int,2>> all_types(total_cell);
-    std::vector<std::array<int,2>> my_types(my_cell_count);
-    for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
-    gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
-    if(!rank) {
-        std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
-        std::vector<int> types, water_gid;
-        std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
-        std::for_each(all_types.begin(), all_types.end(), [&water_gid](auto e){if(!e[1]) water_gid.push_back(e[0]);});
-        assert((*(all_types.end() - 1))[0] == total_cell-1);
-        cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
-    }
-    if(!rank) all_types.resize(total_cell);
-#endif
+
 
     int recv, sent;
     if(!rank) steplogger->info() << "End of map generation";
@@ -133,78 +125,99 @@ int main(int argc, char **argv) {
     StripeLoadBalancer stripe_lb(msx, msy, datatype.element_datatype, world);
 
     PAR_START_TIMING(current_lb_cost, world);
-    // zoltan_load_balance(&my_cells, zoltan_lb, true, true);
     stripe_lb.load_balance(&my_cells, 0.0);
     PAR_STOP_TIMING(current_lb_cost, world);
+    lb_costs.push_back(current_lb_cost);
+    auto my_domain = stripe_lb.get_domain(rank);
+
+    generate_lattice_rocks(msx, msy, &my_cells, !rank ? 0.1f : 0.01f, my_domain.first, my_domain.second);
+
+#ifdef PRODUCE_OUTPUTS
+    std::vector<std::array<int,2>> all_types(total_cell);
+    std::vector<std::array<int,2>> my_types(my_cell_count);
+    for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
+    gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
+    if(!rank) {
+        std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
+        std::vector<int> types, water_gid;
+        std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
+        std::for_each(all_types.begin(), all_types.end(), [&water_gid, &inner_type](auto e){if(e[1] == inner_type) water_gid.push_back(e[0]);});
+        assert((*(all_types.end() - 1))[0] == total_cell-1);
+        cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
+    }
+    if(!rank) all_types.resize(total_cell);
+#endif
+
     if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
 
     auto my_water_ptr = create_water_ptr_vector(my_cells);
     std::vector<size_t> data_pointers, remote_data_pointers;
     my_water_ptr = create_water_ptr_vector(my_cells);
-    std::tuple<int,int,int,int> bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
-    populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
+    std::tuple<int,int,int,int> bbox; // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
+    //populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
 
 #ifdef LB_METHOD
-    double avg_lb_cost = 100.0; //stats::mean<double>(lb_costs.begin(), lb_costs.end());
-    auto tau = 25; // ???
+    auto avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
 #endif
-
-    SlidingWindow<double> window_step_time(100); //sliding window with max size = TODO: tune it?
-    SlidingWindow<double> window_my_time(100); //sliding window with max size = TODO: tune it?
 
     int ncall = 10, pcall=0;
 #if LB_METHOD==1
-    ncall = 25;
+    ncall = 100;
 #endif
 
     float average_load_at_lb;
     double skew = 0, relative_slope, my_time_slope, total_slope, degradation=0.0,
            degradation_since_last_lb = 0.0;
 
+    std::vector<double> timings(worldsize), all_degradations, water;
 
+    SlidingWindow<double> window_step_time(100); //sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window_water(ncall); //sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window_my_time(100); //sliding window with max size = TODO: tune it?
 
-    std::vector<double> timings(worldsize);
-    std::vector<double> all_degradations;
+    water.push_back(my_water_ptr.size());
+    window_water.add(my_water_ptr.size());
+
     CPULoadDatabase gossip_workload_db(world);
+    CPULoadDatabase gossip_waterslope_db(world);
 
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         if(!rank) steplogger->info() << "Beginning step "<< step;
+
         PAR_START_TIMING(step_time, world);
-#ifdef LB_METHOD
         bool lb_condition = false;
+#ifdef LB_METHOD
+
 #if LB_METHOD==1   // load balance every 100 iterations
         lb_condition = (pcall + ncall) == step;
         if(lb_condition) {
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
-            //zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            stripe_lb.load_balance(&my_cells, 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
             if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
-
             lb_costs.push_back(current_lb_cost);
-            ncall = 25;
+            ncall = 100;
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
             pcall = step;
         }
 #elif LB_METHOD == 2 // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf
-        if(!rank) steplogger->info("degradation: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = (pcall + ncall) == step;
+        //if(!rank) steplogger->info("degradation: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
+        lb_condition = pcall + ncall <= step;// || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
         if(lb_condition) {
-            double total_slope = get_slope<double>(window_step_time.data_container);
+            auto total_slope = get_slope<double>(window_step_time.data_container);
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
-            //zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+            stripe_lb.load_balance(&my_cells, 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
-            if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
-
             lb_costs.push_back(current_lb_cost);
+            if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-            if(total_slope > 0) ncall = std::sqrt((2 * avg_lb_cost) / total_slope);
+            if(total_slope > 0) ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
             else ncall = MAX_STEP;
-            degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
@@ -245,16 +258,20 @@ int main(int argc, char **argv) {
             pcall = step;
             ncall = 10;
         }
-#elif LB_METHOD=4
+#elif LB_METHOD==4
         lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
         if( lb_condition ) {
-            stripe_lb.load_balance(&my_cells, !rank ? 0.1 : 0.0);
+            bool overloading = gossip_waterslope_db.mean() < gossip_waterslope_db.get(rank);
+            stripe_lb.load_balance(&my_cells, overloading ? 0.1 : 0.0);
+            gossip_workload_db.reset();
+            window_water.data_container.clear();
+            water.clear();
         }
 #endif
         if(lb_condition) {
             my_water_ptr = create_water_ptr_vector(my_cells);
-            bbox = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
-            populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
+            water.push_back(my_water_ptr.size());
+            window_water.add(my_water_ptr.size());
         }
 #endif
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -264,22 +281,31 @@ int main(int argc, char **argv) {
         auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         auto remote_water_ptr = create_water_ptr_vector(remote_cells);
         decltype(my_water_ptr) new_water_ptr;
-        //print_bbox(rank, bbox);
-        //print_bbox(rank, get_bounding_box(my_cells, remote_cells));
-        bbox = get_bounding_box(my_cells, remote_cells);
-        populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox);
-        //populate_data_pointers(msx, msy, &data_pointers, remote_cells, my_cells.size(), bbox);
+
+        if(lb_condition || step == 0)
+            bbox = get_bounding_box(my_cells, remote_cells);
+        populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
+
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
 
+        water.push_back(my_water_ptr.size());
+        window_water.add(my_water_ptr.size());
+
         window_step_time.add(comp_time); // monitor evolution of load in time with a window
         window_my_time.add(my_comp_time);    // monitor evolution of my load in time with a window
 
-        if(step > 0)
+        if(step > 0) {
             gossip_workload_db.finish_gossip_step();
+            gossip_waterslope_db.finish_gossip_step();
+        }
+
+        gossip_waterslope_db.gossip_update(get_slope<double>(water.begin(), water.end()));
+        gossip_waterslope_db.gossip_propagate();
+
         gossip_workload_db.gossip_update(my_comp_time);
         gossip_workload_db.gossip_propagate();
 
@@ -288,6 +314,7 @@ int main(int argc, char **argv) {
 
         if(pcall+1 < step)
             degradation_since_last_lb += *(window_step_time.end() - 1) - *(window_step_time.end() - 2) ;
+
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         std::vector<double> exch_timings(worldsize);
@@ -327,7 +354,7 @@ int main(int argc, char **argv) {
             std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
             std::vector<int> types, rock_gid;
             std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
-            std::for_each(all_types.begin(), all_types.end(), [&rock_gid](auto e){if(!e[1]) rock_gid.push_back(e[0]);});
+            std::for_each(all_types.begin(), all_types.end(), [&rock_gid, &inner_type](auto e){if(e[1] == inner_type) rock_gid.push_back(e[0]);});
             cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
         }
 #endif

@@ -14,11 +14,12 @@
 
 
 class StripeLoadBalancer {
+    typedef unsigned int PEIndex;
     int sizeX, sizeY;
     int worldsize, myrank;
     MPI_Comm world;
     MPI_Datatype datatype;
-    std::vector<int> partition;
+    std::vector<PEIndex> partition;
 
 public:
     StripeLoadBalancer(int &X, int &Y, const MPI_Datatype &datatype, const MPI_Comm& world) : sizeX(X), sizeY(Y), datatype(datatype), world(world) {
@@ -44,50 +45,20 @@ public:
     void load_balance(std::vector<Cell>* _data, double alpha = 0.0) {
         if(worldsize == 1) return;
         std::vector<Cell>& data = *_data;
+
         // Gather
-        auto mesh   = gather_elements_on(data,    0, datatype, world);
-
+        auto mesh   = gather_elements_on(data,    0, datatype,   world);
         auto alphas = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
-        if(!myrank){
-            std::sort(mesh.begin(), mesh.end(), [](auto a,auto b) { return a.gid < b.gid;} );
-            auto rows_load = get_rows_load(data);
-            auto total_workload = std::accumulate(rows_load.cbegin(), rows_load.cend(), 0.0);
-            auto average_workload = total_workload / (double) worldsize;
 
-            // Count the number of processes that load up.
-            auto N = std::count_if(alphas.cbegin(), alphas.cend(), [](auto a){return a > 0.0;});
-            // Compute all the workload for each PEs
-            decltype(alphas) desired_workloads, effective_workloads(worldsize);
-            std::transform(alphas.cbegin(), alphas.cend(), std::back_inserter(desired_workloads),
-                           [&](auto a) { return a > 0.0 ? average_workload * (1.0-a) : (1.0 + (a*N)/(worldsize-N)) * average_workload; } );
+        // Partition
+        execute_partitioning_algorithm(mesh, alphas);
 
-            std::for_each(desired_workloads.begin(), desired_workloads.end(), [](auto v){std::cout << v << std::endl;});
-            // Greedy algorithm to compute the stripe for each process
-            int begin_stripe=0, end_stripe=0;
-            for(int p = 0; p < worldsize; ++p)
-            {
-                double current_process_workload = 0.0;
+        // Mapping
+        execute_mapping_algorithm(&mesh);
 
-                // While we have not ~reached~ the desired workload or we reached the end of the mesh
-                while( ((current_process_workload < desired_workloads[p] && p % 2 == 0) ||
-                        (current_process_workload+rows_load[end_stripe] < desired_workloads[p] && p % 2 == 1))
-                       && end_stripe < sizeY) {
-                    current_process_workload += rows_load[end_stripe];
-                    end_stripe++;
-                }
-                std::cout << begin_stripe << " " << desired_workloads[p] << std::endl;
-                assert(begin_stripe != end_stripe);
-                assert(current_process_workload > 0.0);
+        // Affectation
+        _data->assign(mesh.begin(), mesh.end());
 
-                effective_workloads[p] = current_process_workload;
-                partition[2*p]   = begin_stripe;
-                partition[2*p+1] = end_stripe;
-                begin_stripe = end_stripe+1; // begin at next stripe
-                end_stripe = begin_stripe;
-            }
-        }
-        if(!myrank) std::for_each(partition.begin(), partition.end(), [](auto v){std::cout << v << std::endl;});
-        MPI_Bcast(&partition.front(), 2*worldsize, MPI_INT, 0, world);
     }
 
     std::vector<Cell> share_frontier_with_neighbors(const std::vector<Cell> &data,
@@ -138,7 +109,110 @@ public:
         return remote_data;
 
     }
+
+    std::pair<unsigned int, unsigned int> get_domain(PEIndex rank) {
+        auto my_top_frontier    = partition[2 * rank];
+        auto my_bottom_frontier = partition[2 * rank + 1];
+
+        return std::make_pair(my_top_frontier, my_bottom_frontier);
+    };
 private:
+    /**
+     * Partition data into stripe of equal workload (minus alpha*100%).
+     * Broadcast the resulting partition to the world.
+     * @param mesh
+     * @param alphas
+     */
+    void execute_partitioning_algorithm(const std::vector<Cell>& mesh, std::vector<double> alphas){
+        if(!myrank) {
+            auto rows_load = get_rows_load(mesh);
+            auto total_workload = std::accumulate(rows_load.cbegin(), rows_load.cend(), 0.0);
+            auto average_workload = total_workload / (double) worldsize;
+
+            // Count the number of processes that load up.
+            auto N = std::count_if(alphas.cbegin(), alphas.cend(), [](auto a){return a > 0.0;});
+            // Compute all the workload for each PEs
+            decltype(alphas) desired_workloads, effective_workloads(worldsize);
+            std::transform(alphas.cbegin(), alphas.cend(), std::back_inserter(desired_workloads),
+                           [&](auto a) { return a > 0.0 ? average_workload * (1.0-a) : (1.0 + (a*N)/(worldsize-N)) * average_workload; } );
+
+            std::for_each(desired_workloads.begin(), desired_workloads.end(), [](auto v){std::cout << v << std::endl;});
+            // Greedy algorithm to compute the stripe for each process
+            unsigned int begin_stripe=0, end_stripe=0;
+            for(PEIndex p = 0; p < worldsize; ++p)
+            {
+                double current_process_workload = 0.0;
+
+                // While we have not ~reached~ the desired workload or we reached the end of the mesh
+                while( ((current_process_workload < desired_workloads[p] && p % 2 == 0) ||
+                        (current_process_workload+rows_load[end_stripe] <= desired_workloads[p] && p % 2 == 1))
+                       && end_stripe < sizeY) {
+                    current_process_workload += rows_load[end_stripe];
+                    end_stripe++;
+                }
+
+                assert(begin_stripe != end_stripe);
+                assert(current_process_workload > 0.0);
+
+                effective_workloads[p] = current_process_workload;
+                partition[2 * p]   = begin_stripe;
+                partition[2 * p + 1] = end_stripe - 1;
+                std::cout << p << "  " << begin_stripe << " -> " << (end_stripe-1) << " = " << current_process_workload << std::endl;
+                begin_stripe = end_stripe; // begin at next stripe
+                end_stripe = begin_stripe;
+            }
+        }
+        MPI_Bcast(&partition.front(), 2*worldsize, MPI_INT, 0, world);
+    }
+
+    void execute_mapping_algorithm(std::vector<Cell>* _mesh){
+        std::vector<Cell>& mesh = *_mesh;
+        if(!myrank) {
+            size_t data_id = 0;
+            PEIndex PE;
+            std::vector<std::vector<Cell>> data_to_migrate(worldsize);
+            while (data_id < mesh.size()) {
+                resolve_process_membership(mesh[data_id].gid, &PE);
+                if (PE != myrank) {
+                    std::iter_swap(mesh.begin() + data_id, mesh.end() - 1);
+                    data_to_migrate.at(PE).push_back(*(mesh.end()- 1));
+                    mesh.pop_back();
+                } else data_id++; //if the element must stay with me then check the next one
+            }
+            PE = 0;
+            std::vector<MPI_Request> reqs(worldsize, MPI_REQUEST_NULL);
+            for(auto& buf_to_send : data_to_migrate){
+                if(PE != myrank){
+                    auto send_size = buf_to_send.size();
+                    if (send_size) {
+                        MPI_Isend(&buf_to_send.front(), send_size, datatype, PE, 300, world, &reqs[PE]);
+                    }
+                }
+                PE++;
+            }
+            MPI_Waitall(worldsize, &reqs.front(), MPI_STATUSES_IGNORE);
+        } else {
+            MPI_Status status;
+            MPI_Probe(0, 300, world, &status);
+            int size;
+            MPI_Get_count(&status, datatype, &size);
+            mesh.resize(size);
+            MPI_Recv(&mesh.front(), size, datatype, 0, 300, world, MPI_STATUS_IGNORE);
+        }
+        // std::sort(mesh.begin(), mesh.end(), [](auto a, auto b){return a.gid < b.gid;});
+    }
+
+    void resolve_process_membership(unsigned int gid, PEIndex* p){
+        auto row = cell_to_position(sizeX, sizeY, gid).second;
+        for((*p) = 0; (*p) < worldsize; ++(*p)) {
+            auto b = partition[2 * (*p)];
+            auto e = partition[2 * (*p) + 1];
+            if(b <= row && row <= e) return;
+        }
+        assert(false);
+    }
+
+
     /**
      * Compute the average load of a given row. It is used to determine the load of a stripe.
      * @param data the mesh
@@ -148,7 +222,10 @@ private:
         std::vector<double> rowsload(sizeY, 0.0);
         for(const auto& cell : data) {
             long row = cell_to_position(sizeX, sizeY, cell.gid).second;
-            rowsload[row] += cell.average_load;
+            if(cell.average_load > 0 && cell.type)
+                rowsload[row] += cell.average_load;
+            else
+                rowsload[row] += cell.weight;
         }
         return rowsload;
     }
@@ -159,13 +236,13 @@ private:
      * @return a pair of process ids
      */
     std::pair<int,int> get_my_neighbors(){
-        auto my_top_frontier    = partition[2*myrank];
-        auto my_bottom_frontier = partition[2*myrank+1];
+        auto my_top_frontier    = partition[2 * myrank];
+        auto my_bottom_frontier = partition[2 * myrank + 1];
         int bottom_neighbor = -1, top_neighbor = -1;
         for(int p = 0; p < worldsize; ++p){
-            auto his_top_frontier    = partition[2*p];
-            auto his_bottom_frontier = partition[2*p+1];
-            if(his_bottom_frontier+ 1  == my_top_frontier) {
+            auto his_top_frontier    = partition[2 * p];
+            auto his_bottom_frontier = partition[2 * p + 1];
+            if(his_bottom_frontier + 1  == my_top_frontier) {
                 top_neighbor = p;
             } else if(my_bottom_frontier + 1  == his_top_frontier) {
                 bottom_neighbor = p;

@@ -103,14 +103,17 @@ void populate_data_pointers(int msx, int msy,
                             std::vector<size_t>* _data_pointers,
                             const std::vector<Cell>& my_cells,
                             const std::vector<Cell>& remote_cells,
-                            const std::tuple<int, int, int, int>& bbox) {
+                            const std::tuple<int, int, int, int>& bbox,
+                            bool create = false) {
     std::vector<size_t>& data_pointers = *(_data_pointers);
     int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
     int my_box = (x2-x1) * (y2-y1);
 
-    data_pointers.clear();
-    data_pointers.resize(my_box);
-    std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
+    if(create){
+        data_pointers.clear();
+        data_pointers.resize(my_box);
+        std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
+    }
 
     auto mine_size   = my_cells.size();
     auto remote_size = remote_cells.size();
@@ -126,7 +129,6 @@ void populate_data_pointers(int msx, int msy,
         auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
         data_pointers[lid] = i+mine_size;
     }
-
 
 }
 

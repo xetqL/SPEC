@@ -60,6 +60,44 @@ std::vector<Cell> generate_lattice_CA_diffusion(int msx, int msy,
     return my_cells;
 }
 
+std::vector<Cell> generate_lattice_single_type( int msx, int msy,
+                                                int x_proc_idx, int y_proc_idx,
+                                                int cell_in_my_cols, int cell_in_my_rows,
+                                                int type, float weight, float erosion_probability){
+    int cell_per_process = cell_in_my_cols * cell_in_my_rows;
+    std::vector<Cell> my_cells; my_cells.reserve(cell_per_process);
+    for(int j = 0; j < cell_in_my_cols; ++j) {
+        for(int i = 0; i < cell_in_my_rows; ++i) {
+            int gid = cell_in_my_rows * x_proc_idx + i + msx * (j + (y_proc_idx * cell_in_my_cols));
+            my_cells.emplace_back(gid, type, weight, erosion_probability);
+        }
+    }
+
+    return my_cells;
+}
+
+void generate_lattice_rocks( int msx, int msy,
+                             std::vector<Cell>* _cells,
+                             float erosion_probability,
+                             int begin_stripe, int end_stripe){
+    std::vector<Cell>& cells = *_cells;
+
+    int cx, cy, cr;
+    cx = (int) std::floor(msx / 2);
+    cy = (begin_stripe + end_stripe) / 2;
+    cr = (end_stripe - begin_stripe) / 4;
+
+    for(auto& cell : cells) {
+        int gid = cell.gid;
+        auto pos = cell_to_global_position(msx, msy, gid);
+        if(std::sqrt( std::pow(cx-pos.first,2) + std::pow(cy - pos.second,2) ) < cr) {
+            cell.type  = ROCK_TYPE;
+            cell.weight= 0.0;
+            cell.erosion_probability = erosion_probability;
+        }
+    }
+}
+
 std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
                                                          int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols){
     int rank;
@@ -298,8 +336,6 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
     }
     return my_cells;
 }
-
-
 
 std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computation3(int msx, int msy,
                                              const std::vector<Cell>& my_old_cells,

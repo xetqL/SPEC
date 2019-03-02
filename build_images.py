@@ -35,21 +35,26 @@ def processStep(img, i, data=data, shapex=shapex, shapey=shapey):
 
 data = np.load("gids-"+filename)
 shapex, shapey = data['shape']
-
+type = data['type']
 print(shapex, shapey)
-
-def processStep(img, i, data=data, shapex=shapex, shapey=shapey):
+print(type[0])
+def processStep(img, i, shapex=shapex, shapey=shapey, type=type):
     image = img
     print('processing step %d' % i)
-    grid = np.ones((shapey, shapex))
+    if(type == 1):
+        grid = np.zeros((shapey, shapex))
+    else:
+        grid = np.ones((shapey, shapex))
+
     fig, ax = plt.subplots(1, 1, figsize=(20, 20))
     for id in image:
         x, y = cell_to_pos(shapex, shapey, id)
-        grid[y][x] = 0
+
+        grid[y][x] = type
     ax.imshow(grid)
     fig.savefig(("{0:0>%d}_water_dummy.jpg" % displ).format(i))
     plt.close(fig)
 
 cpu_count = multiprocessing.cpu_count()
 pool = multiprocessing.Pool(cpu_count)
-pool.starmap(processStep, [(data['step-%d' % i], i) for i in range(nb_step)])
+pool.starmap(processStep, [(data['step-%d' % i], i, shapex, shapey, type[0]) for i in range(nb_step)])

@@ -76,6 +76,10 @@ public:
         register_datatype();
     }
 
+    PELoad get(Index idx){
+        return pe_load_data[idx].load;
+    }
+
     inline void reset(){
         pe_load_data.clear(); pe_load_data.resize(worldsize);
     }
