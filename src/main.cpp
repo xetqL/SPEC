@@ -128,7 +128,9 @@ int main(int argc, char **argv) {
     auto my_domain = stripe_lb.get_domain(rank);
 
     generate_lattice_rocks(3, msx, msy, &my_cells, !rank ? 0.5f : 0.005f, my_domain.first, my_domain.second);
-    stripe_lb.load_balance(&my_cells, 0.0);
+
+    stripe_lb.load_balance(&my_cells, !rank ? 0.5 : 0.0);
+
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
     std::vector<std::array<int,2>> my_types(my_cell_count);
