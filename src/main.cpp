@@ -258,9 +258,11 @@ int main(int argc, char **argv) {
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost && gossip_waterslope_db.has_converged(7));
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
-            // std::cout << rank << " "<< gossip_waterslope_db.get(rank) << "-"<<gossip_waterslope_db.mean() << "/" << std::sqrt(gossip_waterslope_db.variance()) << std::endl;
-            // std::cout << rank << gossip_waterslope_db.get_all_data() << std::endl;
-            stripe_lb.load_balance(&my_cells, overloading ? 0.1 : 0.0);
+            PAR_START_TIMING(current_lb_cost, world);
+            stripe_lb.load_balance(&my_cells, overloading ? 0.05 : 0.0);
+            PAR_STOP_TIMING(current_lb_cost, world);
+            lb_costs.push_back(current_lb_cost);
+
             gossip_workload_db.reset();
             water.clear();
             degradation_since_last_lb = 0.0;
