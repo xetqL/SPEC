@@ -10,6 +10,7 @@
 #include <algorithm>
 #include "communication.hpp"
 #include "cell.hpp"
+#include "../src/zupply.hpp"
 #include <random>
 
 
@@ -20,13 +21,18 @@ class StripeLoadBalancer {
     MPI_Comm world;
     MPI_Datatype datatype;
     std::vector<PEIndex> partition;
-
+    zz::log::LoggerPtr loggerPtr = nullptr;
 public:
     StripeLoadBalancer(int &X, int &Y, const MPI_Datatype &datatype, const MPI_Comm& world) : sizeX(X), sizeY(Y), datatype(datatype), world(world) {
         MPI_Comm_rank(world, &myrank);
         MPI_Comm_size(world, &worldsize);
         partition.resize(2*worldsize);
     }
+
+    void setLoggerPtr(const zz::log::LoggerPtr &loggerPtr) {
+        StripeLoadBalancer::loggerPtr = loggerPtr;
+    }
+
     /**
      * Procedure used to re-balance the mesh onto all the processes.
      * The mesh is spatially partitionned into stripes, each stripes having the same workload.
@@ -111,10 +117,10 @@ public:
     }
 
     std::pair<unsigned int, unsigned int> get_domain(PEIndex rank) {
-        auto my_top_frontier    = partition[2 * rank];
-        auto my_bottom_frontier = partition[2 * rank + 1];
+        auto top_frontier    = partition[2 * rank];
+        auto bottom_frontier = partition[2 * rank + 1];
 
-        return std::make_pair(my_top_frontier, my_bottom_frontier);
+        return std::make_pair(top_frontier, bottom_frontier);
     };
 private:
     /**
@@ -131,12 +137,19 @@ private:
 
             // Count the number of processes that load up.
             auto N = std::count_if(alphas.cbegin(), alphas.cend(), [](auto a){return a > 0.0;});
+
+            if(N > worldsize / 2) return;
+
+            double alpha = *std::max_element(alphas.begin(), alphas.end());
+
             // Compute all the workload for each PEs
             decltype(alphas) desired_workloads, effective_workloads(worldsize);
+
             std::transform(alphas.cbegin(), alphas.cend(), std::back_inserter(desired_workloads),
-                           [&](auto a) { return a > 0.0 ? average_workload * (1.0-a) : (1.0 + (a*N)/(worldsize-N)) * average_workload; } );
+                           [&](auto a) { return a > 0.0 ? average_workload * (1.0 - alpha) : (1.0 + (alpha*N)/(worldsize-N)) * average_workload; } );
 
             std::for_each(desired_workloads.begin(), desired_workloads.end(), [](auto v){std::cout << v << std::endl;});
+
             // Greedy algorithm to compute the stripe for each process
             unsigned int begin_stripe=0, end_stripe=0;
             for(PEIndex p = 0; p < worldsize; ++p)
@@ -144,9 +157,7 @@ private:
                 double current_process_workload = 0.0;
 
                 // While we have not ~reached~ the desired workload or we reached the end of the mesh
-                while( ((current_process_workload < desired_workloads[p] && p % 2 == 0) ||
-                        (current_process_workload+rows_load[end_stripe] <= desired_workloads[p] && p % 2 == 1))
-                       && end_stripe < sizeY) {
+                while( ((current_process_workload < desired_workloads[p]) || p == worldsize-1) && end_stripe < sizeY) {
                     current_process_workload += rows_load[end_stripe];
                     end_stripe++;
                 }
@@ -161,7 +172,12 @@ private:
                 begin_stripe = end_stripe; // begin at next stripe
                 end_stripe = begin_stripe;
             }
+            double desired   = std::accumulate(desired_workloads.begin(),   desired_workloads.end(), 0.0);
+            double effective = std::accumulate(effective_workloads.begin(), effective_workloads.end(), 0.0);
+            assert(almost_equal(desired, effective, 2));
         }
+
+        // Broadcast the new partition
         MPI_Bcast(&partition.front(), 2*worldsize, MPI_INT, 0, world);
     }
 
@@ -199,7 +215,6 @@ private:
             mesh.resize(size);
             MPI_Recv(&mesh.front(), size, datatype, 0, 300, world, MPI_STATUS_IGNORE);
         }
-        // std::sort(mesh.begin(), mesh.end(), [](auto a, auto b){return a.gid < b.gid;});
     }
 
     void resolve_process_membership(unsigned int gid, PEIndex* p){
@@ -209,7 +224,11 @@ private:
             auto e = partition[2 * (*p) + 1];
             if(b <= row && row <= e) return;
         }
-        assert(false);
+        std::cout << gid <<" " <<row << std::endl;
+        if(loggerPtr != nullptr) {
+            loggerPtr->error("error in resolving process membership.");
+        }
+        MPI_Abort(world,  MPI_ERR_OTHER);
     }
 
 
@@ -222,10 +241,12 @@ private:
         std::vector<double> rowsload(sizeY, 0.0);
         for(const auto& cell : data) {
             long row = cell_to_position(sizeX, sizeY, cell.gid).second;
-            if(cell.average_load > 0 && cell.type)
+            rowsload[row] += cell.type;
+            /*if(cell.average_load > 0 && cell.type)
                 rowsload[row] += cell.average_load;
             else
                 rowsload[row] += cell.weight;
+                */
         }
         return rowsload;
     }

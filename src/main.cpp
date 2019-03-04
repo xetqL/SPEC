@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
         steplogger->info("EACH SIZE  X:") << xcells;
         steplogger->info("EACH SIZE  Y:") << ycells;
     }
+
     if(!rank) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
     std::vector<Cell> my_cells;
 #ifndef PRODUCE_OUTPUTS
@@ -105,10 +106,7 @@ int main(int argc, char **argv) {
         auto lattice_fname = argv[6];
         my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols, lattice_fname);
     } else {
-
-
         //my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols);
-
         my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, inner_type, 1.0, 0.0);
     }
 #endif
@@ -116,21 +114,20 @@ int main(int argc, char **argv) {
 
 
     int recv, sent;
-    if(!rank) steplogger->info() << "End of map generation";
+    if(!rank) steplogger->info("End of map generation");
 
     /* Initial load balancing */
-
     std::vector<double> lb_costs;
     // auto zoltan_lb = zoltan_create_wrapper(true, world);
     StripeLoadBalancer stripe_lb(msx, msy, datatype.element_datatype, world);
-
+    stripe_lb.setLoggerPtr(steplogger);
     PAR_START_TIMING(current_lb_cost, world);
     stripe_lb.load_balance(&my_cells, 0.0);
     PAR_STOP_TIMING(current_lb_cost, world);
     lb_costs.push_back(current_lb_cost);
     auto my_domain = stripe_lb.get_domain(rank);
 
-    generate_lattice_rocks(msx, msy, &my_cells, !rank ? 0.1f : 0.01f, my_domain.first, my_domain.second);
+    generate_lattice_rocks(2, msx, msy, &my_cells, !rank ? 0.1f : 0.01f, my_domain.first, my_domain.second);
 
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
@@ -153,7 +150,7 @@ int main(int argc, char **argv) {
     auto my_water_ptr = create_water_ptr_vector(my_cells);
     std::vector<size_t> data_pointers, remote_data_pointers;
     my_water_ptr = create_water_ptr_vector(my_cells);
-    std::tuple<int,int,int,int> bbox; // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
+    std::tuple<int, int, int, int> bbox; // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
     //populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
@@ -173,9 +170,9 @@ int main(int argc, char **argv) {
 
     std::vector<double> timings(worldsize), all_degradations, water;
 
-    SlidingWindow<double> window_step_time(100); //sliding window with max size = TODO: tune it?
-    SlidingWindow<double> window_water(ncall); //sliding window with max size = TODO: tune it?
-    SlidingWindow<double> window_my_time(100); //sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window_step_time(100); // sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
     water.push_back(my_water_ptr.size());
     window_water.add(my_water_ptr.size());
@@ -259,13 +256,21 @@ int main(int argc, char **argv) {
             ncall = 10;
         }
 #elif LB_METHOD==4
+        if(!rank) steplogger->info("degradation: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
         if( lb_condition ) {
-            bool overloading = gossip_waterslope_db.mean() < gossip_waterslope_db.get(rank);
+            bool overloading = gossip_waterslope_db.zscore(rank) > 1.5;
+            // std::cout << rank << " "<< gossip_waterslope_db.get(rank) << "-"<<gossip_waterslope_db.mean() << "/" << std::sqrt(gossip_waterslope_db.variance()) << std::endl;
+            // std::cout << rank << gossip_waterslope_db.get_all_data() << std::endl;
             stripe_lb.load_balance(&my_cells, overloading ? 0.1 : 0.0);
             gossip_workload_db.reset();
-            window_water.data_container.clear();
             water.clear();
+            degradation_since_last_lb = 0.0;
+            window_my_time.data_container.clear();
+            window_step_time.data_container.clear();
+            window_water.data_container.clear();
+            pcall = step;
+            ncall = MAX_STEP;
         }
 #endif
         if(lb_condition) {
@@ -312,7 +317,7 @@ int main(int argc, char **argv) {
         if(window_step_time.size() > 2)
             degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end() - 1)); // median among [cts-2, cts]
 
-        if(pcall+1 < step)
+        if(pcall + 1 < step)
             degradation_since_last_lb += *(window_step_time.end() - 1) - *(window_step_time.end() - 2) ;
 
         /// COMPUTATION STOP
@@ -322,8 +327,8 @@ int main(int argc, char **argv) {
         MPI_Allgather(&my_comp_time,     1, MPI_DOUBLE, &timings.front(),      1, MPI_DOUBLE, world); // TODO: propagate information differently
         std::vector<double> slopes(worldsize);
         std::vector<int> tloads(worldsize);
-        my_time_slope = (std::floor(get_slope<double>(window_my_time.data_container)*1000.0)) / 1000.0;
-        MPI_Allgather(&my_time_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
+        auto my_water_slope = get_slope<double>(water.begin(), water.end());
+        MPI_Allgather(&my_water_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
         int eload = compute_effective_workload(my_cells, 1);
         MPI_Allgather(&eload, 1, MPI_INT, &tloads.front(), 1, MPI_INT, world); // TODO: propagate information differently
 
@@ -342,7 +347,7 @@ int main(int argc, char **argv) {
             << ",\"loads\": ["   << timings
             //<< ",\"exch\": ["    << exch_timings
             << "],\"tloads\":["  << tloads
-            << "],\"slopes\":["  << slopes<<"]";
+            << "],\"slopes\":["  << gossip_waterslope_db.get_all_data()<<"]";
         }
 
 #ifdef PRODUCE_OUTPUTS

@@ -56,7 +56,7 @@ class CPULoadDatabase {
 
     MPI_Comm world;
     MPI_Datatype entry_datatype;
-    MPI_Request current_send_req, current_recv_req;
+    MPI_Request current_send_reqs[2], current_recv_req;
     MPI_Status current_recv_status;
     int current_recv_flag;
     int my_rank, worldsize;
@@ -105,13 +105,17 @@ public:
     void gossip_propagate() {
         auto &uniform = *ptr_uniform;
         gen.seed(my_rank+rd());
-        int destination;
-        destination = uniform(gen);
+        int destination1, destination2;
+        destination1 = uniform(gen);
+        destination2 = uniform(gen);
+
         std::vector<DatabaseEntry> snd_entry;
         std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entry),
-                     [](auto e) { return e.idx >= 0; });
-        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination, CPULoadDatabase::SEND_TAG, world,
-                  &current_send_req);
+                [](auto e) { return e.idx >= 0; });
+        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination1, CPULoadDatabase::SEND_TAG, world,
+                  &current_send_reqs[0]);
+        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination2, CPULoadDatabase::SEND_TAG, world,
+                  &current_send_reqs[1]);
     }
 
     void finish_gossip_step() {
@@ -124,7 +128,18 @@ public:
                      CPULoadDatabase::SEND_TAG, world, MPI_STATUS_IGNORE);
             merge_into_database(std::move(rcv_entries));
         }
-        MPI_Wait(&current_send_req, MPI_STATUS_IGNORE);
+
+        MPI_Iprobe(MPI_ANY_SOURCE, CPULoadDatabase::SEND_TAG, world, &current_recv_flag, &current_recv_status);
+        if (current_recv_flag) {
+            int cnt;
+            MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
+            std::vector<DatabaseEntry> rcv_entries(cnt);
+            MPI_Recv(&rcv_entries.front(), cnt, entry_datatype, current_recv_status.MPI_SOURCE,
+                     CPULoadDatabase::SEND_TAG, world, MPI_STATUS_IGNORE);
+            merge_into_database(std::move(rcv_entries));
+        }
+
+        MPI_Waitall(2, current_send_reqs, MPI_STATUSES_IGNORE);
     }
 
     PELoad skewness() {
@@ -147,6 +162,37 @@ public:
 
     PELoad sum() {
         return this->mean() * worldsize;
+    }
+
+    PELoad variance() {
+        const auto mu = mean();
+        auto data = get_all_data();
+        auto N = data.size();
+        PELoad var = 0.0;
+
+        for(auto& x : data) var += std::pow(x-mu, 2.0);
+        var /= (PELoad) N;
+        //var -= std::pow(mu, 2.0);
+
+        return var;
+    }
+
+    double zscore(Index idx) {
+        const auto load = get(idx);
+        const auto mu = mean();
+        const auto stddev = std::sqrt(variance());
+        return (load - mu) / stddev;
+    }
+
+    std::vector<PELoad> get_all_data() {
+        std::vector<PELoad> loads;
+        for (auto it = pe_load_data.begin(); it != pe_load_data.end(); it++) {
+            auto i = std::distance(pe_load_data.begin(), it);
+            auto& entry = *it;
+            if(entry.idx >= 0)
+                loads.push_back((*it).load);
+        }
+        return loads;
     }
 
 private:

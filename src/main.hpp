@@ -76,24 +76,29 @@ std::vector<Cell> generate_lattice_single_type( int msx, int msy,
     return my_cells;
 }
 
-void generate_lattice_rocks( int msx, int msy,
+void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
                              std::vector<Cell>* _cells,
                              float erosion_probability,
                              int begin_stripe, int end_stripe){
     std::vector<Cell>& cells = *_cells;
+    std::vector<std::tuple<int, int, int>> rocks_data(rocks_per_stripe);
 
-    int cx, cy, cr;
-    cx = (int) std::floor(msx / 2);
-    cy = (begin_stripe + end_stripe) / 2;
-    cr = (end_stripe - begin_stripe) / 4;
+    for (int i = 0; i < rocks_per_stripe; ++i) {
+        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), (begin_stripe + end_stripe) / 2 , (end_stripe - begin_stripe) / 4);
+    }
 
     for(auto& cell : cells) {
+        int cx, cy, cr;
         int gid = cell.gid;
         auto pos = cell_to_global_position(msx, msy, gid);
-        if(std::sqrt( std::pow(cx-pos.first,2) + std::pow(cy - pos.second,2) ) < cr) {
-            cell.type  = ROCK_TYPE;
-            cell.weight= 0.0;
-            cell.erosion_probability = erosion_probability;
+        for(auto& rock : rocks_data){
+            std::tie(cx,cy,cr) = rock;
+            if(std::sqrt( std::pow(cx-pos.first, 2) + std::pow(cy - pos.second, 2) ) < cr) {
+                cell.type  = ROCK_TYPE;
+                cell.weight= 0.0;
+                cell.erosion_probability = erosion_probability;
+                break;
+            }
         }
     }
 }
