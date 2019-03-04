@@ -462,4 +462,5 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
     return std::make_pair(my_cells, new_water_cells);
 }
 
+
 #endif //SPEC_MAIN_HPP
