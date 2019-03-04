@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
     auto my_domain = stripe_lb.get_domain(rank);
 
     generate_lattice_rocks(2, msx, msy, &my_cells, !rank ? 0.1f : 0.01f, my_domain.first, my_domain.second);
-
+    stripe_lb.load_balance(&my_cells, 0.0);
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
     std::vector<std::array<int,2>> my_types(my_cell_count);
@@ -257,11 +257,11 @@ int main(int argc, char **argv) {
         }
 #elif LB_METHOD==4
         if(!rank) steplogger->info("degradation: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
-        if( lb_condition ) {
-            bool overloading = gossip_waterslope_db.zscore(rank) > 1.5;
-            // std::cout << rank << " "<< gossip_waterslope_db.get(rank) << "-"<<gossip_waterslope_db.mean() << "/" << std::sqrt(gossip_waterslope_db.variance()) << std::endl;
-            // std::cout << rank << gossip_waterslope_db.get_all_data() << std::endl;
+        lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost && gossip_waterslope_db.has_converged(7));
+        if(lb_condition) {
+            bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
+            //std::cout << rank << " "<< gossip_waterslope_db.get(rank) << "-"<<gossip_waterslope_db.mean() << "/" << std::sqrt(gossip_waterslope_db.variance()) << std::endl;
+            //std::cout << rank << gossip_waterslope_db.get_all_data() << std::endl;
             stripe_lb.load_balance(&my_cells, overloading ? 0.1 : 0.0);
             gossip_workload_db.reset();
             water.clear();

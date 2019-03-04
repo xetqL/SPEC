@@ -162,6 +162,7 @@ private:
                     end_stripe++;
                 }
 
+                assert(begin_stripe < sizeY);
                 assert(begin_stripe != end_stripe);
                 assert(current_process_workload > 0.0);
 
@@ -169,6 +170,7 @@ private:
                 partition[2 * p]   = begin_stripe;
                 partition[2 * p + 1] = end_stripe - 1;
                 std::cout << p << "  " << begin_stripe << " -> " << (end_stripe-1) << " = " << current_process_workload << std::endl;
+
                 begin_stripe = end_stripe; // begin at next stripe
                 end_stripe = begin_stripe;
             }

@@ -160,6 +160,10 @@ public:
         return age == -1 ? std::numeric_limits<int>::max() : age;
     }
 
+    bool has_converged(Age threshold) {
+        return std::all_of(pe_load_data.begin(), pe_load_data.end(), [&threshold](auto entry){return entry.age < threshold;});
+    }
+
     PELoad sum() {
         return this->mean() * worldsize;
     }
