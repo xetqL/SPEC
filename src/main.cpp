@@ -289,9 +289,9 @@ int main(int argc, char **argv) {
         if(lb_condition || step == 0)
             bbox = get_bounding_box(my_cells, remote_cells);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
-        PAR_START_TIMING(just_comp_time, world);
+        PAR_START_TIMING(j_comp_time, world);
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
-        PAR_STOP_TIMING(just_comp_time, world);
+        CHECKPOINT_TIMING(j_comp_time, just_comp_time);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
