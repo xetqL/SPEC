@@ -22,11 +22,45 @@ class StripeLoadBalancer {
     MPI_Datatype datatype;
     std::vector<PEIndex> partition;
     zz::log::LoggerPtr loggerPtr = nullptr;
+    MPI_Datatype row_load_datatype;
+    struct RowWorkload {
+        int row;
+        int age;
+        double load;
+
+        //PESlope slope;
+        RowWorkload() :
+                row(-1),
+                age(std::numeric_limits<int>::max()),
+                load(-1)
+        //, slope(0)
+        {};
+
+        RowWorkload(int _row, int _age, double _load) :
+                row(_row),
+                age(_age),
+                load(_load)
+        //, slope(_slope)
+        {};
+
+        RowWorkload(int _row, double _load) :
+                row(_row),
+                age(0),
+                load(_load)
+        //, slope(_slope)
+        {};
+
+        friend std::ostream &operator<<(std::ostream &os, const RowWorkload &entry) {
+            os << "(" << entry.row << "," << entry.load << ")";
+            return os;
+        }
+    };
 public:
     StripeLoadBalancer(int &X, int &Y, const MPI_Datatype &datatype, const MPI_Comm& world) : sizeX(X), sizeY(Y), datatype(datatype), world(world) {
         MPI_Comm_rank(world, &myrank);
         MPI_Comm_size(world, &worldsize);
         partition.resize(2*worldsize);
+        register_datatype();
     }
 
     void setLoggerPtr(const zz::log::LoggerPtr &loggerPtr) {
@@ -49,21 +83,27 @@ public:
      * @param alpha
      */
     void load_balance(std::vector<Cell>* _data, double alpha = 0.0) {
+
         if(worldsize == 1) return;
+
         std::vector<Cell>& data = *_data;
 
+        auto my_rows_load = get_partial_rows_load(data);
+
         // Gather
-        auto mesh   = gather_elements_on(data,    0, datatype,   world);
-        auto alphas = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
+        auto p_rows_load = gather_elements_on(my_rows_load, 0, row_load_datatype,   world);
+        auto rows_load = merge(p_rows_load);
+
+        auto alphas    = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
 
         // Partition
-        execute_partitioning_algorithm(mesh, alphas);
+        execute_partitioning_algorithm(rows_load, alphas);
 
         // Mapping
-        execute_mapping_algorithm(&mesh);
+        execute_mapping_algorithm(_data);
 
         // Affectation
-        _data->assign(mesh.begin(), mesh.end());
+        //_data->assign(mesh.begin(), mesh.end());
 
     }
 
@@ -129,9 +169,9 @@ private:
      * @param mesh
      * @param alphas
      */
-    void execute_partitioning_algorithm(const std::vector<Cell>& mesh, std::vector<double> alphas){
+    void execute_partitioning_algorithm(const std::vector<double>& rows_load, const std::vector<double>& alphas){
+
         if(!myrank) {
-            auto rows_load = get_rows_load(mesh);
             auto total_workload = std::accumulate(rows_load.cbegin(), rows_load.cend(), 0.0);
             auto average_workload = total_workload / (double) worldsize;
 
@@ -139,17 +179,18 @@ private:
             auto N = (int) std::count_if(alphas.cbegin(), alphas.cend(), [](auto a){return a > 0.0;});
 
             MPI_Bcast(&N, 1, MPI_INT, 0, world);
+
             if(N > worldsize / 2) return;
 
             double alpha = *std::max_element(alphas.begin(), alphas.end());
 
             // Compute all the workload for each PEs
-            decltype(alphas) desired_workloads, effective_workloads(worldsize);
+            std::vector<double> desired_workloads, effective_workloads(worldsize);
 
             std::transform(alphas.cbegin(), alphas.cend(), std::back_inserter(desired_workloads),
                            [&](auto a) { return a > 0.0 ? average_workload * (1.0 - alpha) : (1.0 + (alpha*N)/(worldsize-N)) * average_workload; } );
 
-            std::for_each(desired_workloads.begin(), desired_workloads.end(), [](auto v){std::cout << v << std::endl;});
+            //std::for_each(desired_workloads.begin(), desired_workloads.end(), [](auto v){std::cout << v << std::endl;});
 
             // Greedy algorithm to compute the stripe for each process
             unsigned int begin_stripe = 0, end_stripe = 0;
@@ -181,7 +222,7 @@ private:
                 effective_workloads[p] = current_process_workload;
                 partition[2 * p]   = begin_stripe;
                 partition[2 * p + 1] = end_stripe - 1;
-                std::cout << p << "  " << begin_stripe << " -> " << (end_stripe-1) << " = " << current_process_workload << std::endl;
+                //std::cout << p << "  " << begin_stripe << " -> " << (end_stripe-1) << " = " << current_process_workload << std::endl;
 
                 begin_stripe = end_stripe; // begin at next stripe
                 end_stripe = begin_stripe;
@@ -201,38 +242,43 @@ private:
 
     void execute_mapping_algorithm(std::vector<Cell>* _mesh){
         std::vector<Cell>& mesh = *_mesh;
-        if(!myrank) {
-            size_t data_id = 0;
-            PEIndex PE;
-            std::vector<std::vector<Cell>> data_to_migrate(worldsize);
-            while (data_id < mesh.size()) {
-                resolve_process_membership(mesh[data_id].gid, &PE);
-                if (PE != myrank) {
-                    std::iter_swap(mesh.begin() + data_id, mesh.end() - 1);
-                    data_to_migrate.at(PE).push_back(*(mesh.end()- 1));
-                    mesh.pop_back();
-                } else data_id++; //if the element must stay with me then check the next one
-            }
-            PE = 0;
-            std::vector<MPI_Request> reqs(worldsize, MPI_REQUEST_NULL);
-            for(auto& buf_to_send : data_to_migrate){
-                if(PE != myrank){
-                    auto send_size = buf_to_send.size();
-                    if (send_size) {
-                        MPI_Isend(&buf_to_send.front(), send_size, datatype, PE, 300, world, &reqs[PE]);
-                    }
-                }
-                PE++;
-            }
-            MPI_Waitall(worldsize, &reqs.front(), MPI_STATUSES_IGNORE);
-        } else {
-            MPI_Status status;
-            MPI_Probe(0, 300, world, &status);
-            int size;
-            MPI_Get_count(&status, datatype, &size);
-            mesh.resize(size);
-            MPI_Recv(&mesh.front(), size, datatype, 0, 300, world, MPI_STATUS_IGNORE);
+
+        size_t data_id = 0;
+        PEIndex PE;
+        std::vector<std::vector<Cell>> data_to_migrate(worldsize);
+        while (data_id < mesh.size()) {
+            resolve_process_membership(mesh[data_id].gid, &PE);
+            if (PE != myrank) {
+                std::iter_swap(mesh.begin() + data_id, mesh.end() - 1);
+                data_to_migrate.at(PE).push_back(*(mesh.end()- 1));
+                mesh.pop_back();
+            } else data_id++; //if the element must stay with me then check the next one
         }
+
+        long nb_reqs;
+        std::vector<int> num_import_from_procs, import_from_procs;
+        std::tie(nb_reqs, num_import_from_procs, import_from_procs) = compute_invert_list(data_to_migrate, worldsize, world);
+
+        PE = 0;
+        std::vector<MPI_Request> reqs(worldsize, MPI_REQUEST_NULL);
+        for(auto& buf_to_send : data_to_migrate){
+            if(PE != myrank){
+                auto send_size = buf_to_send.size();
+                if (send_size) {
+                    MPI_Isend(&buf_to_send.front(), send_size, datatype, PE, 300, world, &reqs[PE]);
+                }
+            }
+            PE++;
+        }
+
+        for (int proc_id : import_from_procs) {
+            size_t size = num_import_from_procs[proc_id];
+            std::vector<Cell> buffer(size);
+            MPI_Recv(&buffer.front(), size, datatype, proc_id, 300, world, MPI_STATUS_IGNORE);
+            mesh.insert(mesh.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
+        }
+
+        MPI_Waitall(worldsize,   &reqs.front(), MPI_STATUSES_IGNORE);
     }
 
     void resolve_process_membership(unsigned int gid, PEIndex* p){
@@ -242,13 +288,12 @@ private:
             auto e = partition[2 * (*p) + 1];
             if(b <= row && row <= e) return;
         }
-        std::cout << gid <<" " <<row << std::endl;
+        //std::cout << gid <<" " <<row << std::endl;
         if(loggerPtr != nullptr) {
             loggerPtr->error("error in resolving process membership.");
         }
         MPI_Abort(world,  MPI_ERR_OTHER);
     }
-
 
     /**
      * Compute the average load of a given row. It is used to determine the load of a stripe.
@@ -269,12 +314,37 @@ private:
         return rowsload;
     }
 
+    const std::vector<double> get_rows_load(const std::vector<Cell>* data){
+        const std::vector<Cell>& _data = *data;
+        return get_rows_load(_data);
+    }
+
+    template<typename K, typename V>
+    std::vector<RowWorkload> mapToVector(const std::unordered_map<K,V> &map)
+    {
+        std::vector<RowWorkload> res;
+        for(auto& entry: map){
+            res.push_back({entry.first, entry.second});
+        }
+        return res;
+    }
+
+    const std::vector<RowWorkload> get_partial_rows_load(const std::vector<Cell>& data) {
+        std::unordered_map<int, double> rowsload;
+        for(const auto& cell : data) {
+            long row = cell_to_position(sizeX, sizeY, cell.gid).second;
+            if(rowsload.find(row) == rowsload.end()) rowsload[row] = 0.0;
+            rowsload[row] += cell.type;
+        }
+        return mapToVector(rowsload);
+    }
+
     /**
      * Get the process id of neighboring processes (i.e., the processes that owns my begin_stripe-1 or my end_stripe+1)
      * Only one of the two returned process id can be negative (i.e., there is no neighbor)
      * @return a pair of process ids
      */
-    std::pair<int,int> get_my_neighbors(){
+    std::pair<int, int> get_my_neighbors() {
         auto my_top_frontier    = partition[2 * myrank];
         auto my_bottom_frontier = partition[2 * myrank + 1];
         int bottom_neighbor = -1, top_neighbor = -1;
@@ -292,6 +362,55 @@ private:
         assert(bottom_neighbor != -1 || top_neighbor != -1);
         return std::make_pair(top_neighbor, bottom_neighbor);
     };
+
+/*
+    void register_datatype() {
+        MPI_Aint intex;
+
+        int blockcount_element[2];
+        MPI_Aint offset[2];
+        MPI_Datatype blocktypes[2];
+
+        blockcount_element[0] = 1;
+        blockcount_element[1] = 1;
+
+        blocktypes[0] = MPI_INT;
+        blocktypes[1] = MPI_DOUBLE;
+
+        MPI_Type_extent(MPI_INT, &intex);
+
+        offset[0] = static_cast<MPI_Aint>(0);
+        offset[1] = intex;
+
+        MPI_Type_struct(2, blockcount_element, offset, blocktypes, &row_load_datatype);
+        MPI_Type_commit(&row_load_datatype);
+    }
+*/
+    void register_datatype() {
+        MPI_Datatype element_datatype,
+                oldtype_element[2];
+        MPI_Aint offset[2], intex, int_offset;
+        const int number_of_int_elements = 2;
+        const int number_of_double_elements = 1;
+        int blockcount_element[2];
+        blockcount_element[0] = number_of_int_elements; // gid, lid, exit, waiting_time
+        blockcount_element[1] = number_of_double_elements; // position <x,y>
+        oldtype_element[0] = MPI_INT;
+        oldtype_element[1] = MPI_DOUBLE;
+        MPI_Type_extent(MPI_INT, &int_offset);
+        offset[0] = static_cast<MPI_Aint>(0);
+        offset[1] = number_of_int_elements * int_offset;
+        MPI_Type_struct(2, blockcount_element, offset, oldtype_element, &row_load_datatype);
+        MPI_Type_commit(&row_load_datatype);
+    }
+
+    std::vector<double> merge(const std::vector<RowWorkload>& rows_load) {
+        std::vector<double> merged_load(sizeY, 0.0);
+        for(auto& row : rows_load) {
+            merged_load[row.row] += row.load;
+        }
+        return merged_load;
+    }
 
 };
 

@@ -165,8 +165,7 @@ int main(int argc, char **argv) {
 #endif
 
     float average_load_at_lb;
-    double skew = 0, relative_slope, my_time_slope, total_slope, degradation=0.0,
-           degradation_since_last_lb = 0.0;
+    double skew = 0, relative_slope, my_time_slope, total_slope, degradation=0.0, degradation_since_last_lb = 0.0;
 
     std::vector<double> timings(worldsize), all_degradations, water;
 

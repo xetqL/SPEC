@@ -19,6 +19,14 @@ std::ostream &operator<<(std::ostream &os, const std::vector<A> &data) {
     os << data.at(sz-1);
     return os;
 }
+
+template<class A, class B>
+std::ostream &operator<<(std::ostream &os, const std::pair<A,B> &data) {
+
+    os << "("<<data.first<<","<<data.second<<")";
+    return os;
+}
+
 template<class A>
 std::ostream &operator<<(std::ostream &os, const std::deque<A> &data) {
     const long sz = data.size();

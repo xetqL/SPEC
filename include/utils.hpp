@@ -6,7 +6,20 @@
 #define SPEC_UTILS_HPP
 
 #include <utility>
+#include <unordered_map>
 #include "cell.hpp"
+
+template<typename K, typename V>
+std::vector<std::pair<K,V>> mapToVector(const std::unordered_map<K,V> &map)
+{
+    return std::vector<std::pair<K,V>>(map.begin(), map.end());
+}
+
+template<typename K, typename V>
+std::vector<std::pair<K,V>> mapToVector(const std::map<K,V> &map)
+{
+    return std::vector<std::pair<K,V>>(map.begin(), map.end());
+}
 
 template<class T>
 typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type

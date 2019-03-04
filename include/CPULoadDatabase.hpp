@@ -34,14 +34,14 @@ class CPULoadDatabase {
         //, slope(0)
         {};
 
-        DatabaseEntry(Index _idx, Age _age, PELoad _load, PESlope _slope) :
+        DatabaseEntry(Index _idx, Age _age, PELoad _load) :
                 idx(_idx),
                 age(_age),
                 load(_load)
         //, slope(_slope)
         {};
 
-        DatabaseEntry(Index _idx, PELoad _load, PESlope _slope) :
+        DatabaseEntry(Index _idx, PELoad _load) :
                 idx(_idx),
                 age(0),
                 load(_load)

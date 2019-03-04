@@ -298,7 +298,40 @@ inline bool point_belongs_to_me(Zoltan_Struct* load_balancer, std::array<double,
     return PE == my_rank;
 }
 
+template<class A>
+std::tuple<long, std::vector<int>, std::vector<int>> compute_invert_list(const std::vector<std::vector<A>>& data_to_migrate, const int worldsize, MPI_Comm& world) {
 
+    long nb_reqs;
+    std::vector<int> num_import_from_procs(worldsize), import_from_procs;
+
+    nb_reqs = std::count_if(data_to_migrate.cbegin(), data_to_migrate.cend(), [](auto buf){return !buf.empty();});
+    std::vector<MPI_Request> send_reqs(nb_reqs), rcv_reqs(worldsize);
+    std::vector<MPI_Status> statuses(worldsize);
+
+    int nb_neighbor = 0;
+    for(int comm_pe = 0; comm_pe < worldsize; ++comm_pe){
+        MPI_Irecv(&num_import_from_procs[comm_pe], 1, MPI_INT, comm_pe, 666, world, &rcv_reqs[comm_pe]);
+        int send_size = data_to_migrate.at(comm_pe).size();
+        if (send_size) {
+            MPI_Isend(&send_size, 1, MPI_INT, comm_pe, 666, world, &send_reqs[nb_neighbor]);
+            nb_neighbor++;
+        }
+    }
+    MPI_Waitall(send_reqs.size(), &send_reqs.front(), MPI_STATUSES_IGNORE);
+    MPI_Barrier(world);
+    for(int comm_pe = 0; comm_pe < worldsize; ++comm_pe) {
+        int flag; MPI_Status status;
+        MPI_Test(&rcv_reqs[comm_pe], &flag, &status);
+        if(!flag) MPI_Cancel(&rcv_reqs[comm_pe]);
+    }
+
+    import_from_procs.clear();
+    for(int i = 0; i < worldsize; ++i){
+        if(num_import_from_procs[i] > 0) import_from_procs.push_back(i);
+    }
+
+    return std::make_tuple(nb_reqs, num_import_from_procs, import_from_procs);
+}
 
 
 #endif //SPEC_COMM_HPP
