@@ -18,7 +18,7 @@ const float bytes_per_flop = 2.77f;
 std::random_device rd;
 std::mt19937 gen(rd());
 std::normal_distribution<float> ndist(9, 1);
-std::normal_distribution<float> flopdist(200, 1); // https://arxiv.org/pdf/1703.08015.pdf
+float flops = 2000; // https://arxiv.org/pdf/1703.08015.pdf
 std::uniform_real_distribution<float> udist(0, 1);
 
 /// SIMULATION
@@ -368,7 +368,7 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
             }
 
             /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
-            consume_cpu_flops(flopdist(gen));
+            consume_cpu_flops(flops);
             /* stop */
 
         }
@@ -443,11 +443,9 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
 
             bool eroded;
 
-            if( erosion_proba < 1.0 ) {
-                eroded = p < (theta) * erosion_proba;
-            } else {
-                eroded = p < (msx - __pos.first) / (float) msx;
-            }
+            if( erosion_proba < 1.0 ) eroded = p < (theta) * erosion_proba;
+            else eroded = p < (msx - __pos.first) / (float) msx;
+
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
@@ -457,8 +455,7 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
         }
 
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
-        if(i < my_water_cell_count)
-            consume_cpu_flops(flopdist(gen));
+        if(i < my_water_cell_count) consume_cpu_flops(flops);
         /* stop */
     }
 

@@ -96,7 +96,6 @@ public:
         // Gather
         auto p_rows_load = gather_elements_on(my_rows_load, 0, row_load_datatype,   world);
         auto rows_load = merge(p_rows_load);
-
         auto alphas    = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
 
         // Partition
