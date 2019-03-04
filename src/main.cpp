@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
             pcall = step;
         }
 #elif LB_METHOD == 2 // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf
-        //if(!rank) steplogger->info("degradation: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
+        //if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step;// || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
         if(lb_condition) {
             auto total_slope = get_slope<double>(window_step_time.data_container);
@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
             ncall = 10;
         }
 #elif LB_METHOD==4
-        if(!rank) steplogger->info("degradation: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
+        if(!rank) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost && gossip_waterslope_db.has_converged(7));
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
