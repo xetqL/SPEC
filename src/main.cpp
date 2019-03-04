@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
     lb_costs.push_back(current_lb_cost);
     auto my_domain = stripe_lb.get_domain(rank);
 
-    generate_lattice_rocks(4, msx, msy, &my_cells, !rank ? 0.15f : 0.005f, my_domain.first, my_domain.second);
+    generate_lattice_rocks(4, msx, msy, &my_cells, !rank ? 0.5f : 0.005f, my_domain.first, my_domain.second);
     stripe_lb.load_balance(&my_cells, 0.0);
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
