@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
     lb_costs.push_back(current_lb_cost);
     auto my_domain = stripe_lb.get_domain(rank);
 
-    generate_lattice_rocks(4, msx, msy, &my_cells, !rank ? 0.5f : 0.005f, my_domain.first, my_domain.second);
+    generate_lattice_rocks(3, msx, msy, &my_cells, !rank ? 0.5f : 0.005f, my_domain.first, my_domain.second);
     stripe_lb.load_balance(&my_cells, 0.0);
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
@@ -173,8 +173,7 @@ int main(int argc, char **argv) {
     SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
-    water.push_back(my_water_ptr.size());
-    window_water.add(my_water_ptr.size());
+    water.push_back(my_water_ptr.size()); window_water.add(my_water_ptr.size());
 
     CPULoadDatabase gossip_workload_db(world);
     CPULoadDatabase gossip_waterslope_db(world);
@@ -259,8 +258,8 @@ int main(int argc, char **argv) {
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost && gossip_waterslope_db.has_converged(7));
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
-            //std::cout << rank << " "<< gossip_waterslope_db.get(rank) << "-"<<gossip_waterslope_db.mean() << "/" << std::sqrt(gossip_waterslope_db.variance()) << std::endl;
-            //std::cout << rank << gossip_waterslope_db.get_all_data() << std::endl;
+            // std::cout << rank << " "<< gossip_waterslope_db.get(rank) << "-"<<gossip_waterslope_db.mean() << "/" << std::sqrt(gossip_waterslope_db.variance()) << std::endl;
+            // std::cout << rank << gossip_waterslope_db.get_all_data() << std::endl;
             stripe_lb.load_balance(&my_cells, overloading ? 0.1 : 0.0);
             gossip_workload_db.reset();
             water.clear();

@@ -84,7 +84,10 @@ public:
      */
     void load_balance(std::vector<Cell>* _data, double alpha = 0.0) {
 
-        if(worldsize == 1) return;
+        if(worldsize == 1) {
+            partition[0] = 0; partition[1] = sizeY;
+            return;
+        }
 
         std::vector<Cell>& data = *_data;
 
