@@ -403,8 +403,7 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
         if(i < my_water_cell_count) {
             auto cell_idx = my_water_ptr[i];
             cell = &my_old_cells[cell_idx];
-        }
-        else {
+        } else {
             auto cell_idx = remote_water_ptr[i - my_water_cell_count];
             cell = &remote_cells[cell_idx];
         }
@@ -446,7 +445,6 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
             if( erosion_proba < 1.0 ) eroded = p < (theta) * erosion_proba;
             else eroded = p < (msx - __pos.first) / (float) msx;
 
-
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
                 my_cells[idx_neighbor].weight = 1;
@@ -455,7 +453,8 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
         }
 
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
-        if(i < my_water_cell_count) consume_cpu_flops(flops);
+        if(i < my_water_cell_count)
+            consume_cpu_flops(flops);
         /* stop */
     }
 
