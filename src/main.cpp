@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         if(i_am_loading_proc) steplogger->info() << "Beginning step "<< step;
-        avg_lb_cost = gossip_average_cpu_db.get(0);
+
         PAR_START_TIMING(step_time, world);
         bool lb_condition = false;
 #ifdef LB_METHOD
@@ -245,6 +245,7 @@ int main(int argc, char **argv) {
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
         }
 #elif LB_METHOD == 3
+        avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
         // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf +
         // http://delivery.acm.org/10.1145/3210000/3205304/p318-Zhai.pdf?ip=129.194.71.44&id=3205304&acc=ACTIVE%20SERVICE&key=FC66C24E42F07228%2E1F81E5291441A4B9%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&__acm__=1550853138_12520c5a2a037b11fcd410073a54671e
         if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
@@ -259,8 +260,9 @@ int main(int argc, char **argv) {
             stripe_lb.load_balance(&my_cells, 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
             lb_costs.push_back(current_lb_cost);
-            if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
+            perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
+
             if(total_slope > 0) {
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope)); ncall = std::min(1, ncall);
             } else ncall = MAX_STEP;
@@ -312,6 +314,7 @@ int main(int argc, char **argv) {
             ncall = 10;
         }
 #elif LB_METHOD==5
+        avg_lb_cost = gossip_average_cpu_db.get(0);
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost) && gossip_waterslope_db.has_converged(10));
         //std::cout << ((degradation_since_last_lb*(step-pcall))/2.0)<< " " << (avg_lb_cost) << std::endl;
@@ -372,7 +375,9 @@ int main(int argc, char **argv) {
         if(step > 0) {
             gossip_waterslope_db.finish_gossip_step();
             gossip_workload_db.finish_gossip_step();
+#ifdef LB_METHOD == 5
             gossip_average_cpu_db.finish_gossip_step();
+#endif
         }
 
         gossip_waterslope_db.gossip_update(rank, get_slope<double>(water.begin(), water.end()));
@@ -381,8 +386,10 @@ int main(int argc, char **argv) {
         gossip_workload_db.gossip_update(rank, my_comp_time);
         gossip_workload_db.gossip_propagate();
 
+#ifdef LB_METHOD == 5
         gossip_average_cpu_db.gossip_update(0, lb_costs.size(), stats::mean<double>(lb_costs.begin(), lb_costs.end()), [](auto old, auto mine){return mine.age >= old.age ? (old.load < mine.load ? mine : old) : old;});
         gossip_average_cpu_db.gossip_propagate();
+#endif
 
         if(window_step_time.size() > 2)
             degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end() - 1)); // median among [cts-2, cts]
