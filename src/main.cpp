@@ -307,20 +307,22 @@ int main(int argc, char **argv) {
         if(i_am_loading_proc) steplogger->info("dummy_erosion_computation3");
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("end of step");
+
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
 
         CHECKPOINT_TIMING(loop_time, time_since_start);
         if(i_am_loading_proc) steplogger->info("time until step ") << step << " = " << time_since_start;
+        MPI_Barrier(world);
+        if(i_am_loading_proc) steplogger->info("start pushing latest data");
         water.push_back(my_water_ptr.size());
         window_water.add(my_water_ptr.size());
 
         window_step_time.add(comp_time); // monitor evolution of load in time with a window
         window_my_time.add(my_comp_time);    // monitor evolution of my load in time with a window
-
+        MPI_Barrier(world);
+        if(i_am_loading_proc) steplogger->info("start gossip step");
         if(step > 0) {
             gossip_workload_db.finish_gossip_step();
             gossip_waterslope_db.finish_gossip_step();
@@ -331,13 +333,16 @@ int main(int argc, char **argv) {
 
         gossip_workload_db.gossip_update(my_comp_time);
         gossip_workload_db.gossip_propagate();
+        MPI_Barrier(world);
+        if(i_am_loading_proc) steplogger->info("start degradation computation");
 
         if(window_step_time.size() > 2)
             degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end() - 1)); // median among [cts-2, cts]
 
         if(pcall + 1 < step)
             degradation_since_last_lb += *(window_step_time.end() - 1) - *(window_step_time.end() - 2) ;
-
+        MPI_Barrier(world);
+        if(i_am_loading_proc) steplogger->info("End of data processing");
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
