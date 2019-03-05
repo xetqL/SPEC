@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
 
     CPULoadDatabase gossip_workload_db(world);
     CPULoadDatabase gossip_waterslope_db(world);
-
+    //double time_since_start;
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         if(i_am_loading_proc) steplogger->info() << "Beginning step "<< step;
@@ -313,6 +313,8 @@ int main(int argc, char **argv) {
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
 
+        CHECKPOINT_TIMING(loop_time, time_since_start);
+        if(i_am_loading_proc) steplogger->info("time until step ") << step << " = " << time_since_start;
         water.push_back(my_water_ptr.size());
         window_water.add(my_water_ptr.size());
 
@@ -338,6 +340,8 @@ int main(int argc, char **argv) {
 
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef PRODUCE_OUTPUTS
         std::vector<double> exch_timings(worldsize);
         //MPI_Allgather(&cpt, 1, MPI_DOUBLE, &exch_timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
         MPI_Allgather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(),      1, MPI_DOUBLE, world); // TODO: propagate information differently
@@ -367,7 +371,6 @@ int main(int argc, char **argv) {
             << "],\"slopes\":["  << gossip_waterslope_db.get_all_data()<<"]";
         }
 
-#ifdef PRODUCE_OUTPUTS
         unsigned long cell_cnt = my_cells.size();
         std::vector<std::array<int,2>> my_types(cell_cnt);
         for (int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
