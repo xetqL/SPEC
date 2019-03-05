@@ -248,7 +248,10 @@ int main(int argc, char **argv) {
         // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf +
         // http://delivery.acm.org/10.1145/3210000/3205304/p318-Zhai.pdf?ip=129.194.71.44&id=3205304&acc=ACTIVE%20SERVICE&key=FC66C24E42F07228%2E1F81E5291441A4B9%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&__acm__=1550853138_12520c5a2a037b11fcd410073a54671e
         if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
+        lb_condition = step > 10 && (pcall + ncall <= step || (degradation_since_last_lb*(step-pcall)) / 2.0 > avg_lb_cost);
+        int v = lb_condition ? 1 : 0; int c;
+        MPI_Reduce(&v, &c, 1, MPI_INT, MPI_SUM, 0, world);
+        if(rank == 0) std::cout << c << std::endl;
         if(lb_condition) {
             auto total_slope = get_slope<double>(window_step_time.data_container);
             if(!rank) steplogger->info("call LB at: ") << step;
@@ -259,12 +262,10 @@ int main(int argc, char **argv) {
             if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
             if(total_slope > 0) {
-                ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
-                ncall = std::min(1, ncall);
-            } else
-                ncall = MAX_STEP;
-            MPI_Bcast(&ncall, 1, MPI_INT, !rank, world);
+                ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope)); ncall = std::min(1, ncall);
+            } else ncall = MAX_STEP;
 
+            MPI_Bcast(&ncall, 1, MPI_INT, i_am_loading_proc, world);
             gossip_workload_db.reset();
             water.clear();
             degradation_since_last_lb = 0.0;
@@ -312,7 +313,7 @@ int main(int argc, char **argv) {
         }
 #elif LB_METHOD==5
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost);// && gossip_waterslope_db.has_converged(10));
+        lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost) && gossip_waterslope_db.has_converged(10));
         //std::cout << ((degradation_since_last_lb*(step-pcall))/2.0)<< " " << (avg_lb_cost) << std::endl;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
