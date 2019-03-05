@@ -218,8 +218,11 @@ int main(int argc, char **argv) {
             lb_costs.push_back(current_lb_cost);
             if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-            if(total_slope > 0) ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
-            else ncall = MAX_STEP;
+            if(total_slope > 0) {
+                ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
+                std::cout << ncall << std::endl;
+            } else
+                ncall = MAX_STEP;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
