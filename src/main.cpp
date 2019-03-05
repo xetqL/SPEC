@@ -316,6 +316,8 @@ int main(int argc, char **argv) {
         //std::cout << ((degradation_since_last_lb*(step-pcall))/2.0)<< " " << (avg_lb_cost) << std::endl;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
+            if(overloading)
+                std::cout << "I WILL BE UNLOADED" << std::endl;
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, overloading ? 0.02 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
