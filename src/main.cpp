@@ -313,7 +313,6 @@ int main(int argc, char **argv) {
             ncall = 10;
         }
 #elif LB_METHOD==5
-        avg_lb_cost = gossip_average_cpu_db.get(0);
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost);
         //std::cout << ((degradation_since_last_lb*(step-pcall))/2.0)<< " " << (avg_lb_cost) << std::endl;
