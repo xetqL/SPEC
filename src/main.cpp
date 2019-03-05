@@ -169,6 +169,8 @@ int main(int argc, char **argv) {
     int ncall = 10, pcall=0;
 #if LB_METHOD==1
     ncall = 100;
+#elif LB_METHOD==2
+    ncall = 25;
 #endif
 
     float average_load_at_lb;
@@ -176,7 +178,7 @@ int main(int argc, char **argv) {
 
     std::vector<double> timings(worldsize), all_degradations, water;
 
-    SlidingWindow<double> window_step_time(10); // sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window_step_time(15); // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
@@ -207,7 +209,39 @@ int main(int argc, char **argv) {
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
             pcall = step;
         }
-#elif LB_METHOD == 2 // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf
+#elif LB_METHOD == 2
+        // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf +
+        // http://delivery.acm.org/10.1145/3210000/3205304/p318-Zhai.pdf?ip=129.194.71.44&id=3205304&acc=ACTIVE%20SERVICE&key=FC66C24E42F07228%2E1F81E5291441A4B9%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&__acm__=1550853138_12520c5a2a037b11fcd410073a54671e
+        if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
+        lb_condition = pcall + ncall <= step;// || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
+        if(lb_condition) {
+            auto total_slope = get_slope<double>(window_step_time.data_container);
+            if(!rank) steplogger->info("call LB at: ") << step;
+            PAR_START_TIMING(current_lb_cost, world);
+            stripe_lb.load_balance(&my_cells, 0.0);
+            PAR_STOP_TIMING(current_lb_cost, world);
+            lb_costs.push_back(current_lb_cost);
+            if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
+            avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
+            if(total_slope > 0) {
+                ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
+                ncall = std::min(1, ncall);
+            } else
+                ncall = MAX_STEP;
+            MPI_Bcast(&ncall, 1, MPI_INT, !rank, world);
+            gossip_workload_db.reset();
+            water.clear();
+            degradation_since_last_lb = 0.0;
+            window_my_time.data_container.clear();
+            window_step_time.data_container.clear();
+            window_water.data_container.clear();
+            pcall = step;
+
+            if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
+        }
+#elif LB_METHOD == 3
+        // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf +
+        // http://delivery.acm.org/10.1145/3210000/3205304/p318-Zhai.pdf?ip=129.194.71.44&id=3205304&acc=ACTIVE%20SERVICE&key=FC66C24E42F07228%2E1F81E5291441A4B9%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&__acm__=1550853138_12520c5a2a037b11fcd410073a54671e
         if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
         if(lb_condition) {
@@ -236,7 +270,7 @@ int main(int argc, char **argv) {
 
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
         }
-#elif LB_METHOD == 3 // Unloading Model
+#elif LB_METHOD == 4 // Unloading Model
         constexpr double alpha = 1.0/4.0;
         if(!rank) steplogger->info("degradation: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
@@ -271,7 +305,7 @@ int main(int argc, char **argv) {
             pcall = step;
             ncall = 10;
         }
-#elif LB_METHOD==4
+#elif LB_METHOD==5
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost && gossip_waterslope_db.has_converged(7));
         if(lb_condition) {
