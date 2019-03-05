@@ -182,8 +182,8 @@ int main(int argc, char **argv) {
 
     water.push_back(my_water_ptr.size()); window_water.add(my_water_ptr.size());
 
-    CPULoadDatabase gossip_workload_db(world);
-    CPULoadDatabase gossip_waterslope_db(world);
+    CPULoadDatabase gossip_workload_db(9998, world);
+    CPULoadDatabase gossip_waterslope_db(9999, world);
     //double time_since_start;
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {

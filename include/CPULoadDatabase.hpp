@@ -19,33 +19,29 @@ class CPULoadDatabase {
     typedef double PELoad;
     typedef double PESlope;
 
-    static const int SEND_TAG = 9999;
+    const int SEND_TAG;
 
     struct DatabaseEntry {
         Index idx;
         Age age;
         PELoad load;
 
-        //PESlope slope;
         DatabaseEntry() :
                 idx(-1),
                 age(std::numeric_limits<int>::max()),
                 load(-1)
-        //, slope(0)
         {};
 
         DatabaseEntry(Index _idx, Age _age, PELoad _load) :
                 idx(_idx),
                 age(_age),
                 load(_load)
-        //, slope(_slope)
         {};
 
         DatabaseEntry(Index _idx, PELoad _load) :
                 idx(_idx),
                 age(0),
                 load(_load)
-        //, slope(_slope)
         {};
 
         friend std::ostream &operator<<(std::ostream &os, const DatabaseEntry &entry) {
@@ -66,7 +62,7 @@ class CPULoadDatabase {
     std::unique_ptr<std::uniform_int_distribution<>> ptr_uniform;
 public:
 
-    CPULoadDatabase(MPI_Comm _world) : world(_world) {
+    CPULoadDatabase(int send_tag, MPI_Comm _world) : SEND_TAG(send_tag), world(_world) {
         MPI_Comm_rank(world, &my_rank);
         MPI_Comm_size(world, &worldsize);
         pe_load_data.resize(worldsize);
@@ -118,30 +114,32 @@ public:
         std::vector<DatabaseEntry> snd_entry;
         std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entry),
                 [](auto e) { return e.idx >= 0; });
-        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination1, CPULoadDatabase::SEND_TAG, world,
+
+        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination1, SEND_TAG, world,
                   &current_send_reqs[0]);
-        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination2, CPULoadDatabase::SEND_TAG, world,
+
+        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination2, SEND_TAG, world,
                   &current_send_reqs[1]);
     }
 
-    void finish_gossip_step() {
-        MPI_Iprobe(MPI_ANY_SOURCE, CPULoadDatabase::SEND_TAG, world, &current_recv_flag, &current_recv_status);
+    void finish_gossip_step(  ) {
+
+        MPI_Iprobe(MPI_ANY_SOURCE, SEND_TAG, world, &current_recv_flag, &current_recv_status);
         if (current_recv_flag) {
             int cnt;
             MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
             std::vector<DatabaseEntry> rcv_entries(cnt);
             MPI_Recv(&rcv_entries.front(), cnt, entry_datatype, current_recv_status.MPI_SOURCE,
-                     CPULoadDatabase::SEND_TAG, world, MPI_STATUS_IGNORE);
+                     SEND_TAG, world, MPI_STATUS_IGNORE);
             merge_into_database(std::move(rcv_entries));
         }
-
-        MPI_Iprobe(MPI_ANY_SOURCE, CPULoadDatabase::SEND_TAG, world, &current_recv_flag, &current_recv_status);
+        MPI_Iprobe(MPI_ANY_SOURCE, SEND_TAG, world, &current_recv_flag, &current_recv_status);
         if (current_recv_flag) {
             int cnt;
             MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
             std::vector<DatabaseEntry> rcv_entries(cnt);
             MPI_Recv(&rcv_entries.front(), cnt, entry_datatype, current_recv_status.MPI_SOURCE,
-                     CPULoadDatabase::SEND_TAG, world, MPI_STATUS_IGNORE);
+                     SEND_TAG, world, MPI_STATUS_IGNORE);
             merge_into_database(std::move(rcv_entries));
         }
 
