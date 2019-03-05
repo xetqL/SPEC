@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
 
     auto avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
 
-    gossip_average_cpu_db.gossip_update(0, avg_lb_cost, [](auto old, auto mine){return old.load < mine.load ? mine : old;});
+    gossip_average_cpu_db.gossip_update(0, 1, avg_lb_cost, [](auto old, auto mine){return old.load < mine.load ? mine : old;});
     gossip_average_cpu_db.gossip_propagate();
     gossip_average_cpu_db.finish_gossip_step();
 #endif
@@ -377,7 +377,7 @@ int main(int argc, char **argv) {
         gossip_workload_db.gossip_update(rank, my_comp_time);
         gossip_workload_db.gossip_propagate();
 
-        gossip_average_cpu_db.gossip_update(0, avg_lb_cost, [](auto old, auto mine){return old.load < mine.load ? mine : old;});
+        gossip_average_cpu_db.gossip_update(0, lb_costs.size(), avg_lb_cost, [](auto old, auto mine){return mine.age >= old.age ? (old.load < mine.load ? mine : old) : old;});
         gossip_average_cpu_db.gossip_propagate();
 
         if(window_step_time.size() > 2)

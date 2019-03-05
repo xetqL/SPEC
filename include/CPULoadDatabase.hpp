@@ -13,12 +13,10 @@
 #include <algorithm>
 #include <ostream>
 #include <queue>
-
 class CPULoadDatabase {
     typedef int Index;
     typedef int Age;
     typedef double PELoad;
-    typedef double PESlope;
 
     struct DatabaseEntry {
         Index idx;
@@ -51,14 +49,14 @@ class CPULoadDatabase {
 
     MPI_Comm world;
     MPI_Datatype entry_datatype;
-    std::vector<MPI_Request> current_send_reqs;
+    mutable std::vector<MPI_Request> current_send_reqs;
     MPI_Status current_recv_status;
 
     const int database_size, number_of_message = 2, SEND_TAG;
     int current_recv_flag;
     int my_rank, worldsize;
     std::vector<DatabaseEntry> pe_load_data;
-    std::vector<std::vector<DatabaseEntry>> snd_entries;
+    mutable std::vector<std::vector<DatabaseEntry>> snd_entries;
 public:
 
     CPULoadDatabase(int database_size, int number_of_message, int send_tag, MPI_Comm _world) :
@@ -76,10 +74,10 @@ public:
         current_send_reqs.resize(number_of_message);
     }
 
-    void free_datatypes(){
+    void free_datatypes() {
         MPI_Type_free(&entry_datatype);
     }
-    PELoad get(Index idx){
+    PELoad get(Index idx) const {
         return pe_load_data[idx].load;
     }
 
@@ -92,15 +90,15 @@ public:
      * Update information ages and my load
      */
     void gossip_update(Index idx, PELoad my_load) {
-        gossip_update(idx, my_load, [](auto old, auto mine){return old.idx == mine.idx ? mine : DatabaseEntry(old.idx, old.idx >= 0 ? old.age+1 : old.age, old.load);});
+        gossip_update(idx, 0, my_load, [](auto old, auto mine){return old.idx == mine.idx ? mine : DatabaseEntry(old.idx, old.idx >= 0 ? old.age+1 : old.age, old.load);});
     }
 
     template<class Strategy>
-    void gossip_update(Index idx, PELoad my_load, Strategy strategy) {
+    void gossip_update(Index idx, Age age, PELoad my_load, Strategy strategy) {
         assert(idx < database_size);
         assert(idx >= 0);
         for (DatabaseEntry &entry : pe_load_data) {
-            DatabaseEntry mine = {idx, 0, my_load};
+            DatabaseEntry mine = {idx, age, my_load};
             entry = strategy(entry, mine);
         }
     }
@@ -113,7 +111,7 @@ public:
     }
 
     template<class Predicate>
-    void gossip_propagate(Predicate pred) {
+    void gossip_propagate(Predicate pred) const {
         std::vector<int> destinations;
         int destination;
         for(int i = 0; i < number_of_message; ++i) {
@@ -143,31 +141,31 @@ public:
         MPI_Waitall(number_of_message, current_send_reqs.data(), MPI_STATUSES_IGNORE);
     }
 
-    PELoad skewness() {
+    PELoad skewness() const {
         std::vector<PELoad> &&loads = get_all_meaningfull_data();
         return stats::skewness<PELoad>(loads.begin(), loads.end());
     }
 
-    PELoad mean() {
+    PELoad mean() const {
         std::vector<PELoad> &&loads = get_all_meaningfull_data();
         return stats::mean<PELoad>(loads.begin(), loads.end());
     }
 
-    int max_age() {
+    int max_age() const {
         int age = -1;
         for(const auto& entry : pe_load_data) age = std::max(age, entry.age);
         return age == -1 ? std::numeric_limits<int>::max() : age;
     }
 
-    bool has_converged(Age threshold) {
+    bool has_converged(Age threshold) const {
         return std::all_of(pe_load_data.begin(), pe_load_data.end(), [&threshold](auto entry){return entry.age < threshold;});
     }
 
-    PELoad sum() {
+    PELoad sum() const {
         return this->mean() * worldsize;
     }
 
-    PELoad variance() {
+    PELoad variance() const {
         const auto mu = mean();
         auto data = get_all_meaningfull_data();
         auto N = data.size();
@@ -180,14 +178,14 @@ public:
         return var;
     }
 
-    double zscore(Index idx) {
+    double zscore(Index idx) const {
         const auto load = get(idx);
         const auto mu = mean();
         const auto stddev = std::sqrt(variance());
         return (load - mu) / stddev;
     }
 
-    std::vector<PELoad> get_all_data() {
+    std::vector<PELoad> get_all_data() const {
         std::vector<PELoad> loads(worldsize, -1);
         for (auto it = pe_load_data.begin(); it != pe_load_data.end(); it++) {
             auto i = std::distance(pe_load_data.begin(), it);
@@ -216,7 +214,7 @@ private:
         MPI_Type_commit(&entry_datatype);
     }
 
-    std::vector<PELoad> get_all_meaningfull_data() {
+    std::vector<PELoad> get_all_meaningfull_data() const {
         std::vector<PELoad> loads;
         for (auto it = pe_load_data.begin(); it != pe_load_data.end(); it++) {
             auto i = std::distance(pe_load_data.begin(), it);
