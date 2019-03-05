@@ -40,6 +40,8 @@ int main(int argc, char **argv) {
     auto world = MPI_COMM_WORLD;
     MPI_Comm_size(world, &worldsize);
     MPI_Comm_rank(world, &rank);
+
+
     auto datatype   = Cell::register_datatype();
 
     std::string str_rank = "[RANK " + std::to_string(rank) + "] ";
@@ -48,6 +50,9 @@ int main(int argc, char **argv) {
     int cell_per_process = std::atoi(argv[3]);
     const int MAX_STEP = std::atoi(argv[4]);
     const int seed = std::atoi(argv[5]);
+    std::mt19937 gen(seed); // common seed
+    std::uniform_int_distribution<>  proc_dist(0, worldsize-1);
+
 
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);
@@ -63,8 +68,6 @@ int main(int argc, char **argv) {
     int xcells = cell_in_my_rows * xprocs, ycells = cell_in_my_rows * yprocs;
     std::vector<int> cols(ycells);
     std::iota(cols.begin(), cols.end(), 0);
-
-    std::mt19937 gen(seed); ///predictable sequence of value
 
     std::shuffle(cols.begin(), cols.end(), gen);
     cols = {0, 1};
@@ -116,10 +119,12 @@ int main(int argc, char **argv) {
     int recv, sent;
     if(!rank) steplogger->info("End of map generation");
 
+    int loading_proc = proc_dist(gen);
+    bool i_am_loading_proc = rank == loading_proc;
     /* Initial load balancing */
     std::vector<double> lb_costs;
     // auto zoltan_lb = zoltan_create_wrapper(true, world);
-    StripeLoadBalancer stripe_lb(msx, msy, datatype.element_datatype, world);
+    StripeLoadBalancer stripe_lb(i_am_loading_proc, msx, msy, datatype.element_datatype, world);
     stripe_lb.setLoggerPtr(steplogger);
     PAR_START_TIMING(current_lb_cost, world);
     stripe_lb.load_balance(&my_cells, 0.0);
@@ -127,18 +132,18 @@ int main(int argc, char **argv) {
     lb_costs.push_back(current_lb_cost);
     auto my_domain = stripe_lb.get_domain(rank);
 
-    bool loading_proc = rank == 1;
 
-    generate_lattice_rocks(3, msx, msy, &my_cells, loading_proc ? 0.5f : 0.005f, my_domain.first, my_domain.second);
 
-    stripe_lb.load_balance(&my_cells, loading_proc ? 0.5 : 0.0);
+    generate_lattice_rocks(3, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.005f, my_domain.first, my_domain.second);
+
+    stripe_lb.load_balance(&my_cells, i_am_loading_proc ? 0.5 : 0.0);
 
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
     std::vector<std::array<int,2>> my_types(my_cell_count);
     for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
     gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
-    if(!rank) {
+    if(i_am_loading_proc) {
         std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
         std::vector<int> types, water_gid;
         std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
@@ -146,10 +151,10 @@ int main(int argc, char **argv) {
         assert((*(all_types.end() - 1))[0] == total_cell-1);
         cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
     }
-    if(!rank) all_types.resize(total_cell);
+    if(i_am_loading_proc) all_types.resize(total_cell);
 #endif
 
-    if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
+    if(i_am_loading_proc) perflogger->info("LB_time: ") << current_lb_cost;
 
     auto my_water_ptr = create_water_ptr_vector(my_cells);
     std::vector<size_t> data_pointers, remote_data_pointers;
@@ -184,7 +189,7 @@ int main(int argc, char **argv) {
 
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
-        if(!rank) steplogger->info() << "Beginning step "<< step;
+        if(i_am_loading_proc) steplogger->info() << "Beginning step "<< step;
 
         PAR_START_TIMING(step_time, world);
         bool lb_condition = false;
@@ -258,7 +263,7 @@ int main(int argc, char **argv) {
             ncall = 10;
         }
 #elif LB_METHOD==4
-        if(!rank) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
+        if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost && gossip_waterslope_db.has_converged(7));
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
@@ -336,8 +341,9 @@ int main(int argc, char **argv) {
                average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
                load_imbalance = (max / average - 1.0) * 100.0;
 
-        if(!rank) {
+        if(i_am_loading_proc) {
             steplogger->info("stats: ") << "load imbalance: " << load_imbalance << " skewness: " << skew;
+            steplogger->info("Water Size: ") << water;
             perflogger->info("\"step\":") << step
             << ",\"step_time\": " << step_time
             << ",\"total_time\": " << std::accumulate(timings.begin(), timings.end(), 0.0)
@@ -355,7 +361,7 @@ int main(int argc, char **argv) {
         std::vector<std::array<int,2>> my_types(cell_cnt);
         for (int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
-        if(!rank) {
+        if(i_am_loading_proc) {
             std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
             std::vector<int> types, rock_gid;
             std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
@@ -363,11 +369,11 @@ int main(int argc, char **argv) {
             cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
         }
 #endif
-        if(!rank) steplogger->info() << "Stop step "<< step;
+        if(i_am_loading_proc) steplogger->info() << "Stop step "<< step;
     }
     PAR_STOP_TIMING(loop_time, world);
-    if(!rank) perflogger->info("\"total_time\":") << loop_time;
-    if(!rank) steplogger->info("\"total_time\":") << loop_time;
+    if(i_am_loading_proc) perflogger->info("\"total_time\":") << loop_time;
+    if(i_am_loading_proc) steplogger->info("\"total_time\":") << loop_time;
     datatype.free_datatypes();
     MPI_Finalize();
     return 0;

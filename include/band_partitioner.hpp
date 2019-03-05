@@ -16,8 +16,8 @@
 
 class StripeLoadBalancer {
     typedef unsigned int PEIndex;
-    int sizeX, sizeY;
     int worldsize, myrank;
+    const int master, sizeX, sizeY;
     MPI_Comm world;
     MPI_Datatype datatype;
     std::vector<PEIndex> partition;
@@ -56,7 +56,7 @@ class StripeLoadBalancer {
         }
     };
 public:
-    StripeLoadBalancer(int &X, int &Y, const MPI_Datatype &datatype, const MPI_Comm& world) : sizeX(X), sizeY(Y), datatype(datatype), world(world) {
+    StripeLoadBalancer(int master, int &X, int &Y, const MPI_Datatype &datatype, const MPI_Comm& world) : master(master), sizeX(X), sizeY(Y), datatype(datatype), world(world) {
         srand(myrank);
         MPI_Comm_rank(world, &myrank);
         MPI_Comm_size(world, &worldsize);
