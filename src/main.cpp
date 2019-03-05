@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
 
     std::vector<double> timings(worldsize), all_degradations, water;
 
-    SlidingWindow<double> window_step_time(100); // sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window_step_time(10); // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
