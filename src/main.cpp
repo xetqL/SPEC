@@ -266,7 +266,6 @@ int main(int argc, char **argv) {
             stripe_lb.load_balance(&my_cells, overloading ? 0.05 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
             lb_costs.push_back(current_lb_cost);
-
             gossip_workload_db.reset();
             water.clear();
             degradation_since_last_lb = 0.0;
@@ -290,9 +289,7 @@ int main(int argc, char **argv) {
         auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         auto remote_water_ptr = create_water_ptr_vector(remote_cells);
         decltype(my_water_ptr) new_water_ptr;
-
-        if(lb_condition || step == 0)
-            bbox = get_bounding_box(my_cells, remote_cells);
+        if(lb_condition || step == 0) bbox = get_bounding_box(my_cells, remote_cells);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));

@@ -57,6 +57,7 @@ class StripeLoadBalancer {
     };
 public:
     StripeLoadBalancer(int &X, int &Y, const MPI_Datatype &datatype, const MPI_Comm& world) : sizeX(X), sizeY(Y), datatype(datatype), world(world) {
+        srand(myrank);
         MPI_Comm_rank(world, &myrank);
         MPI_Comm_size(world, &worldsize);
         partition.resize(2*worldsize);
@@ -141,19 +142,33 @@ public:
             MPI_Isend(&(data_to_migrate[1].front()), data_to_migrate[1].size(), datatype, neighbors.second, 547, world,
                       &reqs[1]);
         }
-
         std::vector<Cell> buffer(sizeX);
-        if(neighbors.first > -1) {
-            MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.first, 547, world, MPI_STATUS_IGNORE);
-            remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
-        }
-        if(neighbors.second > -1) {
-            MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.second,547, world, MPI_STATUS_IGNORE);
-            remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
+
+        auto p = rand() % 2;
+        if(p) {
+            if(neighbors.first > -1) {
+                MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.first, 547, world, MPI_STATUS_IGNORE);
+                remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
+            }
+
+            if(neighbors.second > -1) {
+                MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.second,547, world, MPI_STATUS_IGNORE);
+                remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
+            }
+        } else {
+            if(neighbors.second > -1) {
+                MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.second,547, world, MPI_STATUS_IGNORE);
+                remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
+            }
+
+            if(neighbors.first > -1) {
+                MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.first, 547, world, MPI_STATUS_IGNORE);
+                remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
+            }
         }
 
-        MPI_Waitall(2, reqs, MPI_STATUSES_IGNORE);
-
+        //MPI_Waitall(2, reqs, MPI_STATUSES_IGNORE);
+        MPI_Barrier(world);
         return remote_data;
 
     }
@@ -346,6 +361,7 @@ private:
      * @return a pair of process ids
      */
     std::pair<int, int> get_my_neighbors() {
+
         auto my_top_frontier    = partition[2 * myrank];
         auto my_bottom_frontier = partition[2 * myrank + 1];
         int bottom_neighbor = -1, top_neighbor = -1;
@@ -361,6 +377,7 @@ private:
         }
         assert(top_neighbor != bottom_neighbor);
         assert(bottom_neighbor != -1 || top_neighbor != -1);
+
         return std::make_pair(top_neighbor, bottom_neighbor);
     };
 
