@@ -136,8 +136,6 @@ int main(int argc, char **argv) {
 
     auto my_domain = stripe_lb.get_domain(rank);
 
-
-
     generate_lattice_rocks(4, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.0f, my_domain.first, my_domain.second);
 
     //stripe_lb.load_balance(&my_cells, i_am_loading_proc ? 0 : 0.0);
@@ -233,7 +231,7 @@ int main(int argc, char **argv) {
                 ncall = std::min(1, ncall);
             } else
                 ncall = MAX_STEP;
-            MPI_Bcast(&ncall, 1, MPI_INT, !rank, world);
+
             gossip_workload_db.reset();
             water.clear();
             degradation_since_last_lb = 0.0;
@@ -245,15 +243,15 @@ int main(int argc, char **argv) {
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
 
             MPI_Bcast(&ncall, 1, MPI_INT, 0, world);
-
         }
 #elif LB_METHOD == 3
         // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf +
         // http://delivery.acm.org/10.1145/3210000/3205304/p318-Zhai.pdf?ip=129.194.71.44&id=3205304&acc=ACTIVE%20SERVICE&key=FC66C24E42F07228%2E1F81E5291441A4B9%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&__acm__=1550853138_12520c5a2a037b11fcd410073a54671e
-        if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
+        auto total_slope = get_slope<double>(window_step_time.data_container);
+        if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost << " total slope: " << total_slope;
         lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall)) / 2.0 > avg_lb_cost;
         if(lb_condition) {
-            auto total_slope = get_slope<double>(window_step_time.data_container);
+
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, 0.0);
