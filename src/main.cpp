@@ -313,11 +313,11 @@ int main(int argc, char **argv) {
 #elif LB_METHOD==5
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost);// && gossip_waterslope_db.has_converged(10));
-        std::cout << ((degradation_since_last_lb*(step-pcall))/2.0)<< " " << (avg_lb_cost) << std::endl;
+        //std::cout << ((degradation_since_last_lb*(step-pcall))/2.0)<< " " << (avg_lb_cost) << std::endl;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             PAR_START_TIMING(current_lb_cost, world);
-            stripe_lb.load_balance(&my_cells, overloading ? 0.01 : 0.0);
+            stripe_lb.load_balance(&my_cells, overloading ? 0.02 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
             lb_costs.push_back(current_lb_cost);
             gossip_workload_db.reset();
@@ -377,7 +377,7 @@ int main(int argc, char **argv) {
         gossip_workload_db.gossip_update(rank, my_comp_time);
         gossip_workload_db.gossip_propagate();
 
-        gossip_average_cpu_db.gossip_update(0, lb_costs.size(), avg_lb_cost, [](auto old, auto mine){return mine.age >= old.age ? (old.load < mine.load ? mine : old) : old;});
+        gossip_average_cpu_db.gossip_update(0, lb_costs.size(), stats::mean<double>(lb_costs.begin(), lb_costs.end()), [](auto old, auto mine){return mine.age >= old.age ? (old.load < mine.load ? mine : old) : old;});
         gossip_average_cpu_db.gossip_propagate();
 
         if(window_step_time.size() > 2)
