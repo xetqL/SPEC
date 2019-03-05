@@ -323,16 +323,22 @@ int main(int argc, char **argv) {
         window_my_time.add(my_comp_time);    // monitor evolution of my load in time with a window
         MPI_Barrier(world);
         if(i_am_loading_proc) steplogger->info("start gossip step");
-
         if(step > 0) {
             gossip_workload_db.finish_gossip_step();
             gossip_waterslope_db.finish_gossip_step();
         }
+        MPI_Barrier(world);
+        if(i_am_loading_proc) steplogger->info("start update gossip1");
 
         gossip_waterslope_db.gossip_update(get_slope<double>(water.begin(), water.end()));
+        MPI_Barrier(world);
+        if(i_am_loading_proc) steplogger->info("start propagate gossip1");
         gossip_waterslope_db.gossip_propagate();
-
+        MPI_Barrier(world);
+        if(i_am_loading_proc) steplogger->info("start update gossip2");
         gossip_workload_db.gossip_update(my_comp_time);
+        MPI_Barrier(world);
+        if(i_am_loading_proc) steplogger->info("start propagate gossip2");
         gossip_workload_db.gossip_propagate();
         MPI_Barrier(world);
         if(i_am_loading_proc) steplogger->info("start degradation computation");
