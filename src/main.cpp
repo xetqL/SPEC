@@ -221,7 +221,9 @@ int main(int argc, char **argv) {
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
             if(total_slope > 0) {
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
-                //std::cout << ncall << std::endl;
+                ncall = std::min(1, ncall);
+                std::cout << ncall << std::endl;
+
             } else
                 ncall = MAX_STEP;
             window_my_time.data_container.clear();
