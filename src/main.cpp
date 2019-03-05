@@ -292,7 +292,9 @@ int main(int argc, char **argv) {
         /// COMPUTATION START
 
         PAR_START_TIMING(comp_time, world);
+        if(i_am_loading_proc) steplogger->info("start communication");
         auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
+        if(i_am_loading_proc) steplogger->info("start computation");
         auto remote_water_ptr = create_water_ptr_vector(remote_cells);
         decltype(my_water_ptr) new_water_ptr;
         if(lb_condition || step == 0) bbox = get_bounding_box(my_cells, remote_cells);
