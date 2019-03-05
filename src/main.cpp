@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     int recv, sent;
     if(!rank) steplogger->info("End of map generation");
 
-    int loading_proc = proc_dist(gen);
+    int loading_proc = 1;//proc_dist(gen);
     bool i_am_loading_proc = rank == loading_proc;
     /* Initial load balancing */
     std::vector<double> lb_costs;
@@ -132,11 +132,9 @@ int main(int argc, char **argv) {
     lb_costs.push_back(current_lb_cost);
     auto my_domain = stripe_lb.get_domain(rank);
 
+    generate_lattice_rocks(4, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.001f, my_domain.first, my_domain.second);
 
-
-    generate_lattice_rocks(3, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.005f, my_domain.first, my_domain.second);
-
-    stripe_lb.load_balance(&my_cells, i_am_loading_proc ? 0.5 : 0.0);
+    //stripe_lb.load_balance(&my_cells, i_am_loading_proc ? 0 : 0.0);
 
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
