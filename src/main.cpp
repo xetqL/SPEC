@@ -323,6 +323,7 @@ int main(int argc, char **argv) {
         window_my_time.add(my_comp_time);    // monitor evolution of my load in time with a window
         MPI_Barrier(world);
         if(i_am_loading_proc) steplogger->info("start gossip step");
+
         if(step > 0) {
             gossip_workload_db.finish_gossip_step();
             gossip_waterslope_db.finish_gossip_step();

@@ -106,8 +106,14 @@ public:
         auto &uniform = *ptr_uniform;
         gen.seed(my_rank+rd());
         int destination1, destination2;
-        destination1 = uniform(gen);
-        destination2 = uniform(gen);
+
+        do{
+            destination1 = uniform(gen);
+        } while(destination1 == my_rank);
+
+        do{
+            destination2 = uniform(gen);
+        } while(destination2 == destination1 && destination2 == my_rank);
 
         std::vector<DatabaseEntry> snd_entry;
         std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entry),
