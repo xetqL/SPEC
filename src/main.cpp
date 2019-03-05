@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 
 
 
-    generate_lattice_rocks(4, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.001f, my_domain.first, my_domain.second);
+    generate_lattice_rocks(4, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.0f, my_domain.first, my_domain.second);
 
     //stripe_lb.load_balance(&my_cells, i_am_loading_proc ? 0 : 0.0);
 
