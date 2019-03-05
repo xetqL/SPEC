@@ -67,7 +67,9 @@ public:
     {
         MPI_Comm_rank(world, &my_rank);
         MPI_Comm_size(world, &worldsize);
-        pe_load_data.resize(database_size);
+        for(int i = 0; i < database_size; ++i){
+            pe_load_data.emplace_back(i, std::numeric_limits<int>::max(), 0.0);
+        }
         register_datatype();
         srand(my_rank + time(NULL));
         snd_entries.resize(number_of_message);
@@ -77,8 +79,13 @@ public:
     void free_datatypes() {
         MPI_Type_free(&entry_datatype);
     }
+
     PELoad get(Index idx) const {
         return pe_load_data[idx].load;
+    }
+
+    void set(Index idx, Age age, PELoad my_load) {
+        pe_load_data[idx] = {idx, age, my_load};
     }
 
     inline void reset(){
@@ -90,15 +97,15 @@ public:
      * Update information ages and my load
      */
     void gossip_update(Index idx, PELoad my_load) {
-        gossip_update(idx, 0, my_load, [](auto old, auto mine){return old.idx == mine.idx ? mine : DatabaseEntry(old.idx, old.idx >= 0 ? old.age+1 : old.age, old.load);});
+        gossip_update(idx, 0, my_load, [&](auto old, auto mine){ return old.idx == mine.idx ? mine : is_initialized(old) ? DatabaseEntry(old.idx, old.age+1, old.load) : old;});
     }
 
     template<class Strategy>
     void gossip_update(Index idx, Age age, PELoad my_load, Strategy strategy) {
         assert(idx < database_size);
         assert(idx >= 0);
+        DatabaseEntry mine = {idx, age, my_load};
         for (DatabaseEntry &entry : pe_load_data) {
-            DatabaseEntry mine = {idx, age, my_load};
             entry = strategy(entry, mine);
         }
     }
@@ -238,6 +245,10 @@ private:
      */
     void merge_into_database(std::vector<DatabaseEntry> &&data) {
         merge_into_database(std::move(data), [](auto old, auto recv){ return old.age < recv.age ? old : recv;});
+    }
+
+    inline bool is_initialized(const DatabaseEntry& entry) {
+        return entry.age < std::numeric_limits<int>::max();
     }
 
 };

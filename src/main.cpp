@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
 
     auto avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
 
-    gossip_average_cpu_db.gossip_update(0, 1, avg_lb_cost, [](auto old, auto mine){return old.load < mine.load ? mine : old;});
+    gossip_average_cpu_db.set(0, 1, avg_lb_cost);
     gossip_average_cpu_db.gossip_propagate();
     gossip_average_cpu_db.finish_gossip_step();
 #endif
