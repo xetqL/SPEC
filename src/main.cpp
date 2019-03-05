@@ -318,6 +318,7 @@ int main(int argc, char **argv) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading)
                 std::cout << "I WILL BE UNLOADED" << std::endl;
+            std::cout << gossip_waterslope_db.get(rank) << std::endl;
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, overloading ? 0.02 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
