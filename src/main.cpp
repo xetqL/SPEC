@@ -323,7 +323,7 @@ int main(int argc, char **argv) {
                 std::cout << "I WILL BE UNLOADED" << std::endl;
             std::cout << gossip_waterslope_db.get(rank) << std::endl;
             PAR_START_TIMING(current_lb_cost, world);
-            stripe_lb.load_balance(&my_cells, overloading ? 0.02 : 0.0);
+            stripe_lb.load_balance(&my_cells, overloading ? 0.03 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
             lb_costs.push_back(current_lb_cost);
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
