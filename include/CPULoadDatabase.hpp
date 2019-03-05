@@ -52,14 +52,11 @@ class CPULoadDatabase {
 
     MPI_Comm world;
     MPI_Datatype entry_datatype;
-    MPI_Request current_send_reqs[2], current_recv_req;
+    MPI_Request current_send_reqs[2];
     MPI_Status current_recv_status;
     int current_recv_flag;
     int my_rank, worldsize;
     std::vector<DatabaseEntry> pe_load_data;
-    std::random_device rd;
-    std::mt19937 gen;
-    std::unique_ptr<std::uniform_int_distribution<>> ptr_uniform;
 public:
 
     CPULoadDatabase(int send_tag, MPI_Comm _world) : SEND_TAG(send_tag), world(_world) {
@@ -67,11 +64,12 @@ public:
         MPI_Comm_size(world, &worldsize);
         pe_load_data.resize(worldsize);
         pe_load_data[my_rank].idx = my_rank;
-        gen.seed(rd());
-        ptr_uniform = std::make_unique<std::uniform_int_distribution<>>(0, worldsize - 1);
         register_datatype();
+        srand(my_rank + time(NULL));
     }
-
+    void free_datatypes(){
+        MPI_Type_free(&entry_datatype);
+    }
     PELoad get(Index idx){
         return pe_load_data[idx].load;
     }
@@ -99,30 +97,28 @@ public:
      * Randomly select a processing elements and "contaminate" him with my information
      */
     void gossip_propagate() {
-        auto &uniform = *ptr_uniform;
-        gen.seed(my_rank+rd());
         int destination1, destination2;
 
-        do{
-            destination1 = uniform(gen);
+        do {
+            destination1 = rand() % worldsize;
         } while(destination1 == my_rank);
 
-        do{
-            destination2 = uniform(gen);
-        } while(destination2 == destination1 && destination2 == my_rank);
+        do {
+            destination2 = rand() % worldsize;
+        } while(destination2 == destination1 || destination2 == my_rank);
 
-        std::vector<DatabaseEntry> snd_entry;
-        std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entry),
+        std::vector<DatabaseEntry> snd_entryA, snd_entryB;
+        std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entryA),
                 [](auto e) { return e.idx >= 0; });
-
-        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination1, SEND_TAG, world,
+        MPI_Isend(&snd_entryA.front(), snd_entryA.size(), entry_datatype, destination1, SEND_TAG, world,
                   &current_send_reqs[0]);
-
-        MPI_Isend(&snd_entry.front(), snd_entry.size(), entry_datatype, destination2, SEND_TAG, world,
+        std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entryB),
+                     [](auto e) { return e.idx >= 0; });
+        MPI_Isend(&snd_entryB.front(), snd_entryB.size(), entry_datatype, destination2, SEND_TAG, world,
                   &current_send_reqs[1]);
     }
 
-    void finish_gossip_step(  ) {
+    void finish_gossip_step() {
 
         MPI_Iprobe(MPI_ANY_SOURCE, SEND_TAG, world, &current_recv_flag, &current_recv_status);
         if (current_recv_flag) {
@@ -133,6 +129,7 @@ public:
                      SEND_TAG, world, MPI_STATUS_IGNORE);
             merge_into_database(std::move(rcv_entries));
         }
+
         MPI_Iprobe(MPI_ANY_SOURCE, SEND_TAG, world, &current_recv_flag, &current_recv_status);
         if (current_recv_flag) {
             int cnt;
@@ -144,6 +141,8 @@ public:
         }
 
         MPI_Waitall(2, current_send_reqs, MPI_STATUSES_IGNORE);
+        //if(!my_rank) std::cout << "Gossip done." << std::endl;
+
     }
 
     PELoad skewness() {

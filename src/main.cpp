@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
 
 
     int recv, sent;
-    if(!rank) steplogger->info("End of map generation");
+    // if(!rank) steplogger->info("End of map generation");
 
     int loading_proc = 1;//proc_dist(gen);
     bool i_am_loading_proc = rank == loading_proc;
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
     std::vector<std::array<int,2>> all_types(total_cell);
     std::vector<std::array<int,2>> my_types(my_cell_count);
     for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
-    gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
+    gather_elements_on(my_types, i_am_loading_proc, &all_types, datatype.minimal_datatype, world);
     if(i_am_loading_proc) {
         std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
         std::vector<int> types, water_gid;
@@ -182,8 +182,9 @@ int main(int argc, char **argv) {
 
     water.push_back(my_water_ptr.size()); window_water.add(my_water_ptr.size());
 
-    CPULoadDatabase gossip_workload_db(9998, world);
-    CPULoadDatabase gossip_waterslope_db(9999, world);
+    CPULoadDatabase gossip_workload_db(9999, world);
+    CPULoadDatabase gossip_waterslope_db(8888, world);
+
     //double time_since_start;
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
@@ -207,7 +208,7 @@ int main(int argc, char **argv) {
             pcall = step;
         }
 #elif LB_METHOD == 2 // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf
-        //if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
+        if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step;// || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
         if(lb_condition) {
             auto total_slope = get_slope<double>(window_step_time.data_container);
@@ -220,7 +221,7 @@ int main(int argc, char **argv) {
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
             if(total_slope > 0) {
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
-                std::cout << ncall << std::endl;
+                //std::cout << ncall << std::endl;
             } else
                 ncall = MAX_STEP;
             window_my_time.data_container.clear();
@@ -292,19 +293,14 @@ int main(int argc, char **argv) {
         /// COMPUTATION START
 
         PAR_START_TIMING(comp_time, world);
-        if(i_am_loading_proc) steplogger->info("start communication");
+
         auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
-        if(i_am_loading_proc) steplogger->info("create water ptr");
         auto remote_water_ptr = create_water_ptr_vector(remote_cells);
         decltype(my_water_ptr) new_water_ptr;
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("get_bounding_box");
+
         if(lb_condition || step == 0) bbox = get_bounding_box(my_cells, remote_cells);
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("populate_data_pointers");
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("dummy_erosion_computation3");
+
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
 
@@ -313,43 +309,30 @@ int main(int argc, char **argv) {
         PAR_STOP_TIMING(step_time, world);
 
         CHECKPOINT_TIMING(loop_time, time_since_start);
-        if(i_am_loading_proc) steplogger->info("time until step ") << step << " = " << time_since_start;
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("start pushing latest data");
+        if(i_am_loading_proc) steplogger->info("time for step ") << step << " = " << step_time << " total: " << time_since_start;
+
         water.push_back(my_water_ptr.size());
         window_water.add(my_water_ptr.size());
 
-        window_step_time.add(comp_time); // monitor evolution of load in time with a window
-        window_my_time.add(my_comp_time);    // monitor evolution of my load in time with a window
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("start gossip step");
+        window_step_time.add(comp_time);  // monitor evolution of load in time with a window
+        window_my_time.add(my_comp_time); // monitor evolution of my load in time with a window
+
         if(step > 0) {
-            gossip_workload_db.finish_gossip_step();
             gossip_waterslope_db.finish_gossip_step();
+            gossip_workload_db.finish_gossip_step();
         }
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("start update gossip1");
 
         gossip_waterslope_db.gossip_update(get_slope<double>(water.begin(), water.end()));
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("start propagate gossip1");
         gossip_waterslope_db.gossip_propagate();
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("start update gossip2");
+
         gossip_workload_db.gossip_update(my_comp_time);
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("start propagate gossip2");
         gossip_workload_db.gossip_propagate();
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("start degradation computation");
 
         if(window_step_time.size() > 2)
             degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end() - 1)); // median among [cts-2, cts]
 
-        if(pcall + 1 < step)
-            degradation_since_last_lb += *(window_step_time.end() - 1) - *(window_step_time.end() - 2) ;
-        MPI_Barrier(world);
-        if(i_am_loading_proc) steplogger->info("End of data processing");
+        if(pcall + 1 < step) degradation_since_last_lb += *(window_step_time.end() - 1) - *(window_step_time.end() - 2);
+
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -399,7 +382,7 @@ int main(int argc, char **argv) {
     }
     PAR_STOP_TIMING(loop_time, world);
     if(i_am_loading_proc) perflogger->info("\"total_time\":") << loop_time;
-    if(i_am_loading_proc) steplogger->info("\"total_time\":") << loop_time;
+    // if(i_am_loading_proc) steplogger->info("\"total_time\":") << loop_time;
     datatype.free_datatypes();
     MPI_Finalize();
     return 0;

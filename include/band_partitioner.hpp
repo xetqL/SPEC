@@ -57,11 +57,11 @@ class StripeLoadBalancer {
     };
 public:
     StripeLoadBalancer(int master, int &X, int &Y, const MPI_Datatype &datatype, const MPI_Comm& world) : master(master), sizeX(X), sizeY(Y), datatype(datatype), world(world) {
-        srand(myrank);
         MPI_Comm_rank(world, &myrank);
         MPI_Comm_size(world, &worldsize);
         partition.resize(2*worldsize);
         register_datatype();
+        //srand(myrank);
     }
 
     void setLoggerPtr(const zz::log::LoggerPtr &loggerPtr) {
@@ -115,6 +115,7 @@ public:
                                                     int* nb_elements_sent,
                                                     double cell_size = 1.0) {
 
+
         std::vector<Cell> remote_data;
         if(worldsize == 1) return remote_data;
         std::vector<std::vector<Cell>> data_to_migrate(2);
@@ -132,43 +133,42 @@ public:
             }
         }
 
-        MPI_Request reqs[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+        MPI_Request reqs[2]  = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+        MPI_Request reqs2[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+
+        std::vector<Cell> bufferA(sizeX), bufferB(sizeX);
 
         if(neighbors.first > -1) {
-            MPI_Isend(&(data_to_migrate[0].front()), data_to_migrate[0].size(), datatype, neighbors.first, 547, world,
-                      &reqs[0]);
+            MPI_Irecv(&bufferA.front(), sizeX, datatype, neighbors.first, 547, world, &reqs[0]);
+        }
+
+        if(neighbors.second > -1) {
+            MPI_Irecv(&bufferB.front(), sizeX, datatype, neighbors.second,547, world, &reqs[1]);
+        }
+
+        if(neighbors.first > -1) {
+            MPI_Send(&(data_to_migrate[0].front()), data_to_migrate[0].size(), datatype, neighbors.first, 547, world);
+        }
+
+        if(neighbors.second > -1) {
+            MPI_Send(&(data_to_migrate[1].front()), data_to_migrate[1].size(), datatype, neighbors.second, 547, world);
+        }
+
+        //auto p = 1; //rand() % 2;
+
+        MPI_Waitall(2, reqs, MPI_STATUSES_IGNORE);
+
+        if(neighbors.first > -1) {
+            remote_data.insert(remote_data.end(), std::make_move_iterator(bufferA.begin()),
+                               std::make_move_iterator(bufferA.end()));
         }
         if(neighbors.second > -1) {
-            MPI_Isend(&(data_to_migrate[1].front()), data_to_migrate[1].size(), datatype, neighbors.second, 547, world,
-                      &reqs[1]);
-        }
-        std::vector<Cell> buffer(sizeX);
-
-        auto p = rand() % 2;
-        if(p) {
-            if(neighbors.first > -1) {
-                MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.first, 547, world, MPI_STATUS_IGNORE);
-                remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
-            }
-
-            if(neighbors.second > -1) {
-                MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.second,547, world, MPI_STATUS_IGNORE);
-                remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
-            }
-        } else {
-            if(neighbors.second > -1) {
-                MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.second,547, world, MPI_STATUS_IGNORE);
-                remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
-            }
-
-            if(neighbors.first > -1) {
-                MPI_Recv(&buffer.front(), sizeX, datatype, neighbors.first, 547, world, MPI_STATUS_IGNORE);
-                remote_data.insert(remote_data.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
-            }
+            remote_data.insert(remote_data.end(), std::make_move_iterator(bufferB.begin()),
+                               std::make_move_iterator(bufferB.end()));
         }
 
-        //MPI_Waitall(2, reqs, MPI_STATUSES_IGNORE);
         MPI_Barrier(world);
+
         return remote_data;
 
     }
