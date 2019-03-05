@@ -261,6 +261,7 @@ int main(int argc, char **argv) {
             perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
             if(total_slope > 0) {
+                if(!rank) steplogger->info("DEBUG")<< (2.0 * avg_lb_cost) << "/" << total_slope;
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
                 ncall = std::min(1, ncall);
             } else ncall = MAX_STEP;
