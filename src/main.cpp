@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
             if(total_slope > 0) {
                 if(!rank) steplogger->info("DEBUG")<< (2.0 * avg_lb_cost) << "/" << total_slope;
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
-                ncall = std::min(1, ncall);
+                ncall = std::max(1, ncall);
             } else ncall = MAX_STEP;
 
             gossip_workload_db.reset();
