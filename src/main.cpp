@@ -308,7 +308,7 @@ int main(int argc, char **argv) {
 #elif LB_METHOD==5
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost; && gossip_waterslope_db.has_converged(10));
-        std::cout << lb_condition << std::endl;
+        std::cout << ((degradation_since_last_lb*(step-pcall))/2.0 << std::endl;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             PAR_START_TIMING(current_lb_cost, world);
