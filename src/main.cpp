@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
 #elif LB_METHOD==5
         avg_lb_cost = gossip_average_cpu_db.get(0);
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost) && gossip_waterslope_db.has_converged(10));
+        lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost);
         //std::cout << ((degradation_since_last_lb*(step-pcall))/2.0)<< " " << (avg_lb_cost) << std::endl;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
