@@ -143,12 +143,12 @@ public:
     }
 
     PELoad skewness() {
-        std::vector<PELoad> &&loads = to_load_vector();
+        std::vector<PELoad> &&loads = get_all_meaningfull_data();
         return stats::skewness<PELoad>(loads.begin(), loads.end());
     }
 
     PELoad mean() {
-        std::vector<PELoad> &&loads = to_load_vector();
+        std::vector<PELoad> &&loads = get_all_meaningfull_data();
         return stats::mean<PELoad>(loads.begin(), loads.end());
     }
 
@@ -170,7 +170,7 @@ public:
 
     PELoad variance() {
         const auto mu = mean();
-        auto data = get_all_data();
+        auto data = get_all_meaningfull_data();
         auto N = data.size();
         PELoad var = 0.0;
 
@@ -189,12 +189,12 @@ public:
     }
 
     std::vector<PELoad> get_all_data() {
-        std::vector<PELoad> loads;
+        std::vector<PELoad> loads(worldsize, -1);
         for (auto it = pe_load_data.begin(); it != pe_load_data.end(); it++) {
             auto i = std::distance(pe_load_data.begin(), it);
             auto& entry = *it;
             if(entry.idx >= 0)
-                loads.push_back((*it).load);
+                loads[entry.idx] = ((*it).load);
         }
         return loads;
     }
@@ -218,7 +218,7 @@ private:
         MPI_Type_commit(&entry_datatype);
     }
 
-    std::vector<PELoad> to_load_vector() {
+    std::vector<PELoad> get_all_meaningfull_data() {
         std::vector<PELoad> loads;
         for (auto it = pe_load_data.begin(); it != pe_load_data.end(); it++) {
             auto i = std::distance(pe_load_data.begin(), it);
