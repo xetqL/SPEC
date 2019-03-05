@@ -129,8 +129,14 @@ int main(int argc, char **argv) {
     PAR_START_TIMING(current_lb_cost, world);
     stripe_lb.load_balance(&my_cells, 0.0);
     PAR_STOP_TIMING(current_lb_cost, world);
+
+    MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
     lb_costs.push_back(current_lb_cost);
+    auto avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
+
     auto my_domain = stripe_lb.get_domain(rank);
+
+
 
     generate_lattice_rocks(4, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.001f, my_domain.first, my_domain.second);
 
@@ -164,11 +170,7 @@ int main(int argc, char **argv) {
     CPULoadDatabase gossip_workload_db(worldsize,    2, 9999, world),
             gossip_waterslope_db(worldsize,  2, 8888, world);
 
-#ifdef LB_METHOD
-    auto avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-    avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-    MPI_Allreduce(&avg_lb_cost, &avg_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
-#endif
+
 
     int ncall = 10, pcall=0;
 #if LB_METHOD==1
@@ -221,10 +223,11 @@ int main(int argc, char **argv) {
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
+            MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
             lb_costs.push_back(current_lb_cost);
             if(!rank) perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-            MPI_Allreduce(&avg_lb_cost, &avg_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
+
             if(total_slope > 0) {
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
                 ncall = std::min(1, ncall);
@@ -258,10 +261,10 @@ int main(int argc, char **argv) {
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
+            MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
             lb_costs.push_back(current_lb_cost);
             perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-            MPI_Allreduce(&avg_lb_cost, &avg_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
             if(total_slope > 0) {
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
                 ncall = std::min(1, ncall);
@@ -326,9 +329,11 @@ int main(int argc, char **argv) {
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, overloading ? 0.03 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
+            MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
             lb_costs.push_back(current_lb_cost);
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-            MPI_Allreduce(&avg_lb_cost, &avg_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
+            perflogger->info("LB_time: ") << current_lb_cost;
+
             gossip_workload_db.reset();
             //gossip_waterslope_db.reset();
             water.clear();
