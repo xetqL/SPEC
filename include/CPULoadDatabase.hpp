@@ -12,14 +12,13 @@
 #include <mpi.h>
 #include <algorithm>
 #include <ostream>
+#include <queue>
 
 class CPULoadDatabase {
     typedef int Index;
     typedef int Age;
     typedef double PELoad;
     typedef double PESlope;
-
-    const int SEND_TAG;
 
     struct DatabaseEntry {
         Index idx;
@@ -52,21 +51,31 @@ class CPULoadDatabase {
 
     MPI_Comm world;
     MPI_Datatype entry_datatype;
-    MPI_Request current_send_reqs[2];
+    std::vector<MPI_Request> current_send_reqs;
     MPI_Status current_recv_status;
+
+    const int database_size, number_of_message = 2, SEND_TAG;
     int current_recv_flag;
     int my_rank, worldsize;
     std::vector<DatabaseEntry> pe_load_data;
+    std::vector<std::vector<DatabaseEntry>> snd_entries;
 public:
 
-    CPULoadDatabase(int send_tag, MPI_Comm _world) : SEND_TAG(send_tag), world(_world) {
+    CPULoadDatabase(int database_size, int number_of_message, int send_tag, MPI_Comm _world) :
+        database_size(database_size),
+        number_of_message(number_of_message),
+        SEND_TAG(send_tag),
+        world(_world)
+    {
         MPI_Comm_rank(world, &my_rank);
         MPI_Comm_size(world, &worldsize);
-        pe_load_data.resize(worldsize);
-        pe_load_data[my_rank].idx = my_rank;
+        pe_load_data.resize(database_size);
         register_datatype();
         srand(my_rank + time(NULL));
+        snd_entries.resize(number_of_message);
+        current_send_reqs.resize(number_of_message);
     }
+
     void free_datatypes(){
         MPI_Type_free(&entry_datatype);
     }
@@ -75,21 +84,24 @@ public:
     }
 
     inline void reset(){
-        pe_load_data.clear(); pe_load_data.resize(worldsize);
+        pe_load_data.clear();
+        pe_load_data.resize(database_size);
     }
 
     /**
      * Update information ages and my load
      */
-    void gossip_update(PELoad my_load) {
+    void gossip_update(Index idx, PELoad my_load) {
+        gossip_update(idx, my_load, [](auto old, auto mine){return old.idx == mine.idx ? mine : DatabaseEntry(old.idx, old.idx >= 0 ? old.age+1 : old.age, old.load);});
+    }
+
+    template<class Strategy>
+    void gossip_update(Index idx, PELoad my_load, Strategy strategy) {
+        assert(idx < database_size);
+        assert(idx >= 0);
         for (DatabaseEntry &entry : pe_load_data) {
-            if (entry.idx == my_rank) {
-                entry.age = 0;
-                entry.load = my_load;
-                //entry.slope = my_slope;
-            } else if (entry.idx >= 0) {
-                entry.age++;
-            }
+            DatabaseEntry mine = {idx, 0, my_load};
+            entry = strategy(entry, mine);
         }
     }
 
@@ -97,52 +109,38 @@ public:
      * Randomly select a processing elements and "contaminate" him with my information
      */
     void gossip_propagate() {
-        int destination1, destination2;
+        gossip_propagate([](auto e) { return e.idx >= 0; });
+    }
 
-        do {
-            destination1 = rand() % worldsize;
-        } while(destination1 == my_rank);
-
-        do {
-            destination2 = rand() % worldsize;
-        } while(destination2 == destination1 || destination2 == my_rank);
-
-        std::vector<DatabaseEntry> snd_entryA, snd_entryB;
-        std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entryA),
-                [](auto e) { return e.idx >= 0; });
-        MPI_Isend(&snd_entryA.front(), snd_entryA.size(), entry_datatype, destination1, SEND_TAG, world,
-                  &current_send_reqs[0]);
-        std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entryB),
-                     [](auto e) { return e.idx >= 0; });
-        MPI_Isend(&snd_entryB.front(), snd_entryB.size(), entry_datatype, destination2, SEND_TAG, world,
-                  &current_send_reqs[1]);
+    template<class Predicate>
+    void gossip_propagate(Predicate pred) {
+        std::vector<int> destinations;
+        int destination;
+        for(int i = 0; i < number_of_message; ++i) {
+            do {
+                destination = rand() % worldsize;
+            } while(std::find(destinations.begin(), destinations.end(), destination) != destinations.end() || destination == my_rank);
+            destinations.push_back(destination);
+            snd_entries[i].clear();
+            std::copy_if(pe_load_data.begin(), pe_load_data.end(), std::back_inserter(snd_entries[i]), pred);
+            MPI_Isend(snd_entries[i].data(), snd_entries[i].size(), entry_datatype, destination, SEND_TAG, world,
+                      &current_send_reqs[i]);
+        }
     }
 
     void finish_gossip_step() {
-
-        MPI_Iprobe(MPI_ANY_SOURCE, SEND_TAG, world, &current_recv_flag, &current_recv_status);
-        if (current_recv_flag) {
-            int cnt;
-            MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
-            std::vector<DatabaseEntry> rcv_entries(cnt);
-            MPI_Recv(&rcv_entries.front(), cnt, entry_datatype, current_recv_status.MPI_SOURCE,
-                     SEND_TAG, world, MPI_STATUS_IGNORE);
-            merge_into_database(std::move(rcv_entries));
+        for(int i = 0; i < number_of_message; ++i){
+            MPI_Iprobe(MPI_ANY_SOURCE, SEND_TAG, world, &current_recv_flag, &current_recv_status);
+            if (current_recv_flag) {
+                int cnt;
+                MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
+                std::vector<DatabaseEntry> rcv_entries(cnt);
+                MPI_Recv(&rcv_entries.front(), cnt, entry_datatype, current_recv_status.MPI_SOURCE,
+                         SEND_TAG, world, MPI_STATUS_IGNORE);
+                merge_into_database(std::move(rcv_entries));
+            }
         }
-
-        MPI_Iprobe(MPI_ANY_SOURCE, SEND_TAG, world, &current_recv_flag, &current_recv_status);
-        if (current_recv_flag) {
-            int cnt;
-            MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
-            std::vector<DatabaseEntry> rcv_entries(cnt);
-            MPI_Recv(&rcv_entries.front(), cnt, entry_datatype, current_recv_status.MPI_SOURCE,
-                     SEND_TAG, world, MPI_STATUS_IGNORE);
-            merge_into_database(std::move(rcv_entries));
-        }
-
-        MPI_Waitall(2, current_send_reqs, MPI_STATUSES_IGNORE);
-        //if(!my_rank) std::cout << "Gossip done." << std::endl;
-
+        MPI_Waitall(number_of_message, current_send_reqs.data(), MPI_STATUSES_IGNORE);
     }
 
     PELoad skewness() {
@@ -157,9 +155,7 @@ public:
 
     int max_age() {
         int age = -1;
-        for(const auto& entry : pe_load_data){
-            age = std::max(age, entry.age);
-        }
+        for(const auto& entry : pe_load_data) age = std::max(age, entry.age);
         return age == -1 ? std::numeric_limits<int>::max() : age;
     }
 
@@ -196,8 +192,7 @@ public:
         for (auto it = pe_load_data.begin(); it != pe_load_data.end(); it++) {
             auto i = std::distance(pe_load_data.begin(), it);
             auto& entry = *it;
-            if(entry.idx >= 0)
-                loads[entry.idx] = ((*it).load);
+            if(entry.idx >= 0) loads[entry.idx] = ((*it).load);
         }
         return loads;
     }
@@ -232,17 +227,21 @@ private:
         return loads;
     }
 
+    template<class Strategy>
+    void merge_into_database(std::vector<DatabaseEntry> &&data, Strategy&& strategy) {
+        for (auto new_entry : data) {
+            auto &entry = pe_load_data[new_entry.idx];
+            entry = strategy(entry, new_entry);
+        }
+    }
+
     /**
      * Merge by keeping the most recent data
      */
     void merge_into_database(std::vector<DatabaseEntry> &&data) {
-        for (auto new_entry : data) {
-            auto &entry = pe_load_data[new_entry.idx];
-            if (entry.age > new_entry.age) {
-                entry = new_entry;
-            }
-        }
+        merge_into_database(std::move(data), [](auto old, auto recv){ return old.age < recv.age ? old : recv;});
     }
+
 };
 
 

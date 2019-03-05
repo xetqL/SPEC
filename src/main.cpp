@@ -161,9 +161,17 @@ int main(int argc, char **argv) {
     //populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
+    CPULoadDatabase gossip_workload_db(worldsize,    2, 9999, world),
+            gossip_waterslope_db(worldsize,  2, 8888, world);
 
 #ifdef LB_METHOD
+    CPULoadDatabase gossip_average_cpu_db(1, 1, 7777, world);
+
     auto avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
+
+    gossip_average_cpu_db.gossip_update(0, avg_lb_cost, [](auto old, auto mine){return old.load < mine.load ? mine : old;});
+    gossip_average_cpu_db.gossip_propagate();
+    gossip_average_cpu_db.finish_gossip_step();
 #endif
 
     int ncall = 10, pcall=0;
@@ -184,14 +192,11 @@ int main(int argc, char **argv) {
 
     water.push_back(my_water_ptr.size()); window_water.add(my_water_ptr.size());
 
-    CPULoadDatabase gossip_workload_db(9999, world);
-    CPULoadDatabase gossip_waterslope_db(8888, world);
-
     //double time_since_start;
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         if(i_am_loading_proc) steplogger->info() << "Beginning step "<< step;
-
+        avg_lb_cost = gossip_average_cpu_db.get(0);
         PAR_START_TIMING(step_time, world);
         bool lb_condition = false;
 #ifdef LB_METHOD
@@ -316,7 +321,7 @@ int main(int argc, char **argv) {
             PAR_STOP_TIMING(current_lb_cost, world);
             lb_costs.push_back(current_lb_cost);
             gossip_workload_db.reset();
-            gossip_waterslope_db.reset();
+            //gossip_waterslope_db.reset();
             water.clear();
             degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
@@ -363,13 +368,17 @@ int main(int argc, char **argv) {
         if(step > 0) {
             gossip_waterslope_db.finish_gossip_step();
             gossip_workload_db.finish_gossip_step();
+            gossip_average_cpu_db.finish_gossip_step();
         }
 
-        gossip_waterslope_db.gossip_update(get_slope<double>(water.begin(), water.end()));
+        gossip_waterslope_db.gossip_update(rank, get_slope<double>(water.begin(), water.end()));
         gossip_waterslope_db.gossip_propagate();
 
-        gossip_workload_db.gossip_update(my_comp_time);
+        gossip_workload_db.gossip_update(rank, my_comp_time);
         gossip_workload_db.gossip_propagate();
+
+        gossip_average_cpu_db.gossip_update(0, avg_lb_cost, [](auto old, auto mine){return old.load < mine.load ? mine : old;});
+        gossip_average_cpu_db.gossip_propagate();
 
         if(window_step_time.size() > 2)
             degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end() - 1)); // median among [cts-2, cts]
