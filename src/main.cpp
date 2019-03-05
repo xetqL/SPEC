@@ -264,10 +264,10 @@ int main(int argc, char **argv) {
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
 
             if(total_slope > 0) {
-                ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope)); ncall = std::min(1, ncall);
+                ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
+                ncall = std::min(1, ncall);
             } else ncall = MAX_STEP;
 
-            MPI_Bcast(&ncall, 1, MPI_INT, i_am_loading_proc, world);
             gossip_workload_db.reset();
             water.clear();
             degradation_since_last_lb = 0.0;
@@ -277,6 +277,8 @@ int main(int argc, char **argv) {
             pcall = step;
 
             if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
+
+            MPI_Bcast(&ncall, 1, MPI_INT, 0, world);
         }
 #elif LB_METHOD == 4 // Unloading Model
         constexpr double alpha = 1.0/4.0;

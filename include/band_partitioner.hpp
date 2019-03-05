@@ -96,8 +96,8 @@ public:
 
         // Gather
         auto p_rows_load = gather_elements_on(my_rows_load, 0, row_load_datatype,   world);
-        auto rows_load = merge(p_rows_load);
-        auto alphas    = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
+        auto rows_load   = merge(p_rows_load);
+        auto alphas      = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
 
         // Partition
         execute_partitioning_algorithm(rows_load, alphas);
@@ -187,73 +187,67 @@ private:
      * @param alphas
      */
     void execute_partitioning_algorithm(const std::vector<double>& rows_load, const std::vector<double>& alphas){
+        auto N = (int) std::count_if(alphas.cbegin(), alphas.cend(), [](auto a){return a > 0.0;});
+        MPI_Bcast(&N, 1, MPI_INT, 0, world);
+        if(N <= worldsize / 2){
+            if(!myrank) {
+                auto total_workload = std::accumulate(rows_load.cbegin(), rows_load.cend(), 0.0);
+                auto average_workload = total_workload / (double) worldsize;
 
-        if(!myrank) {
-            auto total_workload = std::accumulate(rows_load.cbegin(), rows_load.cend(), 0.0);
-            auto average_workload = total_workload / (double) worldsize;
+                // Count the number of processes that load up.
 
-            // Count the number of processes that load up.
-            auto N = (int) std::count_if(alphas.cbegin(), alphas.cend(), [](auto a){return a > 0.0;});
+                double alpha = *std::max_element(alphas.begin(), alphas.end());
 
-            MPI_Bcast(&N, 1, MPI_INT, 0, world);
+                // Compute all the workload for each PEs
+                std::vector<double> desired_workloads, effective_workloads(worldsize);
 
-            if(N > worldsize / 2) return;
+                std::transform(alphas.cbegin(), alphas.cend(), std::back_inserter(desired_workloads),
+                        [&](auto a) { return a > 0.0 ? average_workload * (1.0 - alpha) : (1.0 + (alpha*N)/(worldsize-N)) * average_workload; } );
 
-            double alpha = *std::max_element(alphas.begin(), alphas.end());
+                //std::for_each(desired_workloads.begin(), desired_workloads.end(), [](auto v){std::cout << v << std::endl;});
 
-            // Compute all the workload for each PEs
-            std::vector<double> desired_workloads, effective_workloads(worldsize);
+                // Greedy algorithm to compute the stripe for each process
+                unsigned int begin_stripe = 0, end_stripe = 0;
+                for(PEIndex p = 0; p < worldsize; ++p)
+                {
+                    double current_process_workload = 0.0;
+                    bool overloading = alphas[p] > 0.0;
+                    double remaining_workload = std::accumulate(rows_load.cbegin()+begin_stripe, rows_load.cend(), 0.0);
+                    double desired_workload = overloading ?
+                            (1.0 - alpha) * remaining_workload / (worldsize - p) : (1.0 + (alpha*N)/(worldsize-N)) * remaining_workload / (worldsize - p);
+                    double diffA = 0.0, diffB = 0.0;
+                    // While we have not ~reached~ the desired workload or we reached the end of the mesh
+                    while( (((current_process_workload + rows_load[end_stripe] == desired_workload) ||
+                            ((current_process_workload + rows_load[end_stripe] < desired_workload || (diffB > diffA)) && !(p % 2)) ||
+                            ((current_process_workload < desired_workload || (diffA < diffB)) && (p % 2))
+                            ) || p == worldsize-1) && end_stripe < sizeY) {
+                        //std::cout << current_process_workload << "+?"<< rows_load[end_stripe] << " < " << desired_workload << std::endl;
+                        current_process_workload += rows_load[end_stripe];
+                        end_stripe++;
 
-            std::transform(alphas.cbegin(), alphas.cend(), std::back_inserter(desired_workloads),
-                           [&](auto a) { return a > 0.0 ? average_workload * (1.0 - alpha) : (1.0 + (alpha*N)/(worldsize-N)) * average_workload; } );
+                        diffA = std::abs(desired_workload - (current_process_workload + rows_load[end_stripe]));
+                        diffB = std::abs(desired_workload - (current_process_workload));
+                    }
 
-            //std::for_each(desired_workloads.begin(), desired_workloads.end(), [](auto v){std::cout << v << std::endl;});
+                    assert(begin_stripe < sizeY);
+                    assert(begin_stripe != end_stripe);
+                    assert(current_process_workload > 0.0);
 
-            // Greedy algorithm to compute the stripe for each process
-            unsigned int begin_stripe = 0, end_stripe = 0;
-            for(PEIndex p = 0; p < worldsize; ++p)
-            {
-                double current_process_workload = 0.0;
-                bool overloading = alphas[p] > 0.0;
-                double remaining_workload = std::accumulate(rows_load.cbegin()+begin_stripe, rows_load.cend(), 0.0);
-                double desired_workload = overloading ?
-                        (1.0 - alpha) * remaining_workload / (worldsize - p) : (1.0 + (alpha*N)/(worldsize-N)) * remaining_workload / (worldsize - p);
-                double diffA = 0.0, diffB = 0.0;
-                // While we have not ~reached~ the desired workload or we reached the end of the mesh
-                while( (((current_process_workload + rows_load[end_stripe] == desired_workload) ||
-                        ((current_process_workload + rows_load[end_stripe] < desired_workload || (diffB > diffA)) && !(p % 2)) ||
-                        ((current_process_workload < desired_workload || (diffA < diffB)) && (p % 2))
-                        ) || p == worldsize-1) && end_stripe < sizeY) {
-                    //std::cout << current_process_workload << "+?"<< rows_load[end_stripe] << " < " << desired_workload << std::endl;
-                    current_process_workload += rows_load[end_stripe];
-                    end_stripe++;
-
-                    diffA = std::abs(desired_workload - (current_process_workload + rows_load[end_stripe]));
-                    diffB = std::abs(desired_workload - (current_process_workload));
+                    effective_workloads[p] = current_process_workload;
+                    partition[2 * p]   = begin_stripe;
+                    partition[2 * p + 1] = end_stripe - 1;
+                    std::cout << p << "  " << begin_stripe << " -> " << (end_stripe-1) << " = " << current_process_workload << std::endl;
+                    begin_stripe = end_stripe; // begin at next stripe
+                    end_stripe = begin_stripe;
                 }
-
-                assert(begin_stripe < sizeY);
-                assert(begin_stripe != end_stripe);
-                assert(current_process_workload > 0.0);
-
-                effective_workloads[p] = current_process_workload;
-                partition[2 * p]   = begin_stripe;
-                partition[2 * p + 1] = end_stripe - 1;
-                std::cout << p << "  " << begin_stripe << " -> " << (end_stripe-1) << " = " << current_process_workload << std::endl;
-                begin_stripe = end_stripe; // begin at next stripe
-                end_stripe = begin_stripe;
+                double desired   = std::accumulate(desired_workloads.begin(),   desired_workloads.end(), 0.0);
+                double effective = std::accumulate(effective_workloads.begin(), effective_workloads.end(), 0.0);
+                assert(almost_equal(desired, effective, 2));
             }
-            double desired   = std::accumulate(desired_workloads.begin(),   desired_workloads.end(), 0.0);
-            double effective = std::accumulate(effective_workloads.begin(), effective_workloads.end(), 0.0);
-            assert(almost_equal(desired, effective, 2));
-        } else {
-            int N;
-            MPI_Bcast(&N, 1, MPI_INT, 0, world);
-            if(N > worldsize / 2) return;
-        }
 
-        // Broadcast the new partition
-        MPI_Bcast(&partition.front(), 2*worldsize, MPI_INT, 0, world);
+            // Broadcast the new partition
+            MPI_Bcast(&partition.front(), 2*worldsize, MPI_INT, 0, world);
+        }
     }
 
     void execute_mapping_algorithm(std::vector<Cell>* _mesh){
