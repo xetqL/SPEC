@@ -166,6 +166,8 @@ int main(int argc, char **argv) {
 
 #ifdef LB_METHOD
     auto avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
+    avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
+    MPI_Allreduce(&avg_lb_cost, &avg_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
 #endif
 
     int ncall = 10, pcall=0;
