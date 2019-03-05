@@ -222,14 +222,19 @@ int main(int argc, char **argv) {
             if(total_slope > 0) {
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
                 ncall = std::min(1, ncall);
-                std::cout << ncall << std::endl;
-
             } else
                 ncall = MAX_STEP;
+            MPI_Bcast(&ncall, 1, MPI_INT, !rank, world);
+
+            gossip_workload_db.reset();
+            water.clear();
+            degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
-            if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
+            window_water.data_container.clear();
             pcall = step;
+
+            if(!rank) steplogger->info("next LB call at: ") << (step+ncall);
         }
 #elif LB_METHOD == 3 // Unloading Model
         constexpr double alpha = 1.0/4.0;
@@ -272,7 +277,7 @@ int main(int argc, char **argv) {
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             PAR_START_TIMING(current_lb_cost, world);
-            stripe_lb.load_balance(&my_cells, overloading ? 0.05 : 0.0);
+            stripe_lb.load_balance(&my_cells, overloading ? 0.01 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
             lb_costs.push_back(current_lb_cost);
             gossip_workload_db.reset();
