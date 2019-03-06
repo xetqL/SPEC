@@ -314,7 +314,7 @@ private:
         std::vector<double> rowsload(sizeY, 0.0);
         for(const auto& cell : data) {
             long row = cell_to_position(sizeX, sizeY, cell.gid).second;
-            rowsload[row] += cell.type;
+            rowsload[row] += cell.weight;
             /*if(cell.average_load > 0 && cell.type)
                 rowsload[row] += cell.average_load;
             else

@@ -277,13 +277,17 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
     return my_cells;
 }
 
-std::vector<unsigned long> create_water_ptr_vector(const std::vector<Cell>& cells){
+std::pair<int, std::vector<unsigned long>> create_water_ptr_vector(const std::vector<Cell>& cells){
     std::vector<unsigned long> res;
+    int n = 0;
     const auto size = cells.size();
     for(unsigned long i = 0; i < size; ++i) {
-    	if(cells[i].type) res.push_back(i);
+    	if(cells[i].type) {
+    	    res.push_back(i);
+    	    n += (int) cells[i].weight;
+    	}
     }
-    return res;
+    return std::make_pair(n, res);
 }
 
 const std::vector<const Cell*> create_water_ptr(const std::vector<Cell>& cells){
@@ -444,19 +448,18 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 1;
+                my_cells[idx_neighbor].weight = 4;
                 new_water_cells.push_back(idx_neighbor);
             }
         }
 
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
         if(i < my_water_cell_count)
-            consume_cpu_flops(flops);
+            consume_cpu_flops(cell->weight * flops);
         /* stop */
     }
 
     return std::make_pair(my_cells, new_water_cells);
 }
-
 
 #endif //SPEC_MAIN_HPP

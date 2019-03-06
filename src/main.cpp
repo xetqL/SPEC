@@ -160,17 +160,16 @@ int main(int argc, char **argv) {
 
     if(i_am_loading_proc) perflogger->info("LB_time: ") << current_lb_cost;
 
-    auto my_water_ptr = create_water_ptr_vector(my_cells);
+    std::vector<unsigned long> my_water_ptr;
+    int n;
     std::vector<size_t> data_pointers, remote_data_pointers;
-    my_water_ptr = create_water_ptr_vector(my_cells);
+    std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
     std::tuple<int, int, int, int> bbox; // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
     //populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
     /* lets make it fun now...*/
     int minx, maxx, miny, maxy;
     CPULoadDatabase gossip_workload_db(worldsize,    2, 9999, world),
             gossip_waterslope_db(worldsize,  2, 8888, world);
-
-
 
     int ncall = 10, pcall=0;
 #if LB_METHOD==1
@@ -198,7 +197,6 @@ int main(int argc, char **argv) {
         PAR_START_TIMING(step_time, world);
         bool lb_condition = false;
 #ifdef LB_METHOD
-
 #if LB_METHOD==1   // load balance every 100 iterations
         lb_condition = (pcall + ncall) == step;
         if(lb_condition) {
@@ -339,7 +337,7 @@ int main(int argc, char **argv) {
         }
 #endif
         if(lb_condition) {
-            my_water_ptr = create_water_ptr_vector(my_cells);
+            std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
             water.push_back(my_water_ptr.size());
             window_water.add(my_water_ptr.size());
         }
@@ -350,7 +348,9 @@ int main(int argc, char **argv) {
         PAR_START_TIMING(comp_time, world);
 
         auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
-        auto remote_water_ptr = create_water_ptr_vector(remote_cells);
+        decltype(my_water_ptr) remote_water_ptr;
+
+        std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);
         decltype(my_water_ptr) new_water_ptr;
 
         if(lb_condition || step == 0) bbox = get_bounding_box(my_cells, remote_cells);
@@ -358,7 +358,7 @@ int main(int argc, char **argv) {
 
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
-
+        n += 4*new_water_ptr.size();
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
@@ -367,8 +367,8 @@ int main(int argc, char **argv) {
         if(i_am_loading_proc) steplogger->info("time for step ") << step << " = " << step_time<< " time for comp. = "<< comp_time << " total: " << time_since_start;
         if(i_am_loading_proc) perflogger->info("load of overloading: ") << my_water_ptr.size();
 
-        water.push_back(my_water_ptr.size());
-        window_water.add(my_water_ptr.size());
+         water.push_back(n);
+        window_water.add(n);
 
         window_step_time.add(comp_time);  // monitor evolution of load in time with a window
         window_my_time.add(my_comp_time); // monitor evolution of my load in time with a window
@@ -378,10 +378,8 @@ int main(int argc, char **argv) {
                 gossip_waterslope_db.finish_gossip_step();
                 gossip_workload_db.finish_gossip_step();
             }
-
             gossip_waterslope_db.gossip_update(rank, get_slope<double>(water.begin(), water.end()));
             gossip_waterslope_db.gossip_propagate();
-
             gossip_workload_db.gossip_update(rank, my_comp_time);
             gossip_workload_db.gossip_propagate();
         }
