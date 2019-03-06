@@ -19,7 +19,10 @@
 #include "../include/cell.hpp"
 #include "../include/utils.hpp"
 
-//#include "../include/zoltan_fn.hpp"
+#ifdef WITH_ZOLTAN
+#include "../include/zoltan_fn.hpp"
+#endif
+
 #include "../include/window.hpp"
 #include "../include/io.hpp"
 #include "../include/CPULoadDatabase.hpp"

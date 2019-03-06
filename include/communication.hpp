@@ -6,7 +6,6 @@
 #define SPEC_COMM_HPP
 
 #include <mpi.h>
-#include <zoltan.h>
 struct CommunicationDatatype {
     MPI_Datatype element_datatype;
     MPI_Datatype minimal_datatype;
@@ -80,7 +79,8 @@ inline void gather_elements_on(const std::vector<A> &local_el,
         }
     }*/
 }
-
+#ifdef WITH_ZOLTAN
+#include <zoltan.h>
 template<class A>
 const std::vector<A> zoltan_exchange_data(Zoltan_Struct *load_balancer,
                                           const std::vector<A> &data,
@@ -297,6 +297,7 @@ inline bool point_belongs_to_me(Zoltan_Struct* load_balancer, std::array<double,
     Zoltan_LB_Point_Assign(load_balancer, &pos.front(), &PE);
     return PE == my_rank;
 }
+#endif
 
 template<class A>
 std::tuple<long, std::vector<int>, std::vector<int>> compute_invert_list(const std::vector<std::vector<A>>& data_to_migrate, const int worldsize, MPI_Comm& world) {
