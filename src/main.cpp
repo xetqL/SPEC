@@ -212,7 +212,6 @@ int main(int argc, char **argv) {
         }
 #elif LB_METHOD == 2
         // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf +
-        // http://delivery.acm.org/10.1145/3210000/3205304/p318-Zhai.pdf?ip=129.194.71.44&id=3205304&acc=ACTIVE%20SERVICE&key=FC66C24E42F07228%2E1F81E5291441A4B9%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&__acm__=1550853138_12520c5a2a037b11fcd410073a54671e
         if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step;// || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
         if(lb_condition) {
@@ -228,7 +227,7 @@ int main(int argc, char **argv) {
 
             if(total_slope > 0) {
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
-                ncall = std::min(1, ncall);
+                ncall = std::max(1, ncall);
             } else
                 ncall = MAX_STEP;
 
@@ -246,12 +245,11 @@ int main(int argc, char **argv) {
         }
 #elif LB_METHOD == 3
         // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf +
-        // http://delivery.acm.org/10.1145/3210000/3205304/p318-Zhai.pdf?ip=129.194.71.44&id=3205304&acc=ACTIVE%20SERVICE&key=FC66C24E42F07228%2E1F81E5291441A4B9%2E4D4702B0C3E38B35%2E4D4702B0C3E38B35&__acm__=1550853138_12520c5a2a037b11fcd410073a54671e
+        // http://ics2018.ict.ac.cn/essay/ics18-final62.pdf
         auto total_slope = get_slope<double>(window_step_time.data_container);
         if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost << " total slope: " << total_slope;
         lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall)) / 2.0 > avg_lb_cost;
         if(lb_condition) {
-
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, 0.0);
@@ -260,6 +258,7 @@ int main(int argc, char **argv) {
             lb_costs.push_back(current_lb_cost);
             perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
+
             if(total_slope > 0) {
                 if(!rank) steplogger->info("DEBUG")<< (2.0 * avg_lb_cost) << "/" << total_slope;
                 ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
@@ -313,15 +312,12 @@ int main(int argc, char **argv) {
             pcall = step;
             ncall = 10;
         }
-#elif LB_METHOD==5
+#elif LB_METHOD == 5
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost);
-        //std::cout << ((degradation_since_last_lb*(step-pcall))/2.0)<< " " << (avg_lb_cost) << std::endl;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
-            if(overloading)
-                std::cout << "I WILL BE UNLOADED" << std::endl;
-            std::cout << gossip_waterslope_db.get(rank) << std::endl;
+            if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, overloading ? 0.03 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
@@ -331,7 +327,6 @@ int main(int argc, char **argv) {
             perflogger->info("LB_time: ") << current_lb_cost;
 
             gossip_workload_db.reset();
-            //gossip_waterslope_db.reset();
             water.clear();
             degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
@@ -342,7 +337,6 @@ int main(int argc, char **argv) {
         }
 #endif
         if(lb_condition) {
-
             my_water_ptr = create_water_ptr_vector(my_cells);
             water.push_back(my_water_ptr.size());
             window_water.add(my_water_ptr.size());
@@ -389,9 +383,12 @@ int main(int argc, char **argv) {
 
 
         if(window_step_time.size() > 2)
-            degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end() - 1)); // median among [cts-2, cts]
+            degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end())); // median among [cts-2, cts]
 
-        if(pcall + 1 < step) degradation_since_last_lb += *(window_step_time.end() - 1) - *(window_step_time.end() - 2);
+        if(pcall + 2 < step)
+            degradation_since_last_lb +=
+                    (stats::median<double>(window_step_time.end()-3, window_step_time.end())
+                            - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
 
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
