@@ -250,7 +250,7 @@ int main(int argc, char **argv) {
         // http://ics2018.ict.ac.cn/essay/ics18-final62.pdf
         auto total_slope = get_slope<double>(window_step_time.data_container);
         if(!rank) steplogger->info("degradation method 2: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " total slope: " << total_slope;
-        lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall)) / 2.0 > avg_lb_cost;
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
         if(lb_condition) {
             if(!rank) steplogger->info("call LB at: ") << step;
             PAR_START_TIMING(current_lb_cost, world);
