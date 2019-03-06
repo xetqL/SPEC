@@ -18,15 +18,15 @@ set(HighFive_DIR "~/libraries/HighFive")
 
 find_package (Threads)
 
-find_library(ZOLTAN
+if(DEFINED WITH_ZOLTAN)
+    find_library(ZOLTAN
         NAMES zoltan libzoltan
         HINTS /usr/local ~/local/lib ${CMAKE_PREFIX_PATH}/Zoltan/lib ~/Zoltan_v3.83/build/lib
         PATHS ${ZOLTAN_LIBRARY_PATH})
-
-find_path(ZOLTAN_INCLUDES
+    find_path(ZOLTAN_INCLUDES
         NAMES zoltan zoltan.h
         HINTS ${CMAKE_PREFIX_PATH}/Zoltan/include ~/Zoltan_v3.83/build/include)
-
+endif()
 #find_package(HighFive 2.0 REQUIRED)
 if(DEFINED PRODUCE_OUTPUTS)
     find_library(CNPY
@@ -46,14 +46,19 @@ endif()
 set(CMAKE_SOURCE_DIR src)
 set(CMAKE_INCLUDE_PATH include)
 
-add_executable(SPEC ${CMAKE_SOURCE_DIR}/main.cpp ${CMAKE_SOURCE_DIR}/zupply.cpp ${CMAKE_SOURCE_DIR}/zupply.hpp include/zoltan_fn.hpp include/cell.hpp include/communication.hpp include/utils.hpp include/io.hpp include/window.hpp include/CPULoadDatabase.hpp src/main.hpp include/time.hpp include/band_partitioner.hpp)
+add_executable(SPEC ${CMAKE_SOURCE_DIR}/main.cpp ${CMAKE_SOURCE_DIR}/zupply.cpp ${CMAKE_SOURCE_DIR}/zupply.hpp include/cell.hpp include/communication.hpp include/utils.hpp include/io.hpp include/window.hpp include/CPULoadDatabase.hpp src/main.hpp include/time.hpp include/band_partitioner.hpp)
 
 target_include_directories(SPEC INTERFACE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(SPEC PRIVATE ${ZOLTAN_INCLUDES})
+if(DEFINED WITH_ZOLTAN)
+    target_include_directories(SPEC PRIVATE ${ZOLTAN_INCLUDES})
+endif()
 #target_include_directories(SPEC PUBLIC $<TARGET_PROPERTY:HighFive,INTERFACE_INCLUDE_DIRECTORIES>)
 
 #target_link_libraries(SPEC $<TARGET_PROPERTY:HighFive,INTERFACE_LINK_LIBRARIES>)
-target_link_libraries(SPEC ${ZOLTAN})
+if(DEFINED WITH_ZOLTAN)
+    target_link_libraries(SPEC ${ZOLTAN})
+endif()
+
 target_link_libraries(SPEC z)
 target_link_libraries(SPEC ${CMAKE_THREAD_LIBS_INIT})
 

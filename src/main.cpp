@@ -19,7 +19,7 @@
 #include "../include/cell.hpp"
 #include "../include/utils.hpp"
 
-#include "../include/zoltan_fn.hpp"
+//#include "../include/zoltan_fn.hpp"
 #include "../include/window.hpp"
 #include "../include/io.hpp"
 #include "../include/CPULoadDatabase.hpp"
@@ -139,7 +139,6 @@ int main(int argc, char **argv) {
     generate_lattice_rocks(4, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.0f, my_domain.first, my_domain.second);
 
     //stripe_lb.load_balance(&my_cells, i_am_loading_proc ? 0 : 0.0);
-
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
     std::vector<std::array<int,2>> my_types(my_cell_count);
@@ -182,7 +181,7 @@ int main(int argc, char **argv) {
 
     std::vector<double> timings(worldsize), all_degradations, water;
 
-    SlidingWindow<double> window_step_time(15); // sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
@@ -387,7 +386,7 @@ int main(int argc, char **argv) {
 
         if(pcall + 2 < step)
             degradation_since_last_lb +=
-                    (stats::median<double>(window_step_time.end()-3, window_step_time.end())
+                    (stats::median<double>(window_step_time.begin(), window_step_time.begin()+2)
                             - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
 
         /// COMPUTATION STOP
