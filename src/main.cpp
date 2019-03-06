@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
 #elif LB_METHOD == 4 // Unloading Model
         constexpr double alpha = 1.0/4.0;
         if(!rank) steplogger->info("degradation: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost;
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
         if( lb_condition ) {
             double my_slope           = (std::floor(get_slope<double>(window_my_time.data_container)*1000.0)) / 1000.0;
             double step_slope         = (std::floor(get_slope<double>(window_step_time.data_container)*1000.0)) / 1000.0;
@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
         }
 #elif LB_METHOD == 5
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || ((degradation_since_last_lb*(step-pcall))/2.0 > avg_lb_cost);
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost);
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
