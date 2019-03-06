@@ -313,13 +313,14 @@ int main(int argc, char **argv) {
             ncall = 10;
         }
 #elif LB_METHOD == 5
+
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost*1.1;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
             PAR_START_TIMING(current_lb_cost, world);
-            stripe_lb.load_balance(&my_cells, overloading ? 0.03 : 0.0);
+            stripe_lb.load_balance(&my_cells, overloading ? 0.05 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
             MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
             lb_costs.push_back(current_lb_cost);
