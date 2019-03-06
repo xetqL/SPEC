@@ -362,6 +362,7 @@ int main(int argc, char **argv) {
 
         CHECKPOINT_TIMING(loop_time, time_since_start);
         if(i_am_loading_proc) steplogger->info("time for step ") << step << " = " << step_time<< " time for comp. = "<< comp_time << " total: " << time_since_start;
+        if(i_am_loading_proc) perflogger->info("load of overloading: ") << my_water_ptr.size();
 
         water.push_back(my_water_ptr.size());
         window_water.add(my_water_ptr.size());
