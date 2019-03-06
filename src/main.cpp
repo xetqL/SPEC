@@ -320,7 +320,7 @@ int main(int argc, char **argv) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
             PAR_START_TIMING(current_lb_cost, world);
-            stripe_lb.load_balance(&my_cells, overloading ? 0.05 : 0.0);
+            stripe_lb.load_balance(&my_cells, overloading ? 0.1 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
             MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
             lb_costs.push_back(current_lb_cost);
