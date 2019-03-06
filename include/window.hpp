@@ -32,6 +32,14 @@ struct SlidingWindow {
         return data_container.end();
     }
 
+    typename std::deque<T>::iterator newest(){
+        return data_container.end()-1;
+    }
+
+    typename std::deque<T>::iterator latest(){
+        return data_container.begin();
+    }
+
     unsigned long size(){
         return data_container.size();
     }

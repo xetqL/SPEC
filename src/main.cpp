@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
     int recv, sent;
     // if(!rank) steplogger->info("End of map generation");
 
-    int loading_proc = 1;//proc_dist(gen);
+    int loading_proc = 1 % worldsize;//proc_dist(gen);
     bool i_am_loading_proc = rank == loading_proc;
     /* Initial load balancing */
     std::vector<double> lb_costs;
@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
         // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf +
         // http://ics2018.ict.ac.cn/essay/ics18-final62.pdf
         auto total_slope = get_slope<double>(window_step_time.data_container);
-        if(!rank) steplogger->info("degradation method 2: ") << (degradation_since_last_lb*(step-pcall))/2.0 << " avg_lb_cost " << avg_lb_cost << " total slope: " << total_slope;
+        if(!rank) steplogger->info("degradation method 2: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " total slope: " << total_slope;
         lb_condition = pcall + ncall <= step || (degradation_since_last_lb*(step-pcall)) / 2.0 > avg_lb_cost;
         if(lb_condition) {
             if(!rank) steplogger->info("call LB at: ") << step;
@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
             ncall = 10;
         }
 #elif LB_METHOD == 5
-        if(i_am_loading_proc) steplogger->info("degradation method 4: ") << ((degradation_since_last_lb*(step-pcall))/2.0) << " avg_lb_cost " << avg_lb_cost;
+        if(i_am_loading_proc) steplogger->info("degradation method 4: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
@@ -361,7 +361,7 @@ int main(int argc, char **argv) {
         PAR_STOP_TIMING(step_time, world);
 
         CHECKPOINT_TIMING(loop_time, time_since_start);
-        if(i_am_loading_proc) steplogger->info("time for step ") << step << " = " << step_time << " total: " << time_since_start;
+        if(i_am_loading_proc) steplogger->info("time for step ") << step << " = " << step_time<< " time for comp. = "<< comp_time << " total: " << time_since_start;
 
         water.push_back(my_water_ptr.size());
         window_water.add(my_water_ptr.size());
@@ -369,26 +369,27 @@ int main(int argc, char **argv) {
         window_step_time.add(comp_time);  // monitor evolution of load in time with a window
         window_my_time.add(my_comp_time); // monitor evolution of my load in time with a window
 
-        if(step > 0) {
-            gossip_waterslope_db.finish_gossip_step();
-            gossip_workload_db.finish_gossip_step();
+        if(worldsize > 2) {
+            if(step > 0) {
+                gossip_waterslope_db.finish_gossip_step();
+                gossip_workload_db.finish_gossip_step();
+            }
+
+            gossip_waterslope_db.gossip_update(rank, get_slope<double>(water.begin(), water.end()));
+            gossip_waterslope_db.gossip_propagate();
+
+            gossip_workload_db.gossip_update(rank, my_comp_time);
+            gossip_workload_db.gossip_propagate();
         }
+        //if(window_step_time.size() > 2)
+        //    degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end())); // median among [cts-2, cts]
 
-        gossip_waterslope_db.gossip_update(rank, get_slope<double>(water.begin(), water.end()));
-        gossip_waterslope_db.gossip_propagate();
-
-        gossip_workload_db.gossip_update(rank, my_comp_time);
-        gossip_workload_db.gossip_propagate();
-
-
-        if(window_step_time.size() > 2)
-            degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end())); // median among [cts-2, cts]
-
-        if(pcall + 2 < step)
+        if(pcall + 1 < step) {
             degradation_since_last_lb +=
-                    (stats::median<double>(window_step_time.begin(), window_step_time.begin()+2)
+                    (stats::median<double>(window_step_time.end()-3, window_step_time.end())
                             - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
-
+            //std::for_each(window_step_time.newest(), window_step_time.window_step_time.newest()-2(), [](auto v){ std::cout << v << std::endl; });
+        }
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
