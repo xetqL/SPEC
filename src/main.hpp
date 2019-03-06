@@ -22,7 +22,6 @@ float flops = 2000; // https://arxiv.org/pdf/1703.08015.pdf
 std::uniform_real_distribution<float> udist(0, 1);
 
 /// SIMULATION
-
 void consume_cpu_flops(float flop_to_consume){
     volatile float res = 0.0f;
     volatile float f2c = flop_to_consume;
@@ -31,9 +30,7 @@ void consume_cpu_flops(float flop_to_consume){
     }
 }
 
-
 /// GENERATION
-
 std::vector<Cell> generate_lattice_CA_diffusion(int msx, int msy,
                                                 int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols){
     int cell_per_process = cell_in_my_cols*cell_in_my_rows;
