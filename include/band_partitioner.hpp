@@ -240,9 +240,7 @@ private:
                     begin_stripe = end_stripe; // begin at next stripe
                     end_stripe = begin_stripe;
                 }
-                double desired   = std::accumulate(desired_workloads.begin(),   desired_workloads.end(), 0.0);
-                double effective = std::accumulate(effective_workloads.begin(), effective_workloads.end(), 0.0);
-                assert(almost_equal(desired, effective, 2));
+                assert(partition[2 * (worldsize-1) + 1] == sizeY-1);
             }
 
             // Broadcast the new partition
@@ -315,11 +313,6 @@ private:
         for(const auto& cell : data) {
             long row = cell_to_position(sizeX, sizeY, cell.gid).second;
             rowsload[row] += cell.weight;
-            /*if(cell.average_load > 0 && cell.type)
-                rowsload[row] += cell.average_load;
-            else
-                rowsload[row] += cell.weight;
-                */
         }
         return rowsload;
     }

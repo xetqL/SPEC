@@ -248,9 +248,12 @@ int main(int argc, char **argv) {
         // http://ics2018.ict.ac.cn/essay/ics18-final62.pdf
         auto total_slope = get_slope<double>(window_step_time.data_container);
         if(!rank) steplogger->info("degradation method 2: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " total slope: " << total_slope;
+
         lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
         if(lb_condition) {
+
             if(!rank) steplogger->info("call LB at: ") << step;
+            std::cout << lb_condition << std::endl;
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
@@ -313,7 +316,6 @@ int main(int argc, char **argv) {
             ncall = 10;
         }
 #elif LB_METHOD == 5
-
         if(i_am_loading_proc) steplogger->info("degradation method 4: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost*1.1;
         if(lb_condition) {
