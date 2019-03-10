@@ -321,6 +321,7 @@ int main(int argc, char **argv) {
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
+
             PAR_START_TIMING(current_lb_cost, world);
             stripe_lb.load_balance(&my_cells, overloading ? 0.18 : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
@@ -365,14 +366,15 @@ int main(int argc, char **argv) {
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
-
         CHECKPOINT_TIMING(loop_time, time_since_start);
+
         if(i_am_loading_proc) steplogger->info("time for step ") << step << " = " << step_time<< " time for comp. = "<< comp_time << " total: " << time_since_start;
         if(i_am_loading_proc) perflogger->info("load of overloading: ") << my_water_ptr.size();
 
-         water.push_back(n);
+        water.push_back(n);
         window_water.add(n);
 
+        MPI_Allreduce(&comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world);
         window_step_time.add(comp_time);  // monitor evolution of load in time with a window
         window_my_time.add(my_comp_time); // monitor evolution of my load in time with a window
 
