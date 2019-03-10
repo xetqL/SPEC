@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     std::uniform_int_distribution<>  proc_dist(0, worldsize-1);
 
     if(xprocs * yprocs != worldsize) {
-        steplogger->fatal() << "Grid size does not match world size " << (xprocs*yprocs) << " " << worldsize;
+        steplogger->fatal() << "Grid size does not match world size! " << (xprocs*yprocs) << " " << worldsize;
         MPI_Abort(world, MPI_ERR_UNKNOWN);
         return EXIT_FAILURE;
     }
