@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     int MAX_STEP;
     int seed;
     int N;
-    bool load_lattice;
+    bool load_lattice, verbose;
     std::string lattice_fname, outputfname;
     ///-----------------------------------------------------------------------------------------------------------------
     /// Parser
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     steplogger = zz::log::get_logger("steps", true);
 
     zz::cfg::ArgParser parser;
-    parser.add_opt_version('v', "version", "0.1");
+    parser.add_opt_version('V', "version", "0.1");
     parser.add_opt_help('h', "help"); // use -h or --help
 
     parser.add_opt_value('x', "xprocs", xprocs, 0, "set the number of PE in x dimension", "INT").require(); // require this option
@@ -77,8 +77,10 @@ int main(int argc, char **argv) {
     parser.add_opt_value('N', "overloading", N, 0, "set the number of overloading CPU", "INT").require(); // require this option
     parser.add_opt_value('t', "steps", MAX_STEP, 0, "set the number of PE in y dimension", "INT").require(); // require this option
     parser.add_opt_value('s', "seed" , seed, 0, "set the random seed", "INT");
-    parser.add_opt_flag('l', "loadLattice", "load an external lattice instead of random generation", &load_lattice);
     parser.add_opt_value('f', "filename" , lattice_fname, std::string(""), "load this lattice file", "STRING");
+    parser.add_opt_flag('v', "verbose", "verbosity", &verbose);
+    parser.add_opt_flag('l', "loadLattice", "load an external lattice instead of random generation", &load_lattice);
+
 #ifdef PRODUCE_OUTPUTS
     parser.add_opt_value('o', "output", outputfname, std::string("gids-out.npz"),
                          "produce the resulting lattice in NPZ archive", "STRING");
@@ -94,6 +96,10 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+    if(verbose) {
+        steplogger->info() << N;
+    }
+
     /// finish parsing cli arguments
     ///-----------------------------------------------------------------------------------------------------------------
 
@@ -101,7 +107,7 @@ int main(int argc, char **argv) {
     std::uniform_int_distribution<>  proc_dist(0, worldsize-1);
 
     if(xprocs * yprocs != worldsize) {
-        steplogger->fatal() << "Grid size does not match world size";
+        steplogger->fatal() << "Grid size does not match world size " << (xprocs*yprocs) << " " << worldsize;
         MPI_Abort(world, MPI_ERR_UNKNOWN);
         return EXIT_FAILURE;
     }
