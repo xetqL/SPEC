@@ -98,6 +98,16 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+    if(i_am_foreman) {
+        steplogger->info("xprocs: \t") << xprocs;
+        steplogger->info("yprocs: ") << yprocs;
+        steplogger->info("cellPerCPU: ") << cell_per_process;
+        steplogger->info("N: ") << N;
+        steplogger->info("steps: ") << MAX_STEP;
+        steplogger->info("seed: ") << seed;
+        steplogger->info("alpha: ") << alpha;
+    }
+
     if(verbose) {
         steplogger->info() << N;
     }
