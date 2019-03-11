@@ -53,12 +53,13 @@ int main(int argc, char **argv) {
     std::string str_rank = "[RANK " + std::to_string(rank) + "] ";
     // Generate data
     //int xprocs = std::atoi(argv[2]), yprocs = std::atoi(argv[1]);
-    int xprocs, yprocs;
-    int cell_per_process;
-    int MAX_STEP;
+    unsigned int xprocs, yprocs;
+    unsigned int cell_per_process;
+    unsigned int MAX_STEP;
     int seed;
-    int N;
+    unsigned int N;
     bool load_lattice, verbose;
+    float alpha;
     std::string lattice_fname, outputfname;
     ///-----------------------------------------------------------------------------------------------------------------
     /// Parser
@@ -71,15 +72,16 @@ int main(int argc, char **argv) {
     parser.add_opt_version('V', "version", "0.1");
     parser.add_opt_help('h', "help"); // use -h or --help
 
-    parser.add_opt_value('x', "xprocs", xprocs, 0, "set the number of PE in x dimension", "INT").require(); // require this option
-    parser.add_opt_value('y', "yprocs", yprocs, 0, "set the number of PE in y dimension", "INT").require(); // require this option
-    parser.add_opt_value('c', "cellPerCPU", cell_per_process, 0, "set the number of cell per CPU", "INT").require(); // require this option
-    parser.add_opt_value('N', "overloading", N, 0, "set the number of overloading CPU", "INT").require(); // require this option
-    parser.add_opt_value('t', "steps", MAX_STEP, 0, "set the number of PE in y dimension", "INT").require(); // require this option
+    parser.add_opt_value('x', "xprocs", xprocs, (unsigned int) 0, "set the number of PE in x dimension", "INT").require(); // require this option
+    parser.add_opt_value('y', "yprocs", yprocs, (unsigned int) 0, "set the number of PE in y dimension", "INT").require(); // require this option
+    parser.add_opt_value('c', "cellPerCPU", cell_per_process, (unsigned int) 0, "set the number of cell per CPU must be a perfect square", "INT").require(); // require this option
+    parser.add_opt_value('N', "overloading", N, (unsigned int) 0, "set the number of overloading CPU", "INT").require(); // require this option
+    parser.add_opt_value('t', "steps", MAX_STEP, (unsigned int) 0, "set the number of PE in y dimension", "INT").require(); // require this option
     parser.add_opt_value('s', "seed" , seed, 0, "set the random seed", "INT");
-    parser.add_opt_value('f', "filename" , lattice_fname, std::string(""), "load this lattice file", "STRING");
     parser.add_opt_flag('v', "verbose", "verbosity", &verbose);
     parser.add_opt_flag('l', "loadLattice", "load an external lattice instead of random generation", &load_lattice);
+    parser.add_opt_value('f', "filename" , lattice_fname, std::string(""), "load this lattice file", "STRING");
+    parser.add_opt_value('a', "alpha" , alpha, 0.1f, "set the alpha-value (unloading model)", "FLOAT");
 
 #ifdef PRODUCE_OUTPUTS
     parser.add_opt_value('o', "output", outputfname, std::string("gids-out.npz"),
@@ -192,7 +194,7 @@ int main(int argc, char **argv) {
 
     auto my_domain = stripe_lb.get_domain(rank);
 
-    generate_lattice_rocks(4, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.0f, my_domain.first, my_domain.second);
+    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.0f, my_domain.first, my_domain.second);
 
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
@@ -219,19 +221,17 @@ int main(int argc, char **argv) {
     std::tuple<int, int, int, int> bbox; // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
     //populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
     /* lets make it fun now...*/
-    int minx, maxx, miny, maxy;
     CPULoadDatabase gossip_workload_db(worldsize,  2, 9999, world),
                     gossip_waterslope_db(worldsize,  2, 8888, world);
 
-    int ncall = 10, pcall=0;
+    unsigned int ncall = 10, pcall=0;
 #if LB_METHOD==1
     ncall = 100;
 #elif LB_METHOD==2
     ncall = 25;
 #endif
 
-    float average_load_at_lb;
-    double skew = 0, relative_slope, my_time_slope, total_slope, degradation=0.0, degradation_since_last_lb = 0.0;
+    double skew = 0, degradation_since_last_lb = 0.0;
 
     std::vector<double> timings(worldsize), all_degradations, water;
 
@@ -276,10 +276,9 @@ int main(int argc, char **argv) {
             lb_costs.push_back(current_lb_cost);
             if(i_am_foreman) perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-
             if(total_slope > 0) {
-                ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
-                ncall = std::max(1, ncall);
+                ncall = (unsigned int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
+                ncall = std::max((unsigned int) 1, ncall);
             } else
                 ncall = MAX_STEP;
 
@@ -316,8 +315,8 @@ int main(int argc, char **argv) {
 
             if(total_slope > 0) {
                 if(i_am_foreman) steplogger->info("DEBUG")<< (2.0 * avg_lb_cost) << "/" << total_slope;
-                ncall = (int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
-                ncall = std::max(1, ncall);
+                ncall = (unsigned int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
+                ncall = std::max((unsigned int) 1, ncall);
             } else ncall = MAX_STEP;
 
             gossip_workload_db.reset();
@@ -375,7 +374,7 @@ int main(int argc, char **argv) {
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
 
             PAR_START_TIMING(current_lb_cost, world);
-            stripe_lb.load_balance(&my_cells, overloading ? 0.18 : 0.0);
+            stripe_lb.load_balance(&my_cells, overloading ? alpha : 0.0);
             PAR_STOP_TIMING(current_lb_cost, world);
             MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
             lb_costs.push_back(current_lb_cost);
@@ -414,7 +413,7 @@ int main(int argc, char **argv) {
 
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
-        n += 4*new_water_ptr.size();
+        n += 4 * new_water_ptr.size(); // adapt the number of cell to compute
 
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
@@ -422,12 +421,13 @@ int main(int argc, char **argv) {
         CHECKPOINT_TIMING(loop_time, time_since_start);
 
         if(i_am_foreman) steplogger->info("time for step ") << step << " = " << step_time<< " time for comp. = "<< comp_time << " total: " << time_since_start;
-        if(i_am_foreman) perflogger->info("load of overloading: ") << my_water_ptr.size();
+        if(i_am_loading_proc) perflogger->info(str_rank.c_str())<< " is loading with a current load of " << n;
 
         water.push_back(n);
         window_water.add(n);
 
-        MPI_Allreduce(&comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world);
+        MPI_Allreduce(&comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
+
         window_step_time.add(comp_time);  // monitor evolution of load in time with a window
         window_my_time.add(my_comp_time); // monitor evolution of my load in time with a window
 
@@ -442,9 +442,6 @@ int main(int argc, char **argv) {
             gossip_workload_db.gossip_propagate();
         }
 
-        // if(window_step_time.size() > 2)
-        //    degradation += (window_step_time.mean() - window_step_time.median(window_step_time.end() - 3, window_step_time.end())); // median among [cts-2, cts]
-
         if(pcall + 1 < step) {
             degradation_since_last_lb +=
                     (stats::median<double>(window_step_time.end()-3, window_step_time.end())
@@ -456,20 +453,18 @@ int main(int argc, char **argv) {
 
 #ifdef PRODUCE_OUTPUTS
         std::vector<double> exch_timings(worldsize);
-        //MPI_Allgather(&cpt, 1, MPI_DOUBLE, &exch_timings.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
-        MPI_Allgather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(),      1, MPI_DOUBLE, world); // TODO: propagate information differently
         std::vector<double> slopes(worldsize);
         std::vector<int> tloads(worldsize);
         auto my_water_slope = get_slope<double>(water.begin(), water.end());
-        MPI_Allgather(&my_water_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, world); // TODO: propagate information differently
-        int eload = compute_effective_workload(my_cells, 1);
-        MPI_Allgather(&eload, 1, MPI_INT, &tloads.front(), 1, MPI_INT, world); // TODO: propagate information differently
 
-        double max = *std::max_element(timings.cbegin(), timings.cend()),
-               average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
-               load_imbalance = (max / average - 1.0) * 100.0;
+        MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, FOREMAN, world);
+        MPI_Gather(&my_water_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, FOREMAN, world);
+        MPI_Gather(&n, 1, MPI_INT, &tloads.front(), 1, MPI_INT, FOREMAN,  world);
 
         if(i_am_foreman) {
+            double max = *std::max_element(timings.cbegin(), timings.cend()),
+                    average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
+                    load_imbalance = (max / average - 1.0) * 100.0;
             steplogger->info("stats: ") << "load imbalance: " << load_imbalance << " skewness: " << skew;
             steplogger->info("Water Size: ") << water;
             perflogger->info("\"step\":") << step
@@ -479,14 +474,13 @@ int main(int argc, char **argv) {
             << ",\"load_imbalance\": " << load_imbalance
             << ",\"skewness\": " << stats::skewness<double>(timings.begin(), timings.end())
             << ",\"loads\": ["   << timings
-            //<< ",\"exch\": ["    << exch_timings
             << "],\"tloads\":["  << tloads
             << "],\"slopes\":["  << gossip_waterslope_db.get_all_data()<<"]";
         }
 
         unsigned long cell_cnt = my_cells.size();
         std::vector<std::array<int,2>> my_types(cell_cnt);
-        for (int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
+        for (unsigned int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
         gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
         if(i_am_foreman) {
             std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
