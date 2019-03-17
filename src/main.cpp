@@ -478,16 +478,18 @@ int main(int argc, char **argv) {
             perflogger->info("\"step\":") << step << ",\"LI\": " << load_imbalance;
         }
 #ifdef PRODUCE_OUTPUTS
-        unsigned long cell_cnt = my_cells.size();
-        std::vector<std::array<int,2>> my_types(cell_cnt);
-        for (unsigned int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
-        gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
-        if(i_am_foreman) {
-            std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
-            std::vector<int> types, rock_gid;
-            std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
-            std::for_each(all_types.begin(), all_types.end(), [&rock_gid, &inner_type](auto e){if(e[1] == inner_type) rock_gid.push_back(e[0]);});
-            cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
+        if(step % 10 == 0){
+            unsigned long cell_cnt = my_cells.size();
+            std::vector<std::array<int,2>> my_types(cell_cnt);
+            for (unsigned int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
+            gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
+            if(i_am_foreman) {
+                std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
+                std::vector<int> types, rock_gid;
+                std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
+                std::for_each(all_types.begin(), all_types.end(), [&rock_gid, &inner_type](auto e){if(e[1] == inner_type) rock_gid.push_back(e[0]);});
+                cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
+            }
         }
 #endif
         if(i_am_foreman) steplogger->info() << "Stop step "<< step;
