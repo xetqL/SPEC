@@ -7,9 +7,6 @@ def cell_to_pos(msx, msy, pos):
 
 filename = sys.argv[1]
 
-nb_step  = sys.argv[2]
-displ    = len(nb_step)
-nb_step  = int(nb_step)
 
 
 
@@ -32,15 +29,17 @@ def processStep(img, i, data=data, shapex=shapex, shapey=shapey):
 
 
 '''
-
+displ = 4
 data = np.load("gids-"+filename)
 shapex, shapey = data['shape']
+print(data.files)
+
 type = data['type']
 print(shapex, shapey)
 print(type[0])
 def processStep(img, i, shapex=shapex, shapey=shapey, type=type):
     image = img
-    print('processing step %d' % i)
+    print('processing %s' % i)
     if(type == 1):
         grid = np.zeros((shapey, shapex))
     else:
@@ -52,9 +51,9 @@ def processStep(img, i, shapex=shapex, shapey=shapey, type=type):
 
         grid[y][x] = type
     ax.imshow(grid)
-    fig.savefig(("{0:0>%d}_water_dummy.pdf" % displ).format(i))
+    fig.savefig(("{0:0>%d}_water_dummy.pdf" % displ).format(i.split('_')[-1]))
     plt.close(fig)
 
 cpu_count = multiprocessing.cpu_count()
 pool = multiprocessing.Pool(cpu_count)
-pool.starmap(processStep, [(data['step-%d' % i], i, shapex, shapey, type[0]) for i in range(nb_step)])
+pool.starmap(processStep, [(data[i], i, shapex, shapey, type[0]) for i in [f for f in data.files if 'step' in f]])

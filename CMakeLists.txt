@@ -13,8 +13,8 @@ set(CMAKE_PREFIX_PATH  "~/libraries/")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -O3")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg -O3")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg -O3")
-
 set(HighFive_DIR "~/libraries/HighFive")
+set(BINARY_NAME "SPEC" CACHE STRING "SPEC")
 
 find_package (Threads)
 
@@ -47,6 +47,8 @@ set(CMAKE_SOURCE_DIR src)
 set(CMAKE_INCLUDE_PATH include)
 
 add_executable(SPEC ${CMAKE_SOURCE_DIR}/main.cpp ${CMAKE_SOURCE_DIR}/zupply.cpp ${CMAKE_SOURCE_DIR}/zupply.hpp include/cell.hpp include/communication.hpp include/utils.hpp include/io.hpp include/window.hpp include/CPULoadDatabase.hpp src/main.hpp include/time.hpp include/band_partitioner.hpp)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${BINARY_NAME})
 
 target_include_directories(SPEC INTERFACE ${CMAKE_SOURCE_DIR}/include)
 if(DEFINED WITH_ZOLTAN)
