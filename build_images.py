@@ -52,7 +52,7 @@ def processStep(img, i, shapex=shapex, shapey=shapey, type=type):
 
         grid[y][x] = type
     ax.imshow(grid)
-    fig.savefig(("{0:0>%d}_water_dummy.jpg" % displ).format(i))
+    fig.savefig(("{0:0>%d}_water_dummy.pdf" % displ).format(i))
     plt.close(fig)
 
 cpu_count = multiprocessing.cpu_count()

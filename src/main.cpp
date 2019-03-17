@@ -141,15 +141,19 @@ int main(int argc, char **argv) {
     int shape[2] = {msx,msy};
     std::vector<int> loading_procs;
     //const int loading_proc = proc_dist(gen) % worldsize; //one randomly chosen load proc
+    std::uniform_int_distribution<>  lproc_dist((int)N/2, worldsize-1-(int)N/2);
 
-    while(loading_procs.size() < N){
-        const int loading_proc = proc_dist(gen) % worldsize; //one randomly chosen load proc
-        if(std::find(loading_procs.begin(), loading_procs.end(), loading_proc-1) == loading_procs.end() &&
-           std::find(loading_procs.begin(), loading_procs.end(), loading_proc) == loading_procs.end() &&
-           std::find(loading_procs.begin(), loading_procs.end(), loading_proc+1) == loading_procs.end() ){
-            loading_procs.push_back(loading_proc);
-        } // does not exist
+    int median_lproc = lproc_dist(gen);
+    if(N >= 1) loading_procs.push_back(median_lproc);
+    for(int i = 1; i <= (int) N/2; ++i) {
+        if(loading_procs.size() < N) {
+            loading_procs.push_back(median_lproc-i);
+        } else break;
+        if(loading_procs.size() < N) {
+            loading_procs.push_back(median_lproc+i);
+        } else break;
     }
+    std::for_each(loading_procs.begin(), loading_procs.end(), [](auto v){std::cout << v << std::endl;});
 
     const bool i_am_loading_proc = std::find(loading_procs.begin(), loading_procs.end(), rank) != loading_procs.end();
 
@@ -181,11 +185,10 @@ int main(int argc, char **argv) {
     if(load_lattice) {
         my_cells = generate_lattice_percolation_diffusion(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, water_cols, lattice_fname);
     } else {
-        my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, inner_type, 1.0, 0.0);
+        my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx, cell_in_my_cols,cell_in_my_rows, WATER_TYPE, 1.0, 0.0);
     }
 #endif
     const int my_cell_count = my_cells.size();
-
 
     int recv, sent;
     // if(i_am_foreman) steplogger->info("End of map generation");
@@ -204,7 +207,7 @@ int main(int argc, char **argv) {
 
     auto my_domain = stripe_lb.get_domain(rank);
 
-    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.0f, my_domain.first, my_domain.second);
+    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.5f : 0.01f, my_domain.first, my_domain.second);
 
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
@@ -289,8 +292,7 @@ int main(int argc, char **argv) {
             if(total_slope > 0) {
                 ncall = (unsigned int) std::floor(std::sqrt((2.0 * avg_lb_cost) / total_slope));
                 ncall = std::max((unsigned int) 1, ncall);
-            } else
-                ncall = MAX_STEP;
+            } else ncall = MAX_STEP;
 
             gossip_workload_db.reset();
             water.clear();
@@ -425,24 +427,27 @@ int main(int argc, char **argv) {
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         n += 4 * new_water_ptr.size(); // adapt the number of cell to compute
 
+        water.push_back(n);
+        window_water.add(n);
+
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
+        PAR_STOP_TIMING(loop_time, world);
         CHECKPOINT_TIMING(loop_time, time_since_start);
 
         if(i_am_foreman) steplogger->info("time for step ") << step << " = " << step_time<< " time for comp. = "<< comp_time << " total: " << time_since_start;
-        if(i_am_loading_proc) perflogger->info(str_rank.c_str())<< " is loading with a current load of " << n;
-
-        water.push_back(n);
-        window_water.add(n);
+        //if(i_am_loading_proc) perflogger->info(str_rank.c_str())<< " is loading with a current load of " << n;
 
         MPI_Allreduce(&comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
 
         window_step_time.add(comp_time);  // monitor evolution of load in time with a window
         window_my_time.add(my_comp_time); // monitor evolution of my load in time with a window
 
-        if(worldsize > 2) {
-            if(step > 0) {
+        if(worldsize > 2)
+        {
+            if(step > 0)
+            {
                 gossip_waterslope_db.finish_gossip_step();
                 gossip_workload_db.finish_gossip_step();
             }
@@ -461,33 +466,18 @@ int main(int argc, char **argv) {
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef PRODUCE_OUTPUTS
         std::vector<double> exch_timings(worldsize);
         std::vector<double> slopes(worldsize);
         std::vector<int> tloads(worldsize);
-        auto my_water_slope = get_slope<double>(water.begin(), water.end());
 
         MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, FOREMAN, world);
-        MPI_Gather(&my_water_slope, 1, MPI_DOUBLE, &slopes.front(), 1, MPI_DOUBLE, FOREMAN, world);
-        MPI_Gather(&n, 1, MPI_INT, &tloads.front(), 1, MPI_INT, FOREMAN,  world);
-
         if(i_am_foreman) {
             double max = *std::max_element(timings.cbegin(), timings.cend()),
-                    average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
-                    load_imbalance = (max / average - 1.0) * 100.0;
-            steplogger->info("stats: ") << "load imbalance: " << load_imbalance << " skewness: " << skew;
-            steplogger->info("Water Size: ") << water;
-            perflogger->info("\"step\":") << step
-            << ",\"step_time\": " << step_time
-            << ",\"total_time\": " << std::accumulate(timings.begin(), timings.end(), 0.0)
-            << ",\"lb_cost\": "  << stats::mean<double>(lb_costs.begin(), lb_costs.end())
-            << ",\"load_imbalance\": " << load_imbalance
-            << ",\"skewness\": " << stats::skewness<double>(timings.begin(), timings.end())
-            << ",\"loads\": ["   << timings
-            << "],\"tloads\":["  << tloads
-            << "],\"slopes\":["  << gossip_waterslope_db.get_all_data()<<"]";
+                   average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
+                   load_imbalance = (max / average - 1.0) * 100.0;
+            perflogger->info("\"step\":") << step << ",\"LI\": " << load_imbalance;
         }
-
+#ifdef PRODUCE_OUTPUTS
         unsigned long cell_cnt = my_cells.size();
         std::vector<std::array<int,2>> my_types(cell_cnt);
         for (unsigned int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
@@ -501,6 +491,7 @@ int main(int argc, char **argv) {
         }
 #endif
         if(i_am_foreman) steplogger->info() << "Stop step "<< step;
+        PAR_RESTART_TIMING(loop_time, world);
     }
     PAR_STOP_TIMING(loop_time, world);
     if(i_am_foreman) perflogger->info("\"total_time\":") << loop_time;
