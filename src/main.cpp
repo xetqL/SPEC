@@ -33,7 +33,7 @@
 #include "zupply.hpp"
 #include "main.hpp"
 
-zz::log::LoggerPtr perflogger, steplogger;
+zz::log::LoggerPtr perflogger, steplogger, proctime;
 
 #define FOREMAN 0
 
@@ -67,6 +67,7 @@ int main(int argc, char **argv) {
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);
     steplogger = zz::log::get_logger("steps", true);
+    proctime   = zz::log::get_logger("proctime", true);
 
     zz::cfg::ArgParser parser;
     parser.add_opt_version('V', "version", "0.1");
@@ -310,7 +311,7 @@ int main(int argc, char **argv) {
         // http://sc16.supercomputing.org/sc-archive/tech_poster/poster_files/post247s2-file3.pdf +
         // http://ics2018.ict.ac.cn/essay/ics18-final62.pdf
         auto total_slope = get_slope<double>(window_step_time.data_container);
-        if(i_am_foreman) steplogger->info("degradation method 2: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " total slope: " << total_slope;
+        if(i_am_foreman) steplogger->info("degradation method 3: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " total slope: " << total_slope;
 
         lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
         if(lb_condition) {
@@ -433,8 +434,8 @@ int main(int argc, char **argv) {
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
-        PAR_STOP_TIMING(loop_time, world);
         CHECKPOINT_TIMING(loop_time, time_since_start);
+        PAR_STOP_TIMING(loop_time, world);
 
         if(i_am_foreman) steplogger->info("time for step ") << step << " = " << step_time<< " time for comp. = "<< comp_time << " total: " << time_since_start;
         //if(i_am_loading_proc) perflogger->info(str_rank.c_str())<< " is loading with a current load of " << n;
@@ -476,6 +477,7 @@ int main(int argc, char **argv) {
                    average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
                    load_imbalance = (max / average - 1.0) * 100.0;
             perflogger->info("\"step\":") << step << ",\"LI\": " << load_imbalance;
+            proctime->info("\"step\":") << step << ",\"proctime\": " << timings;
         }
 #ifdef PRODUCE_OUTPUTS
         if(step % 10 == 0){
