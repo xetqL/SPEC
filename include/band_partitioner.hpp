@@ -243,7 +243,7 @@ private:
                 assert(partition[2 * (worldsize-1) + 1] == sizeY-1);
                 if(loggerPtr != nullptr) {
                     double maxPart = *std::max_element(effective_workloads.begin(), effective_workloads.end());
-                    double avgPart = stats::mean(effective_workloads.begin(), effective_workloads.end());;
+                    double avgPart = stats::mean<double>(effective_workloads.begin(), effective_workloads.end());
                     loggerPtr->info("[PartitionInfo]") << " load imbalance:" << (maxPart/avgPart-1.0)*100.0;
                 }
             }
