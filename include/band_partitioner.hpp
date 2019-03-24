@@ -343,7 +343,7 @@ private:
         for(const auto& cell : data) {
             long row = cell_to_position(sizeX, sizeY, cell.gid).second;
             if(rowsload.find(row) == rowsload.end()) rowsload[row] = 0.0;
-            rowsload[row] += cell.type;
+            rowsload[row] += cell.weight;
         }
         return mapToVector(rowsload);
     }
