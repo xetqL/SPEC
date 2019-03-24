@@ -239,9 +239,10 @@ int main(int argc, char **argv) {
                     gossip_waterslope_db(worldsize,  2, 8888, world);
 
     unsigned int ncall = 10, pcall=0;
+#ifndef LB_METHOD
+    ncall = 0;
+#endif
 #if LB_METHOD==1
-    ncall = 25;
-#elif LB_METHOD==2
     ncall = 25;
 #endif
 
