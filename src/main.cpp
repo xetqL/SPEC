@@ -273,7 +273,6 @@ int main(int argc, char **argv) {
             PAR_STOP_TIMING(current_lb_cost, world);
             if(i_am_foreman) perflogger->info("LB_time: ") << current_lb_cost;
             lb_costs.push_back(current_lb_cost);
-            ncall = 25;
             if(i_am_foreman) steplogger->info("next LB call at: ") << (step+ncall);
             pcall = step;
         }
