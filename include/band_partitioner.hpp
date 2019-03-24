@@ -241,7 +241,13 @@ private:
                     end_stripe = begin_stripe;
                 }
                 assert(partition[2 * (worldsize-1) + 1] == sizeY-1);
+                if(loggerPtr != nullptr) {
+                    double maxPart = *std::max_element(effective_workloads.begin(), effective_workloads.end());
+                    double avgPart = stats::mean(effective_workloads.begin(), effective_workloads.end());;
+                    loggerPtr->info("[PartitionInfo]") << " load imbalance:" << (maxPart/avgPart-1.0)*100.0;
+                }
             }
+
 
             // Broadcast the new partition
             MPI_Bcast(&partition.front(), 2*worldsize, MPI_INT, 0, world);
