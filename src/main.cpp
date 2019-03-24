@@ -406,14 +406,13 @@ int main(int argc, char **argv) {
 #endif
         if(lb_condition) {
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
+            std::cout << rank << " -> has to compute " << n << " water cells (n*2000 [flop])" << std::endl;
             water.push_back(my_water_ptr.size());
             window_water.add(my_water_ptr.size());
         }
 #endif
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
-
-
 
         auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         decltype(my_water_ptr) remote_water_ptr;
