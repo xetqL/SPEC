@@ -240,7 +240,7 @@ int main(int argc, char **argv) {
 
     unsigned int ncall = 10, pcall=0;
 #if LB_METHOD==1
-    ncall = 100;
+    ncall = 25;
 #elif LB_METHOD==2
     ncall = 25;
 #endif
