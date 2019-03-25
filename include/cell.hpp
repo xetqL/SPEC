@@ -19,7 +19,7 @@ struct CellStatistics {
 struct Cell {
     int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
-    double average_load = 1.0;
+    double average_load = 2000;
 
     Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0) {};
     Cell(int gid, int type, float weight, float erosion_probability)
