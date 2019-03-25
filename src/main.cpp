@@ -447,14 +447,14 @@ int main(int argc, char **argv) {
         //if(i_am_loading_proc) perflogger->info(str_rank.c_str())<< " is loading with a current load of " << n;
 
         MPI_Allreduce(&my_comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
-        if(i_am_foreman) {
-            if(!deltaWorks.empty()) {
-                deltaWorks.push_back(comp_time - stepTimes.back());
-            } else {
-                deltaWorks.push_back(0.0);
-            }
-            stepTimes.push_back(comp_time);
+
+        if(!deltaWorks.empty()) {
+            deltaWorks.push_back(comp_time - stepTimes.back());
+        } else {
+            deltaWorks.push_back(0.0);
         }
+        stepTimes.push_back(comp_time);
+
         if(i_am_foreman) steplogger->info("time for step ") << step
                     << " = " << step_time
                     << " time for comp. = "<< comp_time
