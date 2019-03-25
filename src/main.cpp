@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
 
     double skew = 0, degradation_since_last_lb = 0.0;
 
-    std::vector<double> timings(worldsize), all_degradations, water, stepTimes, deltaWorks;
+    std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks;
 
     SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
@@ -381,7 +381,7 @@ int main(int argc, char **argv) {
         }
 #elif LB_METHOD == 5
         if(i_am_foreman) steplogger->info("degradation method 4: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost*1.1;
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
@@ -417,7 +417,6 @@ int main(int argc, char **argv) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
 
-
         auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         decltype(my_water_ptr) remote_water_ptr;
 
@@ -449,11 +448,12 @@ int main(int argc, char **argv) {
         MPI_Allreduce(&my_comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
 
         if(!deltaWorks.empty()) {
-            deltaWorks.push_back(comp_time - stepTimes.back());
+            deltaWorks.push_back(comp_time - compTimes.back());
         } else {
             deltaWorks.push_back(0.0);
         }
-        stepTimes.push_back(comp_time);
+        compTimes.push_back(comp_time);
+        stepTimes.push_back(step_time);
 
         if(i_am_foreman) steplogger->info("time for step ") << step
                     << " = " << step_time
@@ -523,6 +523,7 @@ int main(int argc, char **argv) {
     PAR_STOP_TIMING(loop_time, world);
     if(i_am_foreman) perflogger->info("\"total_time\":") << loop_time;
     if(i_am_foreman) perflogger->info("\"step times\":") << stepTimes;
+    if(i_am_foreman) perflogger->info("\"comp times\":") << compTimes;
     // if(i_am_foreman) steplogger->info("\"total_time\":") << loop_time;
     datatype.free_datatypes();
     MPI_Finalize();
