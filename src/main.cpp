@@ -248,7 +248,7 @@ int main(int argc, char **argv) {
 
     double skew = 0, degradation_since_last_lb = 0.0;
 
-    std::vector<double> timings(worldsize), all_degradations, water;
+    std::vector<double> timings(worldsize), all_degradations, water, stepTimes, deltaWorks;
 
     SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
@@ -407,9 +407,9 @@ int main(int argc, char **argv) {
         PAR_STOP_TIMING(loop_time, world);
         if(lb_condition) {
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
-            std::cout << rank << " -> has to compute " << n << " water cells (n*2000 [flop])" << std::endl;
             water.push_back(my_water_ptr.size());
             window_water.add(my_water_ptr.size());
+            deltaWorks.clear();
         }
 #else
         PAR_STOP_TIMING(loop_time, world);
@@ -417,7 +417,7 @@ int main(int argc, char **argv) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
 
-        PAR_START_TIMING(comp_time, world);
+
         auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         decltype(my_water_ptr) remote_water_ptr;
 
@@ -426,24 +426,40 @@ int main(int argc, char **argv) {
 
         if(lb_condition || step == 0) bbox = get_bounding_box(my_cells, remote_cells);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
+
+        PAR_START_TIMING(comp_time, world);
+
         PAR_RESTART_TIMING(loop_time, world);
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
+        CHECKPOINT_TIMING(comp_time, my_comp_time);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         n += 8 * new_water_ptr.size(); // adapt the number of cell to compute
 
         water.push_back(n);
         window_water.add(n);
-        CHECKPOINT_TIMING(comp_time, my_comp_time);
+
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
         CHECKPOINT_TIMING(loop_time, time_since_start);
         PAR_STOP_TIMING(loop_time, world);
 
-        if(i_am_foreman) steplogger->info("time for step ") << step << " = " << step_time<< " time for comp. = "<< comp_time << " total: " << time_since_start;
         //if(i_am_loading_proc) perflogger->info(str_rank.c_str())<< " is loading with a current load of " << n;
 
         MPI_Allreduce(&my_comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
+        if(i_am_foreman) {
+            if(!deltaWorks.empty()) {
+                deltaWorks.push_back(comp_time - stepTimes.back());
+            } else {
+                deltaWorks.push_back(0.0);
+            }
+            stepTimes.push_back(comp_time);
+        }
+        if(i_am_foreman) steplogger->info("time for step ")
+                    << step << " = " << step_time
+                    << " time for comp. = "<< comp_time
+                    << " total: " << time_since_start
+                    << " dW: "<< stats::mean<double>(deltaWorks.begin(), deltaWorks.end());
 
         window_step_time.add(comp_time);  // monitor evolution of load in time with a window
         window_my_time.add(my_comp_time); // monitor evolution of my load in time with a window
@@ -502,6 +518,7 @@ int main(int argc, char **argv) {
     }
     PAR_STOP_TIMING(loop_time, world);
     if(i_am_foreman) perflogger->info("\"total_time\":") << loop_time;
+    if(i_am_foreman) perflogger->info("\"step times\":") << stepTimes;
     // if(i_am_foreman) steplogger->info("\"total_time\":") << loop_time;
     datatype.free_datatypes();
     MPI_Finalize();
