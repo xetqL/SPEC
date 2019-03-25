@@ -450,7 +450,7 @@ int main(int argc, char **argv) {
         MPI_Allreduce(&my_comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
 
         if(!deltaWorks.empty()) {
-            deltaWorks.push_back(comp_time - compTimes.back());
+            deltaWorks.push_back(std::max(comp_time - compTimes.back(), 0.0));
         } else {
             deltaWorks.push_back(0.0);
         }
