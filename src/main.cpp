@@ -405,6 +405,8 @@ int main(int argc, char **argv) {
         }
 #endif
         PAR_STOP_TIMING(loop_time, world);
+        PAR_STOP_TIMING(step_time, world);
+
         if(lb_condition) {
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
             water.push_back(my_water_ptr.size());
@@ -427,7 +429,7 @@ int main(int argc, char **argv) {
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
 
         PAR_START_TIMING(comp_time, world);
-
+        PAR_RESTART_TIMING(step_time, world);
         PAR_RESTART_TIMING(loop_time, world);
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         CHECKPOINT_TIMING(comp_time, my_comp_time);
