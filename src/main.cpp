@@ -471,8 +471,11 @@ int main(int argc, char **argv) {
         {
             if(step > 0)
             {
+
                 gossip_waterslope_db.finish_gossip_step();
+                std::cout << "finished gossip" << std::endl;
                 gossip_workload_db.finish_gossip_step();
+
             }
             gossip_waterslope_db.gossip_update(rank, get_slope<double>(water.begin(), water.end()));
             gossip_waterslope_db.gossip_propagate();
@@ -489,6 +492,7 @@ int main(int argc, char **argv) {
             degradation_since_last_lb += std::accumulate(deltaWorks.begin(), deltaWorks.end(), 0.0);
 #endif
             //std::for_each(window_step_time.newest(), window_step_time.window_step_time.newest()-2(), [](auto v){ std::cout << v << std::endl; });
+
         }
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
