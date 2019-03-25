@@ -134,9 +134,10 @@ public:
     }
 
     void finish_gossip_step() {
-        for(int i = 0; i < number_of_message; ++i){
-            MPI_Iprobe(MPI_ANY_SOURCE, SEND_TAG, world, &current_recv_flag, &current_recv_status);
-            if (current_recv_flag) {
+        int more_messages = 1;
+        while (more_messages) {
+            MPI_Iprobe(MPI_ANY_SOURCE, SEND_TAG, world, &more_messages, &current_recv_status);
+            if (more_messages) {
                 int cnt;
                 MPI_Get_count(&current_recv_status, entry_datatype, &cnt);
                 std::vector<DatabaseEntry> rcv_entries(cnt);
