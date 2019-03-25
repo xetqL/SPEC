@@ -448,7 +448,7 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 64;
+                my_cells[idx_neighbor].weight = 8;
                 new_water_cells.push_back(idx_neighbor);
             }
         }

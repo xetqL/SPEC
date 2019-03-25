@@ -404,15 +404,19 @@ int main(int argc, char **argv) {
             ncall = MAX_STEP;
         }
 #endif
+        PAR_STOP_TIMING(loop_time, world);
         if(lb_condition) {
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
             std::cout << rank << " -> has to compute " << n << " water cells (n*2000 [flop])" << std::endl;
             water.push_back(my_water_ptr.size());
             window_water.add(my_water_ptr.size());
         }
+#else
+        PAR_STOP_TIMING(loop_time, world);
 #endif
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
+
         PAR_START_TIMING(comp_time, world);
         auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
         decltype(my_water_ptr) remote_water_ptr;
@@ -422,11 +426,11 @@ int main(int argc, char **argv) {
 
         if(lb_condition || step == 0) bbox = get_bounding_box(my_cells, remote_cells);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
-
+        PAR_RESTART_TIMING(loop_time, world);
         std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
-        n += 4 * new_water_ptr.size(); // adapt the number of cell to compute
+        n += 8 * new_water_ptr.size(); // adapt the number of cell to compute
 
         water.push_back(n);
         window_water.add(n);
