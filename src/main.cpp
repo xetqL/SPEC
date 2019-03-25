@@ -455,8 +455,8 @@ int main(int argc, char **argv) {
             }
             stepTimes.push_back(comp_time);
         }
-        if(i_am_foreman) steplogger->info("time for step ")
-                    << step << " = " << step_time
+        if(i_am_foreman) steplogger->info("time for step ") << step
+                    << " = " << step_time
                     << " time for comp. = "<< comp_time
                     << " total: " << time_since_start
                     << " dW: "<< stats::mean<double>(deltaWorks.begin(), deltaWorks.end());
@@ -478,9 +478,13 @@ int main(int argc, char **argv) {
         }
 
         if(pcall + 1 < step) {
+#if LB_METHOD != 5
             degradation_since_last_lb +=
                     (stats::median<double>(window_step_time.end()-3, window_step_time.end())
                             - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
+#else
+            degradation_since_last_lb = std::accumulate(deltaWorks.begin(), deltaWorks.end());
+#endif
             //std::for_each(window_step_time.newest(), window_step_time.window_step_time.newest()-2(), [](auto v){ std::cout << v << std::endl; });
         }
         /// COMPUTATION STOP
