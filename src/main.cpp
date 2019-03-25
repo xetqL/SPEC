@@ -46,6 +46,7 @@ int main(int argc, char **argv) {
     auto world = MPI_COMM_WORLD;
     MPI_Comm_size(world, &worldsize);
     MPI_Comm_rank(world, &rank);
+    std::cout << "hello from rank: " <<rank <<std::endl;
     const bool i_am_foreman = rank == FOREMAN;
 
     auto datatype   = Cell::register_datatype();
