@@ -471,11 +471,8 @@ int main(int argc, char **argv) {
         {
             if(step > 0)
             {
-
                 gossip_waterslope_db.finish_gossip_step();
-                std::cout << "finished gossip" << std::endl;
                 gossip_workload_db.finish_gossip_step();
-
             }
             gossip_waterslope_db.gossip_update(rank, get_slope<double>(water.begin(), water.end()));
             gossip_waterslope_db.gossip_propagate();
