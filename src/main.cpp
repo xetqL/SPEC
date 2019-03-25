@@ -434,7 +434,7 @@ int main(int argc, char **argv) {
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
-        n += 1 * new_water_ptr.size(); // adapt the number of cell to compute
+        n += 8 * new_water_ptr.size(); // adapt the number of cell to compute
 
         water.push_back(n);
         window_water.add(n);
