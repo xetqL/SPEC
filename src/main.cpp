@@ -430,6 +430,7 @@ int main(int argc, char **argv) {
         }
 #else
         PAR_STOP_TIMING(loop_time, world);
+        PAR_STOP_TIMING(step_time, world);
 #endif
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
