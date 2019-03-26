@@ -336,7 +336,7 @@ int main(int argc, char **argv) {
 
             if(total_slope > 0) {
                 if(i_am_foreman) steplogger->info("DEBUG")<< (2.0 * avg_lb_cost) << "/" << (median-mean);
-                ncall = (unsigned int) std::floor(std::sqrt((2.0 * avg_lb_cost) / (median-mean)));
+                ncall = (unsigned int) std::floor(std::sqrt((2.0 * ((step - pcall) - 1) * avg_lb_cost) / (median-mean)));
                 ncall = std::max((unsigned int) 1, ncall);
             } else ncall = MAX_STEP;
 
