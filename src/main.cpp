@@ -314,9 +314,16 @@ int main(int argc, char **argv) {
         auto total_slope = get_slope<double>(window_step_time.data_container);
         if(i_am_foreman) steplogger->info("degradation method 3: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " total slope: " << total_slope;
 
-        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
-        if(lb_condition) {
+        double median;
+        if(std::distance(window_step_time.begin(), window_step_time.end() - 3) < 0)
+           median  = stats::median<double>(window_step_time.begin(), window_step_time.end());
+        else
+           median  = stats::median<double>(window_step_time.end() - 3, window_step_time.end());
+        auto mean  = stats::mean<double>(window_step_time.begin(), window_step_time.end());
 
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost || (pcall == 0 && step > 0 && (median-mean)/mean > 0.05);
+
+        if(lb_condition) {
             if(i_am_foreman) steplogger->info("call LB at: ") << step;
             std::cout << lb_condition << std::endl;
             PAR_START_TIMING(current_lb_cost, world);
@@ -381,8 +388,15 @@ int main(int argc, char **argv) {
             ncall = 10;
         }
 #elif LB_METHOD == 5
+        double median;
+        if(std::distance(window_step_time.begin(), window_step_time.end() - 3) < 0)
+           median  = stats::median<double>(window_step_time.begin(), window_step_time.end());
+        else
+           median  = stats::median<double>(window_step_time.end() - 3, window_step_time.end());
+        auto mean  = stats::mean<double>(window_step_time.begin(), window_step_time.end());
+
         if(i_am_foreman) steplogger->info("degradation method 4: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost || (pcall == 0 && step > 0 && (median-mean)/mean > 0.05);
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;

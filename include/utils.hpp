@@ -166,7 +166,10 @@ namespace stats
 template<class RealType, class Iter>
 inline RealType mean(Iter b, Iter e) {
     const long N = std::distance(b, e);
-    return std::accumulate(b, e, (RealType) 0.0) / N;
+    if(N > 0)
+        return std::accumulate(b, e, (RealType) 0.0) / N;
+    else
+        return (RealType) 0.0;
 }
 
 template<class RealType, class Iter>
@@ -186,7 +189,10 @@ template<class Realtype, class Iter>
 Realtype median(Iter begin, Iter  end) {
     std::vector<typename Iter::value_type> tmp(begin, end);
     std::sort(tmp.begin(), tmp.end());
-    return (Realtype) tmp[tmp.size() / 2];
+    if(std::distance(begin, end) == 0)
+        return (Realtype) 0.0;
+    else
+        return (Realtype) tmp[(int) (tmp.size() / 2)];
 }
 
 

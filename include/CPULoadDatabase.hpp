@@ -207,7 +207,7 @@ private:
     void register_datatype() {
         MPI_Datatype element_datatype,
                 oldtype_element[2];
-        MPI_Aint offset[2], intex, int_offset;
+        MPI_Aint offset[2], intex, lb, int_offset;
         const int number_of_int_elements = 2;
         const int number_of_double_elements = 1;
         int blockcount_element[2];
@@ -215,10 +215,10 @@ private:
         blockcount_element[1] = number_of_double_elements; // position <x,y>
         oldtype_element[0] = MPI_INT;
         oldtype_element[1] = MPI_DOUBLE;
-        MPI_Type_extent(MPI_INT, &int_offset);
+        MPI_Type_get_extent(MPI_INT, &lb, &int_offset);
         offset[0] = static_cast<MPI_Aint>(0);
         offset[1] = number_of_int_elements * int_offset;
-        MPI_Type_struct(2, blockcount_element, offset, oldtype_element, &entry_datatype);
+        MPI_Type_create_struct(2, blockcount_element, offset, oldtype_element, &entry_datatype);
         MPI_Type_commit(&entry_datatype);
     }
 

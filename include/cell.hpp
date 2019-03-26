@@ -42,7 +42,7 @@ struct Cell {
 
         MPI_Datatype cell_datatype, gid_type_datatype;
 
-        MPI_Aint intex, floatex;
+        MPI_Aint intex, lb, floatex;
 
         const int number_of_int_elements = 2;
         const int number_of_float_elements = 2;
@@ -62,15 +62,15 @@ struct Cell {
         blocktypes[1] = MPI_FLOAT;
         blocktypes[2] = MPI_DOUBLE;
 
-        MPI_Type_extent(MPI_INT, &intex);
-        MPI_Type_extent(MPI_FLOAT, &floatex);
+        MPI_Type_get_extent(MPI_INT, &lb, &intex);
+        MPI_Type_get_extent(MPI_FLOAT, &lb, &floatex);
 
         MPI_Aint offset[3];
         offset[0] = static_cast<MPI_Aint>(0);
         offset[1] = 2*intex;
         offset[2] = 2*intex + 2*floatex;
 
-        MPI_Type_struct(3, blockcount_element, offset, blocktypes, &cell_datatype);
+        MPI_Type_create_struct(3, blockcount_element, offset, blocktypes, &cell_datatype);
         MPI_Type_commit(&cell_datatype);
 
         return CommunicationDatatype(cell_datatype, gid_type_datatype);
