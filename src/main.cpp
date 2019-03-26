@@ -248,8 +248,8 @@ int main(int argc, char **argv) {
 #endif
 
     double skew = 0, degradation_since_last_lb = 0.0;
-
-    std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks;
+    double perfect_time_value = 0.0;
+    std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks, loadImbalance;
 
     SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
@@ -464,11 +464,10 @@ int main(int argc, char **argv) {
 
         MPI_Allreduce(&my_comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
 
-        if(!deltaWorks.empty()) {
-            deltaWorks.push_back(std::max(comp_time - compTimes.back(), 0.0));
-        } else {
-            deltaWorks.push_back(0.0);
-        }
+        if(pcall == step) perfect_time_value = comp_time;
+
+        deltaWorks.push_back(std::max(comp_time - perfect_time_value, 0.0));
+
         compTimes.push_back(comp_time);
         stepTimes.push_back(step_time);
 
@@ -481,10 +480,8 @@ int main(int argc, char **argv) {
         window_step_time.add(comp_time);  // monitor evolution of load in time with a window
         window_my_time.add(my_comp_time); // monitor evolution of my load in time with a window
 
-        if(worldsize > 2)
-        {
-            if(step > 0)
-            {
+        if(worldsize > 2) {
+            if(step > 0) {
                 gossip_waterslope_db.finish_gossip_step();
                 gossip_workload_db.finish_gossip_step();
             }
@@ -517,6 +514,7 @@ int main(int argc, char **argv) {
             double max = *std::max_element(timings.cbegin(), timings.cend()),
                    average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
                    load_imbalance = (max / average - 1.0) * 100.0;
+            loadImbalance.push_back(load_imbalance);
             perflogger->info("\"step\":") << step << ",\"LI\": " << load_imbalance;
             proctime->info("\"step\":") << step << ",\"proctime\": " << timings;
         }
@@ -538,10 +536,12 @@ int main(int argc, char **argv) {
         if(i_am_foreman) steplogger->info() << "Stop step "<< step;
         PAR_RESTART_TIMING(loop_time, world);
     }
+
     PAR_STOP_TIMING(loop_time, world);
-    if(i_am_foreman) perflogger->info("\"total_time\":") << loop_time;
-    if(i_am_foreman) perflogger->info("\"step times\":") << stepTimes;
-    if(i_am_foreman) perflogger->info("\"comp times\":") << compTimes;
+    if(i_am_foreman) perflogger->info("\"total_time\":")     << loop_time;
+    if(i_am_foreman) perflogger->info("\"step times\":")     << stepTimes;
+    if(i_am_foreman) perflogger->info("\"comp times\":")     << compTimes;
+    if(i_am_foreman) perflogger->info("\"load imbalance\":") << loadImbalance;
     // if(i_am_foreman) steplogger->info("\"total_time\":") << loop_time;
     datatype.free_datatypes();
     MPI_Finalize();
