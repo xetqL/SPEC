@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
     CPULoadDatabase gossip_workload_db(worldsize,  2, 9999, world),
                     gossip_waterslope_db(worldsize,  2, 8888, world);
 
-    unsigned int ncall = 10, pcall=0;
+    unsigned int ncall = 100, pcall=0;
 #ifndef LB_METHOD
     ncall = 0;
 #endif
