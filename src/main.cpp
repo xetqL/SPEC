@@ -395,7 +395,7 @@ int main(int argc, char **argv) {
            median  = stats::median<double>(window_step_time.end() - 3, window_step_time.end());
         auto mean  = stats::mean<double>(window_step_time.begin(), window_step_time.end());
 
-        if(i_am_foreman) steplogger->info("degradation method 4: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
+        if(i_am_foreman) steplogger->info("degradation method 5: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
         lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost || (pcall == 0 && step > 0 && (median-mean)/mean > 0.05);
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
