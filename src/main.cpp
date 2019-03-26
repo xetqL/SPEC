@@ -252,10 +252,11 @@ int main(int argc, char **argv) {
     std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks, loadImbalance;
 
     SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
-    SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
+    //SlidingWindow<double> window_water(ncall);   // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
-    water.push_back(my_water_ptr.size()); window_water.add(my_water_ptr.size());
+    water.push_back(my_water_ptr.size());
+    //window_water.add(my_water_ptr.size());
 
     //double time_since_start;
     PAR_START_TIMING(loop_time, world);
@@ -301,7 +302,7 @@ int main(int argc, char **argv) {
             degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
-            window_water.data_container.clear();
+            //window_water.data_container.clear();
             pcall = step;
 
             if(i_am_foreman) steplogger->info("next LB call at: ") << (step+ncall);
@@ -345,7 +346,7 @@ int main(int argc, char **argv) {
             degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
-            window_water.data_container.clear();
+            //window_water.data_container.clear();
             pcall = step;
 
             if(i_am_foreman) steplogger->info("next LB call at: ") << (step+ncall);
@@ -414,7 +415,7 @@ int main(int argc, char **argv) {
             degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
-            window_water.data_container.clear();
+            //window_water.data_container.clear();
             pcall = step;
             ncall = MAX_STEP;
         }
@@ -425,12 +426,15 @@ int main(int argc, char **argv) {
         if(lb_condition) {
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
             water.push_back(my_water_ptr.size());
-            window_water.add(my_water_ptr.size());
+            //window_water.add(my_water_ptr.size());
             deltaWorks.clear();
         }
 #else
-        PAR_STOP_TIMING(loop_time, world);
-        PAR_STOP_TIMING(step_time, world);
+
+#endif
+#ifndef LB_METHOD
+    PAR_STOP_TIMING(loop_time, world);
+    PAR_STOP_TIMING(step_time, world);
 #endif
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
@@ -454,7 +458,7 @@ int main(int argc, char **argv) {
         n += 4 * new_water_ptr.size(); // adapt the number of cell to compute
 
         water.push_back(n);
-        window_water.add(n);
+        //window_water.add(n);
 
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
