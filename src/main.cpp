@@ -470,7 +470,8 @@ int main(int argc, char **argv) {
 
         if(pcall == step) perfect_time_value = comp_time;
 
-        deltaWorks.push_back(std::max(comp_time - perfect_time_value, 0.0));
+        double currDegradation = std::max((comp_time - perfect_time_value), 0.0);
+        deltaWorks.push_back(currDegradation);
 
         compTimes.push_back(comp_time);
         stepTimes.push_back(step_time);
@@ -501,8 +502,8 @@ int main(int argc, char **argv) {
                     (stats::median<double>(window_step_time.end()-3, window_step_time.end())
                             - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
 #else
-            //degradation_since_last_lb = std::accumulate(deltaWorks.begin(), deltaWorks.end(), 0.0);
-            degradation_since_last_lb +=
+            degradation_since_last_lb += currDegradation < 0 ? 0.0 : currDegradation;//std::accumulate(deltaWorks.begin(), deltaWorks.end(), 0.0);
+            //degradation_since_last_lb +=
                     (stats::median<double>(window_step_time.end()-3, window_step_time.end())
                             - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
 #endif
