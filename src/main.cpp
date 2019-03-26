@@ -246,7 +246,6 @@ int main(int argc, char **argv) {
 #if LB_METHOD==1
     ncall = 25;
 #endif
-
     double skew = 0, degradation_since_last_lb = 0.0;
     double perfect_time_value = 0.0;
     std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks, loadImbalance;
@@ -502,7 +501,10 @@ int main(int argc, char **argv) {
                     (stats::median<double>(window_step_time.end()-3, window_step_time.end())
                             - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
 #else
-            degradation_since_last_lb = std::accumulate(deltaWorks.begin(), deltaWorks.end(), 0.0);
+            //degradation_since_last_lb = std::accumulate(deltaWorks.begin(), deltaWorks.end(), 0.0);
+            degradation_since_last_lb +=
+                    (stats::median<double>(window_step_time.end()-3, window_step_time.end())
+                            - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
 #endif
             //std::for_each(window_step_time.newest(), window_step_time.window_step_time.newest()-2(), [](auto v){ std::cout << v << std::endl; });
 
