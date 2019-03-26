@@ -18,7 +18,7 @@ const float bytes_per_flop = 2.77f;
 std::random_device rd;
 std::mt19937 gen(rd());
 std::normal_distribution<float> ndist(9, 1);
-float flops = 200; // https://arxiv.org/pdf/1703.08015.pdf
+float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
 std::uniform_real_distribution<float> udist(0, 1);
 
 /// SIMULATION

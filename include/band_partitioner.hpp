@@ -89,7 +89,8 @@ public:
             partition[0] = 0; partition[1] = sizeY;
             return;
         }
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
         std::vector<Cell>& data = *_data;
 
         auto my_rows_load = get_partial_rows_load(data);
