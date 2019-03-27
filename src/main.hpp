@@ -377,7 +377,8 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
     return my_cells;
 }
 
-std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computation3(int msx, int msy,
+std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computation3(int step,
+                                             int msx, int msy,
                                              const std::vector<Cell>& my_old_cells,
                                              const std::vector<unsigned long>& my_water_ptr,
                                              const std::vector<Cell>& remote_cells,
@@ -448,7 +449,7 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 4;
+                my_cells[idx_neighbor].weight = 4 * ((int) (step / 150) + 1);
                 new_water_cells.push_back(idx_neighbor);
             }
         }

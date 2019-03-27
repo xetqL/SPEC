@@ -525,6 +525,7 @@ int main(int argc, char **argv) {
             perflogger->info("\"step\":") << step << ",\"LI\": " << load_imbalance;
             proctime->info("\"step\":") << step << ",\"proctime\": " << timings;
         }
+
 #ifdef PRODUCE_OUTPUTS
         if(step % 10 == 0){
             unsigned long cell_cnt = my_cells.size();
