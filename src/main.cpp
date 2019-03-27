@@ -507,7 +507,6 @@ int main(int argc, char **argv) {
                             - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
 #endif
             //std::for_each(window_step_time.newest(), window_step_time.window_step_time.newest()-2(), [](auto v){ std::cout << v << std::endl; });
-
         }
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////

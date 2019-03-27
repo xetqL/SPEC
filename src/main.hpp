@@ -450,15 +450,16 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 4 * ((int) (step / 100) + 1);
+                my_cells[idx_neighbor].weight = (float) std::pow(2, ((step / 75) + 2));
                 new_water_cells.push_back(idx_neighbor);
                 total_weight += my_cells[idx_neighbor].weight;
             }
         }
 
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
-        if(i < my_water_cell_count)
+        if(i < my_water_cell_count) {
             consume_cpu_flops(cell->weight * flops);
+        }
         /* stop */
     }
 
