@@ -277,14 +277,14 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
     return my_cells;
 }
 
-std::pair<int, std::vector<unsigned long>> create_water_ptr_vector(const std::vector<Cell>& cells){
+std::pair<unsigned long, std::vector<unsigned long>> create_water_ptr_vector(const std::vector<Cell>& cells){
     std::vector<unsigned long> res;
-    int n = 0;
+    unsigned long n = 0;
     const auto size = cells.size();
     for(unsigned long i = 0; i < size; ++i) {
     	if(cells[i].type) {
     	    res.push_back(i);
-    	    n += (int) cells[i].weight;
+    	    n += (unsigned long) cells[i].weight;
     	}
     }
     return std::make_pair(n, res);

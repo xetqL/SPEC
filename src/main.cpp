@@ -230,7 +230,7 @@ int main(int argc, char **argv) {
     if(i_am_foreman) perflogger->info("LB_time: ") << current_lb_cost;
 
     std::vector<unsigned long> my_water_ptr;
-    int n;
+    unsigned long n;
     std::vector<size_t> data_pointers, remote_data_pointers;
     std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
     std::tuple<int, int, int, int> bbox; // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
@@ -424,7 +424,7 @@ int main(int argc, char **argv) {
 
         if(lb_condition) {
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
-            water.push_back(my_water_ptr.size());
+            water.push_back(n);
             //window_water.add(my_water_ptr.size());
             deltaWorks.clear();
         }
@@ -454,9 +454,9 @@ int main(int argc, char **argv) {
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
-        //n += 4 * new_water_ptr.size(); // adapt the number of cell to compute
+        n += (unsigned long) add_weight; // adapt the number of cell to compute
 
-        water.push_back(add_weight);
+        water.push_back(n);
         //window_water.add(n);
 
         PAR_STOP_TIMING(comp_time, world);
