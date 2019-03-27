@@ -377,7 +377,7 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
     return my_cells;
 }
 
-std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computation3(int step,
+std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_computation3(int step,
                                              int msx, int msy,
                                              const std::vector<Cell>& my_old_cells,
                                              const std::vector<unsigned long>& my_water_ptr,
@@ -398,6 +398,7 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
     std::vector<size_t> idx_neighbors(8, -1);
     std::vector<float>  thetas(8, 0);
     std::vector<unsigned long> new_water_cells;
+    double total_weight = 0;
 
     for(unsigned int i = 0; i < all_water_count; ++i) {
         const Cell* cell;
@@ -451,6 +452,7 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
                 my_cells[idx_neighbor].type   = 1;
                 my_cells[idx_neighbor].weight = 4 * ((int) (step / 100) + 1);
                 new_water_cells.push_back(idx_neighbor);
+                total_weight += my_cells[idx_neighbor].weight;
             }
         }
 
@@ -460,7 +462,7 @@ std::pair<std::vector<Cell>, std::vector<unsigned long>> dummy_erosion_computati
         /* stop */
     }
 
-    return std::make_pair(my_cells, new_water_cells);
+    return std::make_tuple(my_cells, new_water_cells, total_weight);
 }
 
 #endif //SPEC_MAIN_HPP
