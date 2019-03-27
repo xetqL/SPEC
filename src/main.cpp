@@ -450,7 +450,7 @@ int main(int argc, char **argv) {
         PAR_START_TIMING(comp_time, world);
         PAR_RESTART_TIMING(step_time, world);
         PAR_RESTART_TIMING(loop_time, world);
-        std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
+        std::tie(my_cells, new_water_ptr) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
