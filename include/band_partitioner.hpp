@@ -90,7 +90,7 @@ public:
             return;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         std::vector<Cell>& data = *_data;
 
         auto my_rows_load = get_partial_rows_load(data);
