@@ -495,9 +495,11 @@ int main(int argc, char **argv) {
         }
 
         if(pcall + 1 < step) {
-#if LB_METHOD != 5
             degradation_since_last_lb +=
                     stats::median<double>(window_step_time.end()-3, window_step_time.end()) - perfect_time_value;
+#if LB_METHOD != 5
+            //degradation_since_last_lb +=
+            //        stats::median<double>(window_step_time.end()-3, window_step_time.end()) - perfect_time_value;
 #else
             degradation_since_last_lb += currDegradation < 0 ? 0.0 : currDegradation;//std::accumulate(deltaWorks.begin(), deltaWorks.end(), 0.0);
             //degradation_since_last_lb +=
