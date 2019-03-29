@@ -90,7 +90,7 @@ public:
             return;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         std::vector<Cell>& data = *_data;
 
         auto my_rows_load = get_partial_rows_load(data);
@@ -105,6 +105,8 @@ public:
 
         // Mapping
         execute_mapping_algorithm(_data);
+
+
 
         // Affectation
         //_data->assign(mesh.begin(), mesh.end());
@@ -290,6 +292,7 @@ private:
             size_t size = num_import_from_procs[proc_id];
             std::vector<Cell> buffer(size);
             MPI_Recv(&buffer.front(), size, datatype, proc_id, 300, world, MPI_STATUS_IGNORE);
+
             mesh.insert(mesh.end(), std::make_move_iterator(buffer.begin()), std::make_move_iterator(buffer.end()));
         }
 
@@ -422,6 +425,13 @@ private:
             merged_load[row.row] += row.load;
         }
         return merged_load;
+    }
+
+    void finalize(std::vector<Cell>* _mesh, double alpha){
+        std::vector<Cell>& mesh = *_mesh;
+        if(alpha == 0.0) {
+            for(auto& c : mesh) c.weight = 1;
+        }
     }
 
 };

@@ -80,6 +80,7 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
     std::vector<Cell>& cells = *_cells;
     std::vector<std::tuple<int, int, int>> rocks_data(rocks_per_stripe);
 
+
     for (int i = 0; i < rocks_per_stripe; ++i) {
         rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), (begin_stripe + end_stripe) / 2 , (end_stripe - begin_stripe) / 4);
     }
@@ -101,13 +102,13 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
 }
 int checkpoint(int h, int k, int x, int y, int a, int b)
 {
-
     // checking the equation of
     // ellipse with the given point
     int p = (std::pow((x - h), 2) / std::pow(a, 2)) + (std::pow((y - k), 2) / std::pow(b, 2));
-
     return p;
 }
+
+
 
 void generate_lattice_ellipse(int msx, int msy,
                              std::vector<Cell>* _cells,
@@ -450,7 +451,7 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 4 * ((int) (step / 100.0) + 1);
+                my_cells[idx_neighbor].weight = 4;
                 new_water_cells.push_back(idx_neighbor);
                 total_weight += my_cells[idx_neighbor].weight;
             }
