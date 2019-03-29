@@ -450,7 +450,7 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 4; //(float) std::pow(2, ((step / 75) + 2));
+                my_cells[idx_neighbor].weight = 4 * ((int) (step / 100.0) + 1);
                 new_water_cells.push_back(idx_neighbor);
                 total_weight += my_cells[idx_neighbor].weight;
             }
