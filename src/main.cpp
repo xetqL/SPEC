@@ -338,11 +338,8 @@ int main(int argc, char **argv) {
             perflogger->info("LB_time: ") << current_lb_cost;
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
 
-            if(total_slope > 0) {
-                if(i_am_foreman) steplogger->info("DEBUG")<< (2.0 * avg_lb_cost) << "/" << (median-mean);
-                ncall = (unsigned int) std::floor(std::sqrt((2.0 * ((step - pcall) - 1) * avg_lb_cost) / (median-mean)));
-                ncall = std::max((unsigned int) 1, ncall);
-            } else ncall = MAX_STEP;
+            if(i_am_foreman) steplogger->info("DEBUG")<< (2.0 * avg_lb_cost) << "/" << (median-mean);
+            ncall = (unsigned int) std::sqrt(2.0 * ((step - pcall) - 1) * avg_lb_cost / (median-mean));
 
             gossip_workload_db.reset();
             water.clear();
@@ -400,7 +397,7 @@ int main(int argc, char **argv) {
         auto mean  = stats::mean<double>(window_step_time.begin(), window_step_time.end());
 
         if(i_am_foreman) steplogger->info("degradation method 5: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " " << (median-mean);
-        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost*1.1;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
