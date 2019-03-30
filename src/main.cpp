@@ -144,8 +144,12 @@ int main(int argc, char **argv) {
     std::vector<int> loading_procs;
     //const int loading_proc = proc_dist(gen) % worldsize; //one randomly chosen load proc
     std::uniform_int_distribution<>  lproc_dist((int)N/2, worldsize-1-(int)N/2);
-
+    for(int i = worldsize-1; loading_procs.size() < N; i--){
+        loading_procs.push_back(i);
+    } 
+    /*
     int median_lproc = lproc_dist(gen);
+    
     if(N >= 1) loading_procs.push_back(median_lproc);
     for(int i = 1; i <= (int) N/2; ++i) {
         if(loading_procs.size() < N) {
@@ -154,9 +158,9 @@ int main(int argc, char **argv) {
         if(loading_procs.size() < N) {
             loading_procs.push_back(median_lproc+i);
         } else break;
-    }
+    }*/
     std::for_each(loading_procs.begin(), loading_procs.end(), [](auto v){std::cout << v << std::endl;});
-
+    
     const bool i_am_loading_proc = std::find(loading_procs.begin(), loading_procs.end(), rank) != loading_procs.end();
 
 #ifdef PRODUCE_OUTPUTS
@@ -396,7 +400,7 @@ int main(int argc, char **argv) {
         auto mean  = stats::mean<double>(window_step_time.begin(), window_step_time.end());
 
         if(i_am_foreman) steplogger->info("degradation method 5: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " " << (median-mean);
-        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost*0.8;
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost*0.95;
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;

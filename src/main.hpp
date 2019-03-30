@@ -417,11 +417,11 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
         std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
         if(lid+1 < total_box) {
             idx_neighbors[0] = (data_pointers[lid+1]);
-            thetas[0]        = 1.0f;
+            thetas[0]        = 0;//1.0f;
         }
         if((lid-(x2-x1))+1 >= 0) {
             idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
-            thetas[1]        = 1.0f/1.4142135f;
+            thetas[1]        = 0;//1.0f/1.4142135f;
         }
         if(lid-(x2-x1) >= 0) {
             idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
@@ -429,11 +429,15 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
         }
         if(lid+(x2-x1) < total_box) {
             idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
-            thetas[6]        = 0;
+            thetas[6]        = 1.0f;
         }
         if(lid+(x2-x1)+1 < total_box) {
             idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
             thetas[7]        = 1.0f/1.4142135f;
+        }
+        if(lid+(x2-x1)-1 < total_box) {
+            idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
+            thetas[5]        = 1.0f/1.4142135f;
         }
         for (int j = 0; j < 8; ++j) {
             auto idx_neighbor = idx_neighbors[j];
