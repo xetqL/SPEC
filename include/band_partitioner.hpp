@@ -101,7 +101,7 @@ public:
         if(myrank == 0) {
             std::sort(p_rows_load.begin(), p_rows_load.end());
             for(auto& wl : p_rows_load) {
-                std :: cout << wl << std::endl;
+                std::cout << wl << std::endl;
             }
         }
         auto alphas      = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
