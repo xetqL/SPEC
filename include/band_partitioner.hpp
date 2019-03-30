@@ -49,7 +49,7 @@ class StripeLoadBalancer {
                 load(_load)
         //, slope(_slope)
         {};
-
+        bool operator<(const RowWorkload& rhs) const { return row < rhs.row; }
         friend std::ostream &operator<<(std::ostream &os, const RowWorkload &entry) {
             os << "(" << entry.row << "," << entry.load << ")";
             return os;
@@ -98,6 +98,12 @@ public:
         // Gather
         auto p_rows_load = gather_elements_on(my_rows_load, 0, row_load_datatype,   world);
         auto rows_load   = merge(p_rows_load);
+        if(myrank == 0) {
+            std::sort(p_rows_load.begin(), p_rows_load.end());
+            for(auto& wl : p_rows_load) {
+                std :: cout << wl << std::endl;
+            }
+        }
         auto alphas      = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
 
         // Partition
