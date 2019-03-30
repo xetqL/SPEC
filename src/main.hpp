@@ -86,7 +86,10 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
     std::vector<std::tuple<int, int, int>> rocks_data(rocks_per_stripe);
 
     for (int i = 0; i < rocks_per_stripe; ++i) {
-        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), rank == size-1 ? (begin_stripe + end_stripe) * (3.0/4.0) : (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 4);
+//        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), (begin_stripe + end_stripe) * (3.0/4.0) : (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 4);
+          rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)),  rank == size-1 ? (begin_stripe + end_stripe) / 2 + (end_stripe - begin_stripe) / 4 : (begin_stripe + end_stripe) / 2 - (end_stripe - begin_stripe) / 5, (end_stripe - begin_stripe) / 4);
+
+
     }
 
     for(auto& cell : cells) {
