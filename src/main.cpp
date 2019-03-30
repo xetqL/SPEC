@@ -448,11 +448,13 @@ int main(int argc, char **argv) {
 
         if(lb_condition || step == 0) bbox = get_bounding_box(my_cells, remote_cells);
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
+        auto total_cells_before_cpt = compute_estimated_workload(my_cells);
+        std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
         PAR_START_TIMING(comp_time, world);
         PAR_RESTART_TIMING(step_time, world);
         PAR_RESTART_TIMING(loop_time, world);
-        std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
+        compute_fluid(total_cells_before_cpt);
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));

@@ -20,13 +20,12 @@ std::mt19937 gen(rd());
 std::normal_distribution<float> ndist(9, 1);
 float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
 std::uniform_real_distribution<float> udist(0, 1);
-
+volatile float res = 0.0;
+volatile float one = 1.0;
 /// SIMULATION
-void consume_cpu_flops(float flop_to_consume){
-    volatile float res = 0.0f;
-    volatile float f2c = flop_to_consume;
+void consume_cpu_flops(float& flop_to_consume) {
     while(res < 0.5f) {
-        res = res + 1.0f/f2c; // 2 FLOP
+        res = res + one / flop_to_consume; // 2 FLOP
     }
 }
 
@@ -462,20 +461,39 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 4 * ((int) step/100 + 1);
+                my_cells[idx_neighbor].weight = 4;
                 new_water_cells.push_back(idx_neighbor);
                 total_weight += my_cells[idx_neighbor].weight;
             }
         }
 
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
-        if(i < my_water_cell_count) {
-            consume_cpu_flops(cell->weight * flops);
-        }
         /* stop */
     }
 
     return std::make_tuple(my_cells, new_water_cells, total_weight);
 }
 
+
+void compute_fluid(const std::vector<Cell>& my_old_cells) {
+    float total_cells = 0.0;
+    for(const auto& cell : my_old_cells) {
+        total_cells += cell.weight;
+    }
+    float total_flops = total_cells * flops;
+    consume_cpu_flops(total_flops);
+}
+
+void compute_fluid(float total_cells) {
+    float total_flops = total_cells * flops;
+    consume_cpu_flops(total_flops);
+}
+
+void compute_fluid_time(const std::vector<Cell>& my_old_cells) {
+    float total_cells = 0.0;
+    for(const auto& cell : my_old_cells) {
+        total_cells += cell.weight;
+    }
+    std::this_thread::sleep_for(std::chrono::nanoseconds(480));
+}
 #endif //SPEC_MAIN_HPP
