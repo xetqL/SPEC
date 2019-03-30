@@ -77,12 +77,16 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
                              std::vector<Cell>* _cells,
                              float erosion_probability,
                              int begin_stripe, int end_stripe){
+
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
     std::vector<Cell>& cells = *_cells;
     std::vector<std::tuple<int, int, int>> rocks_data(rocks_per_stripe);
 
-
     for (int i = 0; i < rocks_per_stripe; ++i) {
-        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), (begin_stripe + end_stripe) / 2 , (end_stripe - begin_stripe) / 4);
+        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), rank == size-1 ? (begin_stripe + end_stripe) * (3.0/4.0) : (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 4);
     }
 
     for(auto& cell : cells) {
@@ -455,7 +459,7 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 4;
+                my_cells[idx_neighbor].weight = 4 * ((int) step/100 + 1);
                 new_water_cells.push_back(idx_neighbor);
                 total_weight += my_cells[idx_neighbor].weight;
             }

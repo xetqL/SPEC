@@ -400,7 +400,7 @@ int main(int argc, char **argv) {
         auto mean  = stats::mean<double>(window_step_time.begin(), window_step_time.end());
 
         if(i_am_foreman) steplogger->info("degradation method 5: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " " << (median-mean);
-        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost*0.95;
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost || (pcall == 0 && step > 0 && (median-mean)/mean > 0.05);
         if(lb_condition) {
             bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
@@ -501,15 +501,6 @@ int main(int argc, char **argv) {
         if(pcall + 1 < step) {
             degradation_since_last_lb +=
                     stats::median<double>(window_step_time.end()-3, window_step_time.end()) - perfect_time_value;
-#if LB_METHOD != 5
-            //degradation_since_last_lb +=
-            //        stats::median<double>(window_step_time.end()-3, window_step_time.end()) - perfect_time_value;
-#else
-            degradation_since_last_lb += currDegradation < 0 ? 0.0 : currDegradation;//std::accumulate(deltaWorks.begin(), deltaWorks.end(), 0.0);
-            //degradation_since_last_lb +=
-                    (stats::median<double>(window_step_time.end()-3, window_step_time.end())
-                            - stats::mean<double>(window_step_time.begin(), window_step_time.end()));
-#endif
             //std::for_each(window_step_time.newest(), window_step_time.window_step_time.newest()-2(), [](auto v){ std::cout << v << std::endl; });
         }
         /// COMPUTATION STOP

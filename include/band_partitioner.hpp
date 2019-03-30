@@ -220,16 +220,10 @@ private:
                             (1.0 - alpha) * remaining_workload / (worldsize - p) : (1.0 + (alpha*N)/(worldsize-N)) * remaining_workload / (worldsize - p);
                     double diffA = 0.0, diffB = 0.0;
                     // While we have not ~reached~ the desired workload or we reached the end of the mesh
-                    while( (((current_process_workload + rows_load[end_stripe] == desired_workload) ||
-                            ((current_process_workload + rows_load[end_stripe] < desired_workload || (diffB > diffA)) && !(p % 2)) ||
-                            ((current_process_workload < desired_workload || (diffA < diffB)) && (p % 2))
-                            ) || p == worldsize-1) && end_stripe < sizeY) {
+                    while(((current_process_workload + rows_load[end_stripe] <= desired_workload) || p == worldsize-1) && end_stripe < sizeY) {
                         //std::cout << current_process_workload << "+?"<< rows_load[end_stripe] << " < " << desired_workload << std::endl;
                         current_process_workload += rows_load[end_stripe];
                         end_stripe++;
-
-                        diffA = std::abs(desired_workload - (current_process_workload + rows_load[end_stripe]));
-                        diffB = std::abs(desired_workload - (current_process_workload));
                     }
 
                     assert(begin_stripe < sizeY);
