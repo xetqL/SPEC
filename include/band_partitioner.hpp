@@ -222,13 +222,10 @@ private:
                     double current_process_workload = 0.0;
                     bool overloading = alphas[p] > 0.0;
                     double remaining_workload = std::accumulate(rows_load.cbegin()+begin_stripe, rows_load.cend(), 0.0);
-                    double desired_workload = overloading ?
-                            (1.0 - alpha) * remaining_workload / (worldsize - p) : (1.0 + (alpha*N)/(worldsize-N)) * remaining_workload / (worldsize - p);
+                    double desired_workload = desired_workloads[p];
                     double diffA = 0.0, diffB = 0.0;
                     // While we have not ~reached~ the desired workload or we reached the end of the mesh
-                    while((( alphas[p] <= 0.0 && current_process_workload + rows_load[end_stripe] >= desired_workload)
-                          || ( alphas[p] > 0.0 && current_process_workload + rows_load[end_stripe] <= desired_workload)
-                          || p == worldsize-1)  && end_stripe < sizeY) {
+                    while(((current_process_workload + rows_load[end_stripe] <= desired_workload) || p == worldsize-1)  && end_stripe < sizeY) {
                         //std::cout << current_process_workload << "+?"<< rows_load[end_stripe] << " < " << desired_workload << std::endl;
                         current_process_workload += rows_load[end_stripe];
                         end_stripe++;
