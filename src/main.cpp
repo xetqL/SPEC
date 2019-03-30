@@ -506,17 +506,23 @@ int main(int argc, char **argv) {
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
         std::vector<double> exch_timings(worldsize);
         std::vector<double> slopes(worldsize);
         std::vector<int> tloads(worldsize);
-
+        auto my_workload = compute_estimated_workload(my_cells);
+        std::vector<float> all_the_workloads(worldsize);
+        MPI_Gather(&my_workload, 1, MPI_FLOAT, &all_the_workloads.front(), 1, MPI_FLOAT, FOREMAN, world);
         MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, FOREMAN, world);
+
         if(i_am_foreman) {
             double max = *std::max_element(timings.cbegin(), timings.cend()),
-                   average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
-                   load_imbalance = (max / average - 1.0) * 100.0;
+                    average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
+                    load_imbalance = (max / average - 1.0) * 100.0;
             loadImbalance.push_back(load_imbalance);
             perflogger->info("\"step\":") << step << ",\"LI\": " << load_imbalance;
+            perflogger->info("\"step\":") << step << ",\"workloads\": " << all_the_workloads;
+
             proctime->info("\"step\":") << step << ",\"proctime\": " << timings;
         }
 
