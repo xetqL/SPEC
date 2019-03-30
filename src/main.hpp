@@ -495,11 +495,8 @@ void compute_fluid(float total_cells) {
     consume_cpu_flops(total_flops);
 }
 
-void compute_fluid_time(const std::vector<Cell>& my_old_cells) {
-    float total_cells = 0.0;
-    for(const auto& cell : my_old_cells) {
-        total_cells += cell.weight;
-    }
-    std::this_thread::sleep_for(std::chrono::nanoseconds(480));
+void compute_fluid_time(float total_cells) {
+    int64_t to_wait = 601*total_cells;
+    std::this_thread::sleep_for(std::chrono::nanoseconds(to_wait));
 }
 #endif //SPEC_MAIN_HPP
