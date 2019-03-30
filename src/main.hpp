@@ -78,7 +78,8 @@ std::vector<Cell> generate_lattice_single_type( int msx, int msy,
     return my_cells;
 }
 
-void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
+void generate_lattice_rocks( bool i_am_overloading,
+                             const int rocks_per_stripe, int msx, int msy,
                              std::vector<Cell>* _cells,
                              float erosion_probability,
                              int begin_stripe, int end_stripe){
@@ -92,7 +93,7 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
 
     for (int i = 0; i < rocks_per_stripe; ++i) {
 //        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), (begin_stripe + end_stripe) * (3.0/4.0) : (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 4);
-          rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)),  rank == size-1 ? (begin_stripe + end_stripe) / 2 + (end_stripe - begin_stripe) / 4 : (begin_stripe + end_stripe) / 2 - (end_stripe - begin_stripe) / 5, (end_stripe - begin_stripe) / 4);
+          rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)),  i_am_overloading ? (begin_stripe + end_stripe) / 2 + (end_stripe - begin_stripe) / 4 : (begin_stripe + end_stripe) / 2 - (end_stripe - begin_stripe) / 5, (end_stripe - begin_stripe) / 4);
 
 
     }
@@ -467,7 +468,7 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 4;
+                my_cells[idx_neighbor].weight = 8;
                 new_water_cells.push_back(idx_neighbor);
                 total_weight += my_cells[idx_neighbor].weight;
             }
