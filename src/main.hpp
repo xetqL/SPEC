@@ -20,12 +20,18 @@ std::mt19937 gen(rd());
 std::normal_distribution<float> ndist(9, 1);
 float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
 std::uniform_real_distribution<float> udist(0, 1);
-volatile float res = 0.0;
-volatile float one = 1.0;
+volatile double res = 0.0;
+volatile double one = 1.0;
 /// SIMULATION
-void consume_cpu_flops(float& flop_to_consume) {
-    while(res < 0.5f) {
+void consume_cpu_flops(double& flop_to_consume) {
+    while (res < 0.5) {
         res = res + one / flop_to_consume; // 2 FLOP
+    }
+}
+void consume_cpu_flops(float& flop_to_consume) {
+    double f2c = flop_to_consume;
+    while(res < 0.5) {
+        res = res + one / f2c; // 2 FLOP
     }
 }
 
@@ -476,16 +482,16 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
 
 
 void compute_fluid(const std::vector<Cell>& my_old_cells) {
-    float total_cells = 0.0;
+    double total_cells = 0.0;
     for(const auto& cell : my_old_cells) {
         total_cells += cell.weight;
     }
-    float total_flops = total_cells * flops;
+    double total_flops = total_cells * flops;
     consume_cpu_flops(total_flops);
 }
 
 void compute_fluid(float total_cells) {
-    float total_flops = total_cells * flops;
+    double total_flops = total_cells * flops;
     consume_cpu_flops(total_flops);
 }
 

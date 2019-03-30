@@ -454,7 +454,7 @@ int main(int argc, char **argv) {
         PAR_START_TIMING(comp_time, world);
         PAR_RESTART_TIMING(step_time, world);
         PAR_RESTART_TIMING(loop_time, world);
-        compute_fluid(total_cells_before_cpt);
+        compute_fluid(800000.0);
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
