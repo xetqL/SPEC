@@ -11,6 +11,8 @@ SPEC.cbp
 *.out
 *.mp4
 log/*
+data*
+backup/
 
 # CMake
 CMakeCache.txt
