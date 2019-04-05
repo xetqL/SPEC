@@ -453,6 +453,7 @@ int main(int argc, char **argv) {
         PAR_RESTART_TIMING(loop_time, world);
         compute_fluid_time(total_cells_before_cpt);
         CHECKPOINT_TIMING(comp_time, my_comp_time);
+        CHECKPOINT_TIMING(step_time, my_step_time);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         n += (unsigned long) add_weight; // adapt the number of cell to compute
@@ -512,7 +513,7 @@ int main(int argc, char **argv) {
         auto my_workload = compute_estimated_workload(my_cells);
         std::vector<float> all_the_workloads(worldsize);
         MPI_Gather(&my_workload, 1, MPI_FLOAT, &all_the_workloads.front(), 1, MPI_FLOAT, FOREMAN, world);
-        MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, FOREMAN, world);
+        MPI_Gather(&my_step_time, 1, MPI_DOUBLE, &timings.front(), 1, MPI_DOUBLE, FOREMAN, world);
 
         if(i_am_foreman) {
             double max = *std::max_element(timings.cbegin(), timings.cend()),

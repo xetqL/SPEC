@@ -90,7 +90,7 @@ public:
             return;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
         std::vector<Cell>& data = *_data;
 
         auto my_rows_load = get_partial_rows_load(data);
@@ -225,7 +225,7 @@ private:
                     double desired_workload = desired_workloads[p];
                     double diffA = 0.0, diffB = 0.0;
                     // While we have not ~reached~ the desired workload or we reached the end of the mesh
-                    while(((current_process_workload + rows_load[end_stripe] <= desired_workload) || p == worldsize-1)  && end_stripe < sizeY) {
+                    while(( (current_process_workload + rows_load[end_stripe] <= desired_workload && p < worldsize*(3.0/4.0)) || (current_process_workload < desired_workload && p >= worldsize*(3.0/4.0) ) || p == worldsize-1)  && end_stripe < sizeY) {
                         //std::cout << current_process_workload << "+?"<< rows_load[end_stripe] << " < " << desired_workload << std::endl;
                         current_process_workload += rows_load[end_stripe];
                         end_stripe++;

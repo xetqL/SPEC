@@ -1,0 +1,312 @@
+[19-03-04 18:04:10] [INFO] CPU COUNT:32
+[19-03-04 18:04:10] [INFO] GRID PSIZE X:2
+[19-03-04 18:04:10] [INFO] GRID PSIZE Y:16
+[19-03-04 18:04:10] [INFO] GRID SIZE  X:2000
+[19-03-04 18:04:10] [INFO] GRID SIZE  Y:16000
+[19-03-04 18:04:10] [INFO] EACH SIZE  X:2000
+[19-03-04 18:04:10] [INFO] EACH SIZE  Y:16000
+[19-03-04 18:04:10] [INFO] 1000 1000
+[19-03-04 18:04:11] [INFO] End of map generation
+[19-03-04 18:04:21] [INFO] Beginning step 0
+[19-03-04 18:04:27] [INFO] stats: load imbalance: 6.04317 skewness: 0
+[19-03-04 18:04:27] [INFO] Stop step 0
+[19-03-04 18:04:27] [INFO] Beginning step 1
+[19-03-04 18:04:32] [INFO] stats: load imbalance: 5.99591 skewness: 0
+[19-03-04 18:04:32] [INFO] Stop step 1
+[19-03-04 18:04:32] [INFO] Beginning step 2
+[19-03-04 18:04:37] [INFO] stats: load imbalance: 6.00298 skewness: 0
+[19-03-04 18:04:37] [INFO] Stop step 2
+[19-03-04 18:04:37] [INFO] Beginning step 3
+[19-03-04 18:04:42] [INFO] stats: load imbalance: 5.95152 skewness: 0
+[19-03-04 18:04:42] [INFO] Stop step 3
+[19-03-04 18:04:42] [INFO] Beginning step 4
+[19-03-04 18:04:47] [INFO] stats: load imbalance: 6.05343 skewness: 0
+[19-03-04 18:04:47] [INFO] Stop step 4
+[19-03-04 18:04:47] [INFO] Beginning step 5
+[19-03-04 18:04:51] [INFO] stats: load imbalance: 5.90696 skewness: 0
+[19-03-04 18:04:51] [INFO] Stop step 5
+[19-03-04 18:04:51] [INFO] Beginning step 6
+[19-03-04 18:04:56] [INFO] stats: load imbalance: 6.00147 skewness: 0
+[19-03-04 18:04:56] [INFO] Stop step 6
+[19-03-04 18:04:56] [INFO] Beginning step 7
+[19-03-04 18:05:01] [INFO] stats: load imbalance: 6.09212 skewness: 0
+[19-03-04 18:05:01] [INFO] Stop step 7
+[19-03-04 18:05:01] [INFO] Beginning step 8
+[19-03-04 18:05:06] [INFO] stats: load imbalance: 6.04665 skewness: 0
+[19-03-04 18:05:06] [INFO] Stop step 8
+[19-03-04 18:05:06] [INFO] Beginning step 9
+[19-03-04 18:05:10] [INFO] stats: load imbalance: 6.0209 skewness: 0
+[19-03-04 18:05:10] [INFO] Stop step 9
+[19-03-04 18:05:10] [INFO] Beginning step 10
+[19-03-04 18:05:10] [INFO] call LB at: 10
+[19-03-04 18:05:14] [INFO] next LB call at: 110
+[19-03-04 18:05:20] [INFO] stats: load imbalance: 5.9623 skewness: 0
+[19-03-04 18:05:20] [INFO] Stop step 10
+[19-03-04 18:05:20] [INFO] Beginning step 11
+[19-03-04 18:05:24] [INFO] stats: load imbalance: 6.10772 skewness: 0
+[19-03-04 18:05:24] [INFO] Stop step 11
+[19-03-04 18:05:24] [INFO] Beginning step 12
+[19-03-04 18:05:29] [INFO] stats: load imbalance: 6.1276 skewness: 0
+[19-03-04 18:05:29] [INFO] Stop step 12
+[19-03-04 18:05:29] [INFO] Beginning step 13
+[19-03-04 18:05:34] [INFO] stats: load imbalance: 6.05215 skewness: 0
+[19-03-04 18:05:34] [INFO] Stop step 13
+[19-03-04 18:05:34] [INFO] Beginning step 14
+[19-03-04 18:05:38] [INFO] stats: load imbalance: 5.96869 skewness: 0
+[19-03-04 18:05:38] [INFO] Stop step 14
+[19-03-04 18:05:38] [INFO] Beginning step 15
+[19-03-04 18:05:43] [INFO] stats: load imbalance: 6.20999 skewness: 0
+[19-03-04 18:05:43] [INFO] Stop step 15
+[19-03-04 18:05:43] [INFO] Beginning step 16
+[19-03-04 18:05:48] [INFO] stats: load imbalance: 6.11235 skewness: 0
+[19-03-04 18:05:48] [INFO] Stop step 16
+[19-03-04 18:05:48] [INFO] Beginning step 17
+[19-03-04 18:05:53] [INFO] stats: load imbalance: 6.12309 skewness: 0
+[19-03-04 18:05:53] [INFO] Stop step 17
+[19-03-04 18:05:53] [INFO] Beginning step 18
+[19-03-04 18:05:57] [INFO] stats: load imbalance: 6.07822 skewness: 0
+[19-03-04 18:05:57] [INFO] Stop step 18
+[19-03-04 18:05:57] [INFO] Beginning step 19
+[19-03-04 18:06:02] [INFO] stats: load imbalance: 6.25565 skewness: 0
+[19-03-04 18:06:02] [INFO] Stop step 19
+[19-03-04 18:06:02] [INFO] Beginning step 20
+[19-03-04 18:06:07] [INFO] stats: load imbalance: 6.09084 skewness: 0
+[19-03-04 18:06:07] [INFO] Stop step 20
+[19-03-04 18:06:07] [INFO] Beginning step 21
+[19-03-04 18:06:12] [INFO] stats: load imbalance: 6.15402 skewness: 0
+[19-03-04 18:06:12] [INFO] Stop step 21
+[19-03-04 18:06:12] [INFO] Beginning step 22
+[19-03-04 18:06:16] [INFO] stats: load imbalance: 6.16725 skewness: 0
+[19-03-04 18:06:16] [INFO] Stop step 22
+[19-03-04 18:06:16] [INFO] Beginning step 23
+[19-03-04 18:06:21] [INFO] stats: load imbalance: 6.1549 skewness: 0
+[19-03-04 18:06:21] [INFO] Stop step 23
+[19-03-04 18:06:21] [INFO] Beginning step 24
+[19-03-04 18:06:26] [INFO] stats: load imbalance: 6.22041 skewness: 0
+[19-03-04 18:06:26] [INFO] Stop step 24
+[19-03-04 18:06:26] [INFO] Beginning step 25
+[19-03-04 18:06:31] [INFO] stats: load imbalance: 6.29181 skewness: 0
+[19-03-04 18:06:31] [INFO] Stop step 25
+[19-03-04 18:06:31] [INFO] Beginning step 26
+[19-03-04 18:06:35] [INFO] stats: load imbalance: 6.40508 skewness: 0
+[19-03-04 18:06:35] [INFO] Stop step 26
+[19-03-04 18:06:35] [INFO] Beginning step 27
+[19-03-04 18:06:40] [INFO] stats: load imbalance: 6.50857 skewness: 0
+[19-03-04 18:06:42] [INFO] Stop step 27
+[19-03-04 18:06:42] [INFO] Beginning step 28
+[19-03-04 18:06:47] [INFO] stats: load imbalance: 6.65448 skewness: 0
+[19-03-04 18:06:47] [INFO] Stop step 28
+[19-03-04 18:06:47] [INFO] Beginning step 29
+[19-03-04 18:06:51] [INFO] stats: load imbalance: 6.78961 skewness: 0
+[19-03-04 18:06:51] [INFO] Stop step 29
+[19-03-04 18:06:51] [INFO] Beginning step 30
+[19-03-04 18:06:56] [INFO] stats: load imbalance: 6.91532 skewness: 0
+[19-03-04 18:06:56] [INFO] Stop step 30
+[19-03-04 18:06:56] [INFO] Beginning step 31
+[19-03-04 18:07:01] [INFO] stats: load imbalance: 7.01257 skewness: 0
+[19-03-04 18:07:01] [INFO] Stop step 31
+[19-03-04 18:07:01] [INFO] Beginning step 32
+[19-03-04 18:07:06] [INFO] stats: load imbalance: 7.13111 skewness: 0
+[19-03-04 18:07:06] [INFO] Stop step 32
+[19-03-04 18:07:06] [INFO] Beginning step 33
+[19-03-04 18:07:10] [INFO] stats: load imbalance: 7.21911 skewness: 0
+[19-03-04 18:07:10] [INFO] Stop step 33
+[19-03-04 18:07:10] [INFO] Beginning step 34
+[19-03-04 18:07:15] [INFO] stats: load imbalance: 7.3616 skewness: 0
+[19-03-04 18:07:15] [INFO] Stop step 34
+[19-03-04 18:07:15] [INFO] Beginning step 35
+[19-03-04 18:07:20] [INFO] stats: load imbalance: 7.48814 skewness: 0
+[19-03-04 18:07:20] [INFO] Stop step 35
+[19-03-04 18:07:20] [INFO] Beginning step 36
+[19-03-04 18:07:25] [INFO] stats: load imbalance: 7.57343 skewness: 0
+[19-03-04 18:07:25] [INFO] Stop step 36
+[19-03-04 18:07:25] [INFO] Beginning step 37
+[19-03-04 18:07:30] [INFO] stats: load imbalance: 7.67391 skewness: 0
+[19-03-04 18:07:30] [INFO] Stop step 37
+[19-03-04 18:07:30] [INFO] Beginning step 38
+[19-03-04 18:07:35] [INFO] stats: load imbalance: 7.79593 skewness: 0
+[19-03-04 18:07:35] [INFO] Stop step 38
+[19-03-04 18:07:35] [INFO] Beginning step 39
+[19-03-04 18:07:40] [INFO] stats: load imbalance: 7.89318 skewness: 0
+[19-03-04 18:07:40] [INFO] Stop step 39
+[19-03-04 18:07:40] [INFO] Beginning step 40
+[19-03-04 18:07:44] [INFO] stats: load imbalance: 8.01427 skewness: 0
+[19-03-04 18:07:44] [INFO] Stop step 40
+[19-03-04 18:07:44] [INFO] Beginning step 41
+[19-03-04 18:07:49] [INFO] stats: load imbalance: 8.12818 skewness: 0
+[19-03-04 18:07:49] [INFO] Stop step 41
+[19-03-04 18:07:49] [INFO] Beginning step 42
+[19-03-04 18:07:54] [INFO] stats: load imbalance: 8.23979 skewness: 0
+[19-03-04 18:07:54] [INFO] Stop step 42
+[19-03-04 18:07:54] [INFO] Beginning step 43
+[19-03-04 18:07:59] [INFO] stats: load imbalance: 8.3296 skewness: 0
+[19-03-04 18:07:59] [INFO] Stop step 43
+[19-03-04 18:07:59] [INFO] Beginning step 44
+[19-03-04 18:08:04] [INFO] stats: load imbalance: 8.39493 skewness: 0
+[19-03-04 18:08:04] [INFO] Stop step 44
+[19-03-04 18:08:04] [INFO] Beginning step 45
+[19-03-04 18:08:08] [INFO] stats: load imbalance: 8.55842 skewness: 0
+[19-03-04 18:08:09] [INFO] Stop step 45
+[19-03-04 18:08:09] [INFO] Beginning step 46
+[19-03-04 18:08:13] [INFO] stats: load imbalance: 8.6742 skewness: 0
+[19-03-04 18:08:13] [INFO] Stop step 46
+[19-03-04 18:08:13] [INFO] Beginning step 47
+[19-03-04 18:08:18] [INFO] stats: load imbalance: 8.77001 skewness: 0
+[19-03-04 18:08:18] [INFO] Stop step 47
+[19-03-04 18:08:18] [INFO] Beginning step 48
+[19-03-04 18:08:23] [INFO] stats: load imbalance: 8.86757 skewness: 0
+[19-03-04 18:08:23] [INFO] Stop step 48
+[19-03-04 18:08:23] [INFO] Beginning step 49
+[19-03-04 18:08:28] [INFO] stats: load imbalance: 8.98133 skewness: 0
+[19-03-04 18:08:28] [INFO] Stop step 49
+[19-03-04 18:08:29] [INFO] Beginning step 50
+[19-03-04 18:08:33] [INFO] stats: load imbalance: 9.07733 skewness: 0
+[19-03-04 18:08:33] [INFO] Stop step 50
+[19-03-04 18:08:33] [INFO] Beginning step 51
+[19-03-04 18:08:38] [INFO] stats: load imbalance: 9.19383 skewness: 0
+[19-03-04 18:08:38] [INFO] Stop step 51
+[19-03-04 18:08:38] [INFO] Beginning step 52
+[19-03-04 18:08:43] [INFO] stats: load imbalance: 9.28037 skewness: 0
+[19-03-04 18:08:43] [INFO] Stop step 52
+[19-03-04 18:08:43] [INFO] Beginning step 53
+[19-03-04 18:08:48] [INFO] stats: load imbalance: 9.40933 skewness: 0
+[19-03-04 18:08:48] [INFO] Stop step 53
+[19-03-04 18:08:48] [INFO] Beginning step 54
+[19-03-04 18:08:53] [INFO] stats: load imbalance: 9.48371 skewness: 0
+[19-03-04 18:08:53] [INFO] Stop step 54
+[19-03-04 18:08:53] [INFO] Beginning step 55
+[19-03-04 18:08:58] [INFO] stats: load imbalance: 9.54709 skewness: 0
+[19-03-04 18:08:58] [INFO] Stop step 55
+[19-03-04 18:08:58] [INFO] Beginning step 56
+[19-03-04 18:09:02] [INFO] stats: load imbalance: 9.66267 skewness: 0
+[19-03-04 18:09:02] [INFO] Stop step 56
+[19-03-04 18:09:02] [INFO] Beginning step 57
+[19-03-04 18:09:07] [INFO] stats: load imbalance: 9.78318 skewness: 0
+[19-03-04 18:09:07] [INFO] Stop step 57
+[19-03-04 18:09:07] [INFO] Beginning step 58
+[19-03-04 18:09:12] [INFO] stats: load imbalance: 9.88891 skewness: 0
+[19-03-04 18:09:12] [INFO] Stop step 58
+[19-03-04 18:09:12] [INFO] Beginning step 59
+[19-03-04 18:09:17] [INFO] stats: load imbalance: 10.0019 skewness: 0
+[19-03-04 18:09:17] [INFO] Stop step 59
+[19-03-04 18:09:17] [INFO] Beginning step 60
+[19-03-04 18:09:22] [INFO] stats: load imbalance: 10.0506 skewness: 0
+[19-03-04 18:09:22] [INFO] Stop step 60
+[19-03-04 18:09:22] [INFO] Beginning step 61
+[19-03-04 18:09:27] [INFO] stats: load imbalance: 10.1611 skewness: 0
+[19-03-04 18:09:27] [INFO] Stop step 61
+[19-03-04 18:09:27] [INFO] Beginning step 62
+[19-03-04 18:09:32] [INFO] stats: load imbalance: 10.2601 skewness: 0
+[19-03-04 18:09:32] [INFO] Stop step 62
+[19-03-04 18:09:32] [INFO] Beginning step 63
+[19-03-04 18:09:36] [INFO] stats: load imbalance: 10.3588 skewness: 0
+[19-03-04 18:09:36] [INFO] Stop step 63
+[19-03-04 18:09:36] [INFO] Beginning step 64
+[19-03-04 18:09:41] [INFO] stats: load imbalance: 10.4403 skewness: 0
+[19-03-04 18:09:41] [INFO] Stop step 64
+[19-03-04 18:09:41] [INFO] Beginning step 65
+[19-03-04 18:09:46] [INFO] stats: load imbalance: 10.5524 skewness: 0
+[19-03-04 18:09:46] [INFO] Stop step 65
+[19-03-04 18:09:46] [INFO] Beginning step 66
+[19-03-04 18:09:51] [INFO] stats: load imbalance: 10.6529 skewness: 0
+[19-03-04 18:09:51] [INFO] Stop step 66
+[19-03-04 18:09:51] [INFO] Beginning step 67
+[19-03-04 18:09:56] [INFO] stats: load imbalance: 10.747 skewness: 0
+[19-03-04 18:09:56] [INFO] Stop step 67
+[19-03-04 18:09:56] [INFO] Beginning step 68
+[19-03-04 18:10:01] [INFO] stats: load imbalance: 10.8454 skewness: 0
+[19-03-04 18:10:01] [INFO] Stop step 68
+[19-03-04 18:10:01] [INFO] Beginning step 69
+[19-03-04 18:10:06] [INFO] stats: load imbalance: 10.9363 skewness: 0
+[19-03-04 18:10:06] [INFO] Stop step 69
+[19-03-04 18:10:06] [INFO] Beginning step 70
+[19-03-04 18:10:11] [INFO] stats: load imbalance: 11.0615 skewness: 0
+[19-03-04 18:10:11] [INFO] Stop step 70
+[19-03-04 18:10:11] [INFO] Beginning step 71
+[19-03-04 18:10:15] [INFO] stats: load imbalance: 11.1455 skewness: 0
+[19-03-04 18:10:15] [INFO] Stop step 71
+[19-03-04 18:10:15] [INFO] Beginning step 72
+[19-03-04 18:10:20] [INFO] stats: load imbalance: 11.263 skewness: 0
+[19-03-04 18:10:21] [INFO] Stop step 72
+[19-03-04 18:10:21] [INFO] Beginning step 73
+[19-03-04 18:10:26] [INFO] stats: load imbalance: 11.3115 skewness: 0
+[19-03-04 18:10:26] [INFO] Stop step 73
+[19-03-04 18:10:26] [INFO] Beginning step 74
+[19-03-04 18:10:30] [INFO] stats: load imbalance: 11.4284 skewness: 0
+[19-03-04 18:10:30] [INFO] Stop step 74
+[19-03-04 18:10:30] [INFO] Beginning step 75
+[19-03-04 18:10:35] [INFO] stats: load imbalance: 11.5126 skewness: 0
+[19-03-04 18:10:35] [INFO] Stop step 75
+[19-03-04 18:10:35] [INFO] Beginning step 76
+[19-03-04 18:10:40] [INFO] stats: load imbalance: 11.5945 skewness: 0
+[19-03-04 18:10:40] [INFO] Stop step 76
+[19-03-04 18:10:40] [INFO] Beginning step 77
+[19-03-04 18:10:45] [INFO] stats: load imbalance: 11.6775 skewness: 0
+[19-03-04 18:10:45] [INFO] Stop step 77
+[19-03-04 18:10:45] [INFO] Beginning step 78
+[19-03-04 18:10:50] [INFO] stats: load imbalance: 11.7873 skewness: 0
+[19-03-04 18:10:50] [INFO] Stop step 78
+[19-03-04 18:10:50] [INFO] Beginning step 79
+[19-03-04 18:10:55] [INFO] stats: load imbalance: 11.8763 skewness: 0
+[19-03-04 18:10:55] [INFO] Stop step 79
+[19-03-04 18:10:55] [INFO] Beginning step 80
+[19-03-04 18:11:00] [INFO] stats: load imbalance: 11.9861 skewness: 0
+[19-03-04 18:11:00] [INFO] Stop step 80
+[19-03-04 18:11:00] [INFO] Beginning step 81
+[19-03-04 18:11:05] [INFO] stats: load imbalance: 12.054 skewness: 0
+[19-03-04 18:11:05] [INFO] Stop step 81
+[19-03-04 18:11:05] [INFO] Beginning step 82
+[19-03-04 18:11:10] [INFO] stats: load imbalance: 12.1397 skewness: 0
+[19-03-04 18:11:10] [INFO] Stop step 82
+[19-03-04 18:11:10] [INFO] Beginning step 83
+[19-03-04 18:11:15] [INFO] stats: load imbalance: 12.2189 skewness: 0
+[19-03-04 18:11:15] [INFO] Stop step 83
+[19-03-04 18:11:15] [INFO] Beginning step 84
+[19-03-04 18:11:20] [INFO] stats: load imbalance: 12.2952 skewness: 0
+[19-03-04 18:11:20] [INFO] Stop step 84
+[19-03-04 18:11:20] [INFO] Beginning step 85
+[19-03-04 18:11:25] [INFO] stats: load imbalance: 12.4021 skewness: 0
+[19-03-04 18:11:25] [INFO] Stop step 85
+[19-03-04 18:11:25] [INFO] Beginning step 86
+[19-03-04 18:11:30] [INFO] stats: load imbalance: 12.5051 skewness: 0
+[19-03-04 18:11:30] [INFO] Stop step 86
+[19-03-04 18:11:30] [INFO] Beginning step 87
+[19-03-04 18:11:35] [INFO] stats: load imbalance: 12.5932 skewness: 0
+[19-03-04 18:11:35] [INFO] Stop step 87
+[19-03-04 18:11:35] [INFO] Beginning step 88
+[19-03-04 18:11:40] [INFO] stats: load imbalance: 12.6321 skewness: 0
+[19-03-04 18:11:40] [INFO] Stop step 88
+[19-03-04 18:11:40] [INFO] Beginning step 89
+[19-03-04 18:11:44] [INFO] stats: load imbalance: 12.7433 skewness: 0
+[19-03-04 18:11:44] [INFO] Stop step 89
+[19-03-04 18:11:44] [INFO] Beginning step 90
+[19-03-04 18:11:49] [INFO] stats: load imbalance: 12.8343 skewness: 0
+[19-03-04 18:11:50] [INFO] Stop step 90
+[19-03-04 18:11:50] [INFO] Beginning step 91
+[19-03-04 18:11:55] [INFO] stats: load imbalance: 12.9653 skewness: 0
+[19-03-04 18:11:55] [INFO] Stop step 91
+[19-03-04 18:11:55] [INFO] Beginning step 92
+[19-03-04 18:12:00] [INFO] stats: load imbalance: 13.0211 skewness: 0
+[19-03-04 18:12:00] [INFO] Stop step 92
+[19-03-04 18:12:00] [INFO] Beginning step 93
+[19-03-04 18:12:05] [INFO] stats: load imbalance: 13.1584 skewness: 0
+[19-03-04 18:12:05] [INFO] Stop step 93
+[19-03-04 18:12:05] [INFO] Beginning step 94
+[19-03-04 18:12:10] [INFO] stats: load imbalance: 13.2073 skewness: 0
+[19-03-04 18:12:10] [INFO] Stop step 94
+[19-03-04 18:12:10] [INFO] Beginning step 95
+[19-03-04 18:12:14] [INFO] stats: load imbalance: 13.304 skewness: 0
+[19-03-04 18:12:14] [INFO] Stop step 95
+[19-03-04 18:12:14] [INFO] Beginning step 96
+[19-03-04 18:12:19] [INFO] stats: load imbalance: 13.3841 skewness: 0
+[19-03-04 18:12:19] [INFO] Stop step 96
+[19-03-04 18:12:19] [INFO] Beginning step 97
+[19-03-04 18:12:24] [INFO] stats: load imbalance: 13.4693 skewness: 0
+[19-03-04 18:12:24] [INFO] Stop step 97
+[19-03-04 18:12:24] [INFO] Beginning step 98
+[19-03-04 18:12:29] [INFO] stats: load imbalance: 13.5501 skewness: 0
+[19-03-04 18:12:29] [INFO] Stop step 98
+[19-03-04 18:12:29] [INFO] Beginning step 99
+[19-03-04 18:12:34] [INFO] stats: load imbalance: 13.6161 skewness: 0
+[19-03-04 18:12:35] [INFO] Stop step 99
+[19-03-04 18:12:35] [INFO] "total_time":493.549

@@ -1,0 +1,5 @@
+#!/bin/bash
+git pull
+~/cmake-3.11.0-Linux-x86_64/bin/cmake -DLB_METHOD=2 -DBINARY_NAME=SPEC_2 . && make
+~/cmake-3.11.0-Linux-x86_64/bin/cmake -DLB_METHOD=3 -DBINARY_NAME=SPEC_3 . && make
+~/cmake-3.11.0-Linux-x86_64/bin/cmake -DLB_METHOD=5 -DBINARY_NAME=SPEC_5 . && make
