@@ -13,6 +13,7 @@ SPEC.cbp
 log/*
 data*
 backup/
+20190402-data/
 
 # CMake
 CMakeCache.txt
