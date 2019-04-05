@@ -144,10 +144,10 @@ int main(int argc, char **argv) {
     std::vector<int> loading_procs;
     //const int loading_proc = proc_dist(gen) % worldsize; //one randomly chosen load proc
     std::uniform_int_distribution<>  lproc_dist((int)N/2, worldsize-1-(int)N/2);
-    for(int i = worldsize-1; loading_procs.size() < N; i--){
-        loading_procs.push_back(i);
-    } 
-    /*
+    //for(int i = worldsize-1; loading_procs.size() < N; i--){
+    //    loading_procs.push_back(i);
+    //} 
+    
     int median_lproc = lproc_dist(gen);
     
     if(N >= 1) loading_procs.push_back(median_lproc);
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
         if(loading_procs.size() < N) {
             loading_procs.push_back(median_lproc+i);
         } else break;
-    }*/
+    }
     std::for_each(loading_procs.begin(), loading_procs.end(), [](auto v){std::cout << v << std::endl;});
     
     const bool i_am_loading_proc = std::find(loading_procs.begin(), loading_procs.end(), rank) != loading_procs.end();

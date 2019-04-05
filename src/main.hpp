@@ -92,8 +92,9 @@ void generate_lattice_rocks( bool i_am_overloading,
     std::vector<std::tuple<int, int, int>> rocks_data(rocks_per_stripe);
 
     for (int i = 0; i < rocks_per_stripe; ++i) {
-//        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), (begin_stripe + end_stripe) * (3.0/4.0) : (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 4);
-          rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)),  i_am_overloading ? (begin_stripe + end_stripe) / 2 + (end_stripe - begin_stripe) / 4 : (begin_stripe + end_stripe) / 2 - (end_stripe - begin_stripe) / 5, (end_stripe - begin_stripe) / 4);
+        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)),
+                                        (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 8);
+    //      rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)),  i_am_overloading ? (begin_stripe + end_stripe) / 2 + (end_stripe - begin_stripe) / 4 : (begin_stripe + end_stripe) / 2 - (end_stripe - begin_stripe) / 5, (end_stripe - begin_stripe) / 4);
 
 
     }
