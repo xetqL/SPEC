@@ -169,8 +169,8 @@ long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) {
  * @param _my_cells
  * @param slope
  */
-template<class Predicate>
-void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, Predicate f){
+template<class MapFunc>
+void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, MapFunc f){
     std::vector<Cell>& my_cells = *(_my_cells);
     int nb_type = 0;
     slope = std::max(slope, 0.0); // wtf is a negative slope

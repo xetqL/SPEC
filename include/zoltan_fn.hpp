@@ -231,7 +231,7 @@ inline int zoltan_load_balance(std::vector<Cell>* mesh_data,
     Zoltan_LB_Free_Part(&importGlobalGids, &importLocalGids, &importProcs, &importToPart);
     Zoltan_LB_Free_Part(&exportGlobalGids, &exportLocalGids, &exportProcs, &exportToPart);
 
-    return import_load- export_load;
+    return import_load - export_load;
 }
 
 #endif //SPEC_ZOLTAN_FN_HPP

@@ -3,6 +3,7 @@ project(SPEC C CXX)
 
 #enable_language(C CXX)
 find_package(MPI REQUIRED)
+
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER})

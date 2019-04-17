@@ -200,20 +200,30 @@ int main(int argc, char **argv) {
     // if(i_am_foreman) steplogger->info("End of map generation");
     /* Initial load balancing */
     std::vector<double> lb_costs;
-    // auto zoltan_lb = zoltan_create_wrapper(true, world);
+
+#ifdef WITH_ZOLTAN
+    auto zoltan_lb = zoltan_create_wrapper(true, world);
+    PAR_START_TIMING(current_lb_cost, world);
+    auto data = zoltan_load_balance(&my_cells, zoltan_lb, true, true);
+    PAR_STOP_TIMING(current_lb_cost, world);
+    int bottom, top, stripe_size = msy / worldsize;
+    bottom =  rank      * stripe_size;
+    top    = (rank + 1) * stripe_size;
+    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.3f : 0.05f, bottom, top);
+#else
     StripeLoadBalancer stripe_lb(FOREMAN, msx, msy, datatype.element_datatype, world);
     stripe_lb.setLoggerPtr(steplogger);
     PAR_START_TIMING(current_lb_cost, world);
     stripe_lb.load_balance(&my_cells, 0.0);
     PAR_STOP_TIMING(current_lb_cost, world);
 
+    auto my_domain = stripe_lb.get_domain(rank);
+    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.3f : 0.05f, my_domain.first, my_domain.second);
+#endif
+
     MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
     lb_costs.push_back(current_lb_cost);
     auto avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-
-    auto my_domain = stripe_lb.get_domain(rank);
-
-    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.3f : 0.0f, my_domain.first, my_domain.second);
 
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
@@ -354,39 +364,37 @@ int main(int argc, char **argv) {
             MPI_Bcast(&ncall, 1, MPI_INT, 0, world);
         }
 #elif LB_METHOD == 4 // Unloading Model
-        constexpr double alpha = 1.0/4.0;
-        if(i_am_foreman) steplogger->info("degradation: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost;
-        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
-        if( lb_condition ) {
-            double my_slope           = (std::floor(get_slope<double>(window_my_time.data_container)*1000.0)) / 1000.0;
-            double step_slope         = (std::floor(get_slope<double>(window_step_time.data_container)*1000.0)) / 1000.0;
-            auto total_last_step_time = *(window_step_time.end()-1);
-            auto my_last_step_time    = *(window_my_time.end()-1);
+        double median;
+        if(std::distance(window_step_time.begin(), window_step_time.end() - 3) < 0)
+            median  = stats::median<double>(window_step_time.begin(), window_step_time.end());
+        else
+            median  = stats::median<double>(window_step_time.end() - 3, window_step_time.end());
+        auto mean  = stats::mean<double>(window_step_time.begin(), window_step_time.end());
 
-            PAR_START_TIMING(current_lb_cost, world);
-            // if(i_am_overloaded && i_am_increasing) {
-            // std::cout << rank << " !!!!!!!!!!!!!!!!!!! " << step_slope << " " << my_slope << std::endl;
+        if(i_am_foreman) steplogger->info("degradation method 4: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " " << (median-mean);
+        lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
+        if(lb_condition) {
+            bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
+            if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
             int parts_num[1] = {rank}, weight_per_obj[1] = {0};
-            float part_size[1] = {(1.0f - (float) my_slope)};
-            // Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
+            float part_size[1] = {overloading ? 0.8f : 1.0f};
+            Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
+            PAR_START_TIMING(current_lb_cost, world);
             update_cell_weights(&my_cells, part_size[0], WATER_TYPE, [](auto a, auto b){return a * 1.0/b;});
-            /*} else {
-                int parts_num[1] = {rank}, weight_per_obj[1] = {0};
-                float part_size[1] = {1.0};
-                Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
-            }*/
-            // auto data = zoltan_load_balance(&my_cells, zoltan_lb, true, true);
-            // std::cout << rank << " " << data << std::endl;
+            auto data = zoltan_load_balance(&my_cells, zoltan_lb, true, true);
             PAR_STOP_TIMING(current_lb_cost, world);
-            if(i_am_foreman) perflogger->info("LB_time: ") << current_lb_cost;
+            MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
             lb_costs.push_back(current_lb_cost);
             avg_lb_cost = stats::mean<double>(lb_costs.begin(), lb_costs.end());
-            //std::cout << rank << " number of cells: " << compute_effective_workload(my_cells, WATER_TYPE) << " effective load " << compute_estimated_workload(my_cells) << std::endl ;
+            perflogger->info("LB_time: ") << current_lb_cost;
+            gossip_workload_db.reset();
+            water.clear();
             degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
+            //window_water.data_container.clear();
             pcall = step;
-            ncall = 10;
+            ncall = MAX_STEP;
         }
 #elif LB_METHOD == 5
         double median;
@@ -526,7 +534,7 @@ int main(int argc, char **argv) {
         }
 
 #ifdef PRODUCE_OUTPUTS
-        if(step % 10 == 0){
+        if(step % 5 == 0){
             unsigned long cell_cnt = my_cells.size();
             std::vector<std::array<int,2>> my_types(cell_cnt);
             for (unsigned int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
