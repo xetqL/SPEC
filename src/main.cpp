@@ -374,7 +374,7 @@ int main(int argc, char **argv) {
         if(i_am_foreman) steplogger->info("degradation method 4: ") << degradation_since_last_lb << " avg_lb_cost " << avg_lb_cost << " " << (median-mean);
         lb_condition = pcall + ncall <= step || degradation_since_last_lb > avg_lb_cost;
         if(lb_condition) {
-            bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
+            bool overloading = gossip_waterslope_db.zscore(rank) > 2.5;
             if(overloading) std::cout << "I WILL BE UNLOADED" << std::endl;
             int parts_num[1] = {rank}, weight_per_obj[1] = {0};
             float part_size[1] = {overloading ? 0.8f : 1.0f};
@@ -445,7 +445,11 @@ int main(int argc, char **argv) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /// COMPUTATION START
         double add_weight;
-        auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
+#ifdef WITH_ZOLTAN
+        auto remote_cells = zoltan_exchange_data(zoltan_lb,my_cells,&recv,&sent,datatype.element_datatype,world,1.0);
+#else
+        auto remote_cells = stripe_lb.share_frontier_with_neighbors(my_cells, &recv, &sent);//
+#endif
         decltype(my_water_ptr) remote_water_ptr;
 
         std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);

@@ -135,7 +135,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, in
 
     Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0");
     Zoltan_Set_Param(zz, "LB_METHOD", "RCB");
-//    Zoltan_Set_Param(zz, "DETERMINISTIC", "1");
+    Zoltan_Set_Param(zz, "DETERMINISTIC", "1");
     Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1");
 
     if(num_global_part >= 1) Zoltan_Set_Param(zz, "NUM_GLOBAL_PARTS", ngp.c_str());
@@ -143,12 +143,14 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm, in
 
     Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1");
     Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "1");
+
     Zoltan_Set_Param(zz, "RETURN_LISTS", "ALL");
 
     Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "0");
-    Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "0"); 
+    Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "0");
     Zoltan_Set_Param(zz, "RCB_REUSE", "1");
     Zoltan_Set_Param(zz, "KEEP_CUTS", "1");
+
     Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
 
     if(automatic_migration)
@@ -205,7 +207,7 @@ inline int zoltan_load_balance(std::vector<Cell>* mesh_data,
     int export_load = 0;
     int import_load = 0;
     auto& md = *mesh_data;
-
+/*
     for(const auto& cell : md) {
         if(cell.type)
             for(int i = 0; i < numExport; ++i){
@@ -215,9 +217,9 @@ inline int zoltan_load_balance(std::vector<Cell>* mesh_data,
                 }
             }
     }
-
+*/
     Zoltan_Migrate(load_balancer, numImport, importGlobalGids, importLocalGids, importProcs, importToPart, numExport, exportGlobalGids, exportLocalGids, exportProcs, exportToPart);
-
+/*
     for(const auto& cell : md) {
         if(cell.type)
             for(int i = 0; i < numImport; ++i){
@@ -227,7 +229,7 @@ inline int zoltan_load_balance(std::vector<Cell>* mesh_data,
                 }
             }
     }
-
+*/
     Zoltan_LB_Free_Part(&importGlobalGids, &importLocalGids, &importProcs, &importToPart);
     Zoltan_LB_Free_Part(&exportGlobalGids, &exportLocalGids, &exportProcs, &exportToPart);
 
