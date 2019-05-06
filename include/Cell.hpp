@@ -2,12 +2,14 @@
 // Created by xetql on 2/11/19.
 //
 
-#ifndef SPEC_CELL_HPP
-#define SPEC_CELL_HPP
+#ifndef CELL_HPP
+#define CELL_HPP
 
+#include <algorithm>
 #include <ostream>
-#include "communication.hpp"
-#include "utils.hpp"
+#include <vector>
+#include "Communication.hpp"
+#include "Utils.hpp"
 
 #define ROCK_WEIGHT 0.0
 #define WATER_WEIGHT 1.0
@@ -76,12 +78,6 @@ struct Cell {
         return CommunicationDatatype(cell_datatype, gid_type_datatype);
     }
 
-    static int set_msx(int _msx){
-        static int msx = _msx;
-    }
-    static int set_msy(int _msy){
-        static int msy = _msy;
-    }
     static int& get_msx(){
         static int msx;
         return msx;
@@ -104,65 +100,18 @@ void populate_data_pointers(int msx, int msy,
                             const std::vector<Cell>& my_cells,
                             const std::vector<Cell>& remote_cells,
                             const std::tuple<int, int, int, int>& bbox,
-                            bool create = false) {
-    std::vector<size_t>& data_pointers = *(_data_pointers);
-    int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
-    int my_box = (x2-x1) * (y2-y1);
-
-    if(create){
-        data_pointers.clear();
-        data_pointers.resize(my_box);
-        std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
-    }
-
-    auto mine_size   = my_cells.size();
-    auto remote_size = remote_cells.size();
-
-    for (size_t i = 0; i < mine_size; ++i) {
-        const Cell& cell = my_cells[i];
-        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
-        data_pointers[lid] = i;
-    }
-
-    for (size_t i = 0; i < remote_size; ++i) {
-        const Cell& cell = remote_cells[i];
-        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
-        data_pointers[lid] = i+mine_size;
-    }
-
-}
+                            bool create = false);
 
 void populate_data_pointers(int msx, int msy,
                             std::vector<size_t>* _data_pointers,
                             const std::vector<Cell>& cells,
                             int displ,
                             const std::tuple<int, int, int, int>& bbox,
-                            bool create = false) {
-    std::vector<size_t>& data_pointers = *(_data_pointers);
-    int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
-    int my_box = (x2-x1) * (y2-y1);
-    if(create) {
-        data_pointers.clear();
-        data_pointers.resize(my_box);
-        std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
-    }
-    auto mine_size = cells.size();
-    for (size_t i = 0; i < mine_size; ++i) {
-        const Cell& cell = cells[i];
-        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
-        data_pointers[lid] = i+displ;
-    }
-}
+                            bool create = false);
 
-float compute_estimated_workload(const std::vector<Cell>& _my_cells) {
-    float load = 0;
-    for (const auto& cell : _my_cells) load += cell.weight;
-    return load;
-}
+float compute_estimated_workload(const std::vector<Cell>& _my_cells);
 
-long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) {
-    return std::count_if(_my_cells.begin(), _my_cells.end(), [&](auto c){return c.type == type;});
-}
+long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) ;
 
 /**
  * Divide the speed at which I am loading among all the work units that can load
@@ -170,27 +119,19 @@ long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) {
  * @param slope
  */
 template<class MapFunc>
-void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, MapFunc f){
+void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, MapFunc f) {
     std::vector<Cell>& my_cells = *(_my_cells);
     int nb_type = 0;
     slope = std::max(slope, 0.0); // wtf is a negative slope
     for(auto& cell : my_cells) if(cell.type == type) nb_type++;
     for(auto& cell : my_cells) if(cell.type == type) {
-        cell.weight = f(cell.weight, (float) slope);
-    }
+            cell.weight = f(cell.weight, (float) slope);
+        }
 
 }
-void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type){
-    std::vector<Cell>& my_cells = *(_my_cells);
-    int nb_type = 0;
-    slope = std::max(slope, 0.0); // wtf is a negative slope
-    for(auto& cell : my_cells) if(cell.type == type) nb_type++;
-    for(auto& cell : my_cells) if(cell.type == type) cell.weight = cell.weight - (float) slope * 1.0f / nb_type;
-}
 
-void reset_cell_weights(std::vector<Cell>* _my_cells){
-    std::vector<Cell>& my_cells = *(_my_cells);
-    for(auto& cell : my_cells) cell.weight = cell.type ? WATER_WEIGHT : ROCK_WEIGHT;
-}
+void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type);
 
-#endif //SPEC_CELL_HPP
+void reset_cell_weights(std::vector<Cell>* _my_cells);
+
+#endif

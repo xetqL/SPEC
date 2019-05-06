@@ -23,6 +23,18 @@
  *   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  ***************************************************************************/
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreorder"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmisleading-indentation"
+
 
 // Unless you are very confident, don't set either OS flag
 #if defined(ZUPPLY_OS_UNIX) && defined(ZUPPLY_OS_WINDOWS)
@@ -77,7 +89,7 @@
 #include <sys/syscall.h>
 #endif
 
-#include "zupply.hpp"
+#include "../include/zupply.hpp"
 
 #include <chrono>
 #include <iomanip>
@@ -4497,7 +4509,6 @@ namespace zz
 #undef CASE
 						}
 					}
-
 					// we make a separate pass to expand bits to pixels; for performance,
 					// this could run two scanlines behind the above code, so it won't
 					// intefere with filtering but will still be in the cache.
@@ -13987,3 +13998,7 @@ namespace zz
 	}
 
 } // end namesapce zz
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop

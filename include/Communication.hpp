@@ -5,6 +5,7 @@
 #ifndef SPEC_COMM_HPP
 #define SPEC_COMM_HPP
 
+#include <numeric>
 #include <mpi.h>
 struct CommunicationDatatype {
     MPI_Datatype element_datatype;
@@ -177,7 +178,7 @@ const std::vector<A> zoltan_exchange_data(Zoltan_Struct *load_balancer,
 // Send the data to neighbors
     std::vector<MPI_Request> reqs(nb_reqs);
     *nb_elements_sent = 0;
-    for (size_t PE = 0; PE < wsize; PE++) {
+    for (size_t PE = 0; PE < (unsigned int) wsize; PE++) {
         int send_size = data_to_migrate.at(PE).size();
         if (send_size) {
             *nb_elements_sent += send_size;

@@ -2,22 +2,33 @@
 // Created by xetql on 2/11/19.
 //
 
-#ifndef SPEC_UTILS_HPP
-#define SPEC_UTILS_HPP
+#ifndef UTILS_HPP
+#define UTILS_HPP
 
-#include <utility>
+#include <algorithm>
+#include <cmath>
+#include <cassert>
+#include <numeric>
 #include <unordered_map>
-#include "cell.hpp"
+#include <utility>
+#include <map>
+#include <vector>
+
+long long position_to_cell(int msx, int msy, const std::pair<int, int> & position) ;
+
+long long position_to_cell(int msx, int msy, const int x, const int y);
+
+std::pair<int, int> cell_to_global_position(int msx, int msy, long long position) ;
+
+std::pair<int, int> cell_to_local_position(int msx, int msy, std::tuple<int,int,int,int> bounding_box, long long position);
 
 template<typename K, typename V>
-std::vector<std::pair<K,V>> mapToVector(const std::unordered_map<K,V> &map)
-{
+std::vector<std::pair<K,V>> mapToVector(const std::unordered_map<K,V> &map) {
     return std::vector<std::pair<K,V>>(map.begin(), map.end());
 }
 
 template<typename K, typename V>
-std::vector<std::pair<K,V>> mapToVector(const std::map<K,V> &map)
-{
+std::vector<std::pair<K,V>> mapToVector(const std::map<K,V> &map) {
     return std::vector<std::pair<K,V>>(map.begin(), map.end());
 }
 
@@ -32,27 +43,9 @@ almost_equal(T x, T y, int ulp)
            || std::abs(x-y) < std::numeric_limits<T>::min();
 }
 
-inline long long position_to_cell(int msx, int msy, const std::pair<int, int> & position) {
-    return position.first + msx * position.second;
-}
-
-inline long long position_to_cell(int msx, int msy, const int x, const int y) {
-    return x + msx * y;
-}
-
-inline std::pair<int, int> cell_to_global_position(int msx, int msy, long long position){
-    return std::make_pair(position % msx, (int) position / msx);
-}
-
 template<class IntegerType=unsigned int>
-inline std::pair<IntegerType, IntegerType> cell_to_position(IntegerType msx, IntegerType msy, long long position){
+inline std::pair<IntegerType, IntegerType> cell_to_position(IntegerType msx, IntegerType msy, long long position) {
     return std::make_pair(position % msx, (IntegerType) position / msx);
-}
-
-inline std::pair<int, int> cell_to_local_position(int msx, int msy, std::tuple<int,int,int,int> bounding_box, long long position){
-    int minx, maxx, miny, maxy; std::tie(minx, maxx, miny, maxy) = bounding_box;
-    int gidx =  position % msx, gidy = (int) position / msx;
-    return std::make_pair(gidx - minx,  gidy - miny);
 }
 
 template<class A>
@@ -76,7 +69,7 @@ std::tuple<int, int, int, int> get_bounding_box(
     maxx++;maxy++;
     assert(minx >= 0);
     assert(miny >= 0);
-    assert((maxx-minx) * (maxy-miny) >= (my_data.size() + remote_data.size()));
+    assert((unsigned int)  (maxx-minx) * (maxy-miny) >= (my_data.size() + remote_data.size()));
     return std::make_tuple(minx, maxx, miny, maxy);
 }
 
@@ -94,12 +87,8 @@ std::tuple<int, int, int, int> get_bounding_box(const std::vector<A>& my_data) {
     return std::make_tuple(minx, maxx, miny, maxy);
 }
 
-std::tuple<int, int, int, int> add_to_bbox(int msx, int msy, std::tuple<int, int, int, int> bbox, int a, int b, int c, int d) {
-    return std::make_tuple(std::max(0, std::get<0>(bbox) +a), std::min(msx, std::get<1>(bbox) +b), std::max(0, std::get<2>(bbox) +c), std::min(msy, std::get<3>(bbox) +d));
-}
-
 template<typename Realtype, typename ContainerA>
-Realtype get_slope(const ContainerA& y){
+Realtype get_slope(const ContainerA& y) {
 
     std::vector<Realtype> x(y.size());
     std::iota(x.begin(),x.end(), 0);
@@ -121,7 +110,7 @@ Realtype get_slope(const ContainerA& y){
 }
 
 template<typename Realtype, typename Iter>
-Realtype get_slope(const Iter& beginy, const Iter& endy){
+Realtype get_slope(const Iter& beginy, const Iter& endy) {
 
     const auto n = std::distance(beginy, endy);
 
@@ -140,27 +129,8 @@ Realtype get_slope(const Iter& beginy, const Iter& endy){
     return denominator == 0 ? (Realtype) 0 : numerator / denominator;
 }
 
-double slope(const std::vector<double>& y) {
-    std::vector<double> x(y.size());
-    std::iota(x.begin(), x.end(), 0);
-    const auto n    = x.size();
-    const auto s_x  = std::accumulate(x.begin(), x.end(), 0.0);
-    const auto s_y  = std::accumulate(y.begin(), y.end(), 0.0);
-    const auto s_xx = std::inner_product(x.begin(), x.end(), x.begin(), 0.0);
-    const auto s_xy = std::inner_product(x.begin(), x.end(), y.begin(), 0.0);
-    const auto a    = (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
-    return a;
-}
 
 
-int get_max(int* data, int n) {
-    int max = -1;
-    while(n >= 0) {
-        max = std::max(max, data[n]);
-        n--;
-    }
-    return max;
-}
 namespace stats
 {
 template<class RealType, class Iter>

@@ -1,28 +1,10 @@
 //
-// Created by xetql on 2/25/19.
+// Created by xetql on 5/6/19.
 //
 
-#ifndef SPEC_MAIN_HPP
-#define SPEC_MAIN_HPP
+#include "Simflow.hpp"
 
-#include <vector>
-#include <random>
-#include <algorithm>
-#include "../include/cell.hpp"
-
-#define WATER_TYPE 1
-#define ROCK_TYPE 0
-#define EMPTY_TYPE -1
-
-const float bytes_per_flop = 2.77f;
-std::random_device rd;
-std::mt19937 gen(rd());
-std::normal_distribution<float> ndist(9, 1);
-float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
-std::uniform_real_distribution<float> udist(0, 1);
-volatile double res = 0.0;
-volatile double one = 1.0;
-/// SIMULATION
+// FLOP simulation
 void consume_cpu_flops(double& flop_to_consume) {
     while (res < 0.5) {
         res = res + one / flop_to_consume; // 2 FLOP
@@ -35,37 +17,11 @@ void consume_cpu_flops(float& flop_to_consume) {
     }
 }
 
-/// GENERATION
-std::vector<Cell> generate_lattice_CA_diffusion(int msx, int msy,
-                                                int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols){
-    int cell_per_process = cell_in_my_cols*cell_in_my_rows;
-
-    std::vector<Cell> my_cells; my_cells.reserve(cell_per_process);
-
-    float minp, maxp;
-
-    for(int j = 0; j < cell_in_my_cols; ++j) {
-        if(j % 100 == 0){
-            std::uniform_real_distribution<float> real_dist1(0.0f, 0.1f);
-            minp = real_dist1(gen);
-            std::uniform_real_distribution<float> real_dist2(0.2f, 0.5f);
-            maxp = real_dist2(gen);
-        }
-        std::uniform_real_distribution<float> real_dist(minp, maxp);
-        //min_bucket * 1/(1.5f*nb_bucket), max_bucket * 1/(1.5f*nb_bucket));
-        for(int i = 0; i < cell_in_my_rows; ++i) {
-            bool rock = std::find(water_cols.begin(), water_cols.end(), (i + (y_proc_idx * cell_in_my_cols))) == water_cols.end();
-            int id = cell_in_my_rows * x_proc_idx + j + msx * (i + (y_proc_idx * cell_in_my_cols));
-            my_cells.emplace_back(id, rock ? ROCK_TYPE : WATER_TYPE, rock ? 0.0f : 1.0f, rock ? real_dist(gen) : 0.0);
-        }
-    }
-    return my_cells;
-}
-
+// Domain generation
 std::vector<Cell> generate_lattice_single_type( int msx, int msy,
                                                 int x_proc_idx, int y_proc_idx,
                                                 int cell_in_my_cols, int cell_in_my_rows,
-                                                int type, float weight, float erosion_probability){
+                                                int type, float weight, float erosion_probability) {
     int cell_per_process = cell_in_my_cols * cell_in_my_rows;
     std::vector<Cell> my_cells; my_cells.reserve(cell_per_process);
     for(int j = 0; j < cell_in_my_cols; ++j) {
@@ -74,14 +30,13 @@ std::vector<Cell> generate_lattice_single_type( int msx, int msy,
             my_cells.emplace_back(gid, type, weight, erosion_probability);
         }
     }
-
     return my_cells;
 }
 
 void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
-                             std::vector<Cell>* _cells,
-                             float erosion_probability,
-                             int begin_stripe, int end_stripe){
+                                    std::vector<Cell>* _cells,
+                                    float erosion_probability,
+                                    int begin_stripe, int end_stripe){
 
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -92,7 +47,7 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
 
     for (int i = 0; i < rocks_per_stripe; ++i) {
 //        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), (begin_stripe + end_stripe) * (3.0/4.0) : (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 4);
-          rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)),  rank == size-1 ? (begin_stripe + end_stripe) / 2 + (end_stripe - begin_stripe) / 4 : (begin_stripe + end_stripe) / 2 - (end_stripe - begin_stripe) / 5, (end_stripe - begin_stripe) / 4);
+        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)),  rank == size-1 ? (begin_stripe + end_stripe) / 2 + (end_stripe - begin_stripe) / 4 : (begin_stripe + end_stripe) / 2 - (end_stripe - begin_stripe) / 5, (end_stripe - begin_stripe) / 4);
     }
 
     for(auto& cell : cells) {
@@ -110,20 +65,18 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
         }
     }
 }
-int checkpoint(int h, int k, int x, int y, int a, int b)
-{
+
+int checkpoint(int h, int k, int x, int y, int a, int b) {
     // checking the equation of
     // ellipse with the given point
     int p = (std::pow((x - h), 2) / std::pow(a, 2)) + (std::pow((y - k), 2) / std::pow(b, 2));
     return p;
 }
 
-
-
 void generate_lattice_ellipse(int msx, int msy,
-                             std::vector<Cell>* _cells,
-                             float erosion_probability,
-                             int begin_stripe, int end_stripe){
+                                     std::vector<Cell>* _cells,
+                                     float erosion_probability,
+                                     int begin_stripe, int end_stripe){
     std::vector<Cell>& cells = *_cells;
     std::vector<std::tuple<int, int, int, int>> rocks_data(1);
 
@@ -144,9 +97,9 @@ void generate_lattice_ellipse(int msx, int msy,
         }
     }
 }
-
+/*
 std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
-                                                         int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols){
+                                                         int x_proc_idx, int y_proc_idx, int cell_in_my_cols, int cell_in_my_rows, const std::vector<int>& water_cols) {
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -206,7 +159,7 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
         }
     }
     return my_cells;
-}
+}*/
 
 #ifdef PRODUCE_OUTPUTS
 #include <cnpy.h>
@@ -245,6 +198,7 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy, int x
 #endif
 
 /// COMPUTATION
+/*
 std::vector<Cell> dummy_erosion_computation(int msx, int msy,
                                             const std::vector<Cell>& _my_cells,
                                             const std::vector<Cell>& remote_cells,
@@ -286,17 +240,17 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
         }
     }
     return my_cells;
-}
+}*/
 
-std::pair<unsigned long, std::vector<unsigned long>> create_water_ptr_vector(const std::vector<Cell>& cells){
+std::pair<unsigned long, std::vector<unsigned long>> create_water_ptr_vector(const std::vector<Cell>& cells) {
     std::vector<unsigned long> res;
     unsigned long n = 0;
     const auto size = cells.size();
     for(unsigned long i = 0; i < size; ++i) {
-    	if(cells[i].type) {
-    	    res.push_back(i);
-    	    n += (unsigned long) cells[i].weight;
-    	}
+        if(cells[i].type) {
+            res.push_back(i);
+            n += (unsigned long) cells[i].weight;
+        }
     }
     return std::make_pair(n, res);
 }
@@ -309,14 +263,12 @@ const std::vector<const Cell*> create_water_ptr(const std::vector<Cell>& cells){
     }
     return res;
 }
-
+/*
 std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                                              const std::vector<Cell>& _my_cells,
                                              const std::vector<Cell>& remote_cells,
                                              const std::vector<size_t>& data_pointers,
                                              const std::tuple<int, int, int, int>& bbox) {
-
-
     std::vector<Cell> my_cells = _my_cells;
     const std::vector<Cell>& my_old_cells = _my_cells;
 
@@ -364,7 +316,7 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                 if(idx_neighbor >= my_cell_count) continue;
                 if(my_cells[idx_neighbor].type) continue;
                 auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
-                auto x = cell_to_global_position(msx, msy, idx_neighbor);
+                //auto x = cell_to_global_position(msx, msy, idx_neighbor);
                 auto p = udist(gen);
                 if( erosion_proba < 1.0 ) {
                     if (p < (theta) * erosion_proba) {
@@ -379,24 +331,23 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                 }
             }
 
-            /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
+            //DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9
             consume_cpu_flops(flops);
-            /* stop */
+
 
         }
     }
     return my_cells;
 }
-
+*/
 std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_computation3(int step,
-                                             int msx, int msy,
-                                             const std::vector<Cell>& my_old_cells,
-                                             const std::vector<unsigned long>& my_water_ptr,
-                                             const std::vector<Cell>& remote_cells,
-                                             const std::vector<unsigned long>& remote_water_ptr,
-                                             const std::vector<size_t>& data_pointers,
-                                             const std::tuple<int, int, int, int>& bbox) {
-
+                                                                                                    int msx, int msy,
+                                                                                                    const std::vector<Cell>& my_old_cells,
+                                                                                                    const std::vector<unsigned long>& my_water_ptr,
+                                                                                                    const std::vector<Cell>& remote_cells,
+                                                                                                    const std::vector<unsigned long>& remote_water_ptr,
+                                                                                                    const std::vector<size_t>& data_pointers,
+                                                                                                    const std::tuple<int, int, int, int>& bbox) {
 
     std::vector<Cell> my_cells = my_old_cells;
 
@@ -455,7 +406,7 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
             if(idx_neighbor >= my_old_cells.size()) continue;
             if(my_cells[idx_neighbor].type) continue;
             auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
-            auto x = cell_to_global_position(msx, msy, idx_neighbor);
+            //auto x = cell_to_global_position(msx, msy, idx_neighbor);
             auto p = udist(gen);
 
             bool eroded;
@@ -492,9 +443,8 @@ void compute_fluid(float total_cells) {
     double total_flops = total_cells * flops;
     consume_cpu_flops(total_flops);
 }
-
+// based on CPU_TIME for 145 flops
 void compute_fluid_time(float total_cells) {
-    int64_t to_wait = 601*total_cells;
+    int64_t to_wait = 601 * (int) total_cells;
     std::this_thread::sleep_for(std::chrono::nanoseconds(to_wait));
 }
-#endif //SPEC_MAIN_HPP

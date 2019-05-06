@@ -3456,7 +3456,8 @@ namespace zz
 			off = 6,
 			sentinel = 63
 		}LogLevels;
-
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 		namespace consts
 		{
 			static const char	*kLevelNames[] { "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "OFF"};
@@ -3489,7 +3490,7 @@ namespace zz
 			static const char	*kConfigSinkTypeSpecifier = "type";
 			static const char	*kConfigSinkFilenameSpecifier = "filename";
 		}
-
+#pragma GCC diagnostic pop
 		// forward declaration
 		namespace detail
 		{
