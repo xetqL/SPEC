@@ -3,6 +3,7 @@ project(SPEC C CXX)
 
 #enable_language(C CXX)
 find_package(MPI REQUIRED)
+find_package (Threads)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 14)
@@ -17,10 +18,9 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}")
 set(HighFive_DIR "~/libraries/HighFive")
 set(BINARY_NAME "SPEC" CACHE STRING "SPEC")
 set(LOAD_BALANCING_CALL "AUTONOMIC" CACHE STRING "CACA")
-message(${LOAD_BALANCING_CALL})
-find_package (Threads)
 
 if(DEFINED WITH_ZOLTAN)
+    message("Looking for the zoltan library...")
     find_library(ZOLTAN
             NAMES zoltan libzoltan
             HINTS /usr/local ~/local/lib ${CMAKE_PREFIX_PATH}/Zoltan/lib ~/Zoltan_v3.83/build/lib
@@ -28,6 +28,7 @@ if(DEFINED WITH_ZOLTAN)
     find_path(ZOLTAN_INCLUDES
             NAMES zoltan zoltan.h
             HINTS ${CMAKE_PREFIX_PATH}/Zoltan/include ~/Zoltan_v3.83/build/include)
+    message("Zoltan found!")
 endif()
 
 #find_package(HighFive 2.0 REQUIRED)
