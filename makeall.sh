@@ -1,5 +1,5 @@
 #!/bin/bash
-make clean
+#make clean
 git pull origin with-zoltan
 
 #rm CMakeCache.txt
