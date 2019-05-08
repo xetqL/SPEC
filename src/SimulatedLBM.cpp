@@ -114,7 +114,7 @@ void SimulatedLBM::run(float alpha) {
     double degradation_since_last_lb = 0.0;
     double perfect_time_value = 0.0;
     std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks, loadImbalance;
-    unsigned int ncall;
+    unsigned int ncall = MAX_STEP;
     water.push_back(my_water_ptr.size());
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {

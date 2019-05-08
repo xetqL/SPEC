@@ -22,7 +22,7 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
     parser.add_opt_value('y', "yprocs", yprocs, (unsigned int) 0, "set the number of PE in y dimension", "INT").require(); // require this option
     parser.add_opt_value('c', "cellPerCPU", cell_per_process, (unsigned int) 0, "set the number of cell per CPU must be a perfect square", "INT").require(); // require this option
     parser.add_opt_value('N', "overloading", N, (unsigned int) 0, "set the number of overloading CPU", "INT").require(); // require this option
-    parser.add_opt_value('t', "steps", MAX_STEP, (unsigned int) 0, "set the number of PE in y dimension", "INT").require(); // require this option
+    parser.add_opt_value('t', "steps", MAX_STEP, (unsigned int) 0,"set the number of PE in y dimension", "INT").require(); // require this option
     parser.add_opt_value('s', "seed" , seed, 0, "set the random seed", "INT");
     parser.add_opt_flag('v', "verbose", "verbosity", &verbose);
     parser.add_opt_flag('l', "loadLattice", "load an external lattice instead of random generation", &load_lattice);
