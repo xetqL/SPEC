@@ -73,6 +73,13 @@ void SimulatedLBM::run(float alpha) {
     if(i_am_foreman) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
     std::vector<Cell> my_cells;
     my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx, cell_in_my_cols, cell_in_my_rows, WATER_TYPE, 1.0, 0.0);
+
+    int bottom, top, stripe_size = msy / worldsize;
+    bottom =  rank      * stripe_size;
+    top    = (rank + 1) * stripe_size;
+
+    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.3f : 0.05f, bottom, top);
+
     int recv, sent;
     std::vector<double> lb_costs;
 
@@ -80,11 +87,6 @@ void SimulatedLBM::run(float alpha) {
     // Uncomment this to use ULBA
     // this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
 
-    int bottom, top, stripe_size = msy / worldsize;
-    bottom =  rank      * stripe_size;
-    top    = (rank + 1) * stripe_size;
-
-    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.3f : 0.05f, bottom, top);
 
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);

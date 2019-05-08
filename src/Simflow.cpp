@@ -30,6 +30,7 @@ std::vector<Cell> generate_lattice_single_type( int msx, int msy,
             my_cells.emplace_back(gid, type, weight, erosion_probability);
         }
     }
+
     return my_cells;
 }
 
@@ -340,14 +341,15 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
     return my_cells;
 }
 */
-std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_computation3(int step,
-                                                                                                    int msx, int msy,
-                                                                                                    const std::vector<Cell>& my_old_cells,
-                                                                                                    const std::vector<unsigned long>& my_water_ptr,
-                                                                                                    const std::vector<Cell>& remote_cells,
-                                                                                                    const std::vector<unsigned long>& remote_water_ptr,
-                                                                                                    const std::vector<size_t>& data_pointers,
-                                                                                                    const std::tuple<int, int, int, int>& bbox) {
+std::tuple<std::vector<Cell>, std::vector<unsigned long>, double>
+dummy_erosion_computation3(int step,
+                            int msx, int msy,
+                            const std::vector<Cell>& my_old_cells,
+                            const std::vector<unsigned long>& my_water_ptr,
+                            const std::vector<Cell>& remote_cells,
+                            const std::vector<unsigned long>& remote_water_ptr,
+                            const std::vector<size_t>& data_pointers,
+                            const std::tuple<int, int, int, int>& bbox) {
 
     std::vector<Cell> my_cells = my_old_cells;
 
