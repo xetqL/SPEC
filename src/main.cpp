@@ -1,9 +1,11 @@
 #include <SimulatedLBM.hpp>
 #include "zupply.hpp"
 #include <CLIParser.hpp>
-
+#include <functional>
 #ifdef WITH_ZOLTAN
 #include <ZoltanLoadBalancer.hpp>
+#include <ULBA.hpp>
+
 #else
 #include <BandPartitioner.hpp>
 #endif
@@ -336,7 +338,6 @@ zz::log::LoggerPtr perflogger, steplogger, proctime;
 //            pcall = step;
 //
 //            if(i_am_foreman) steplogger->info("next LB call at: ") << (step+ncall);
-//
 //            MPI_Bcast(&ncall, 1, MPI_INT, 0, world);
 //        }
 //#elif LB_METHOD == 4 // Unloading Model
@@ -562,7 +563,7 @@ int main(int argc, char** argv) {
     }
 
     SimulatedLBM simulation(params, world,
-            new ZoltanLoadBalancer<Cell>(world, cellDatatype, zoltan_create_wrapper, zoltan_LB));
+            new ZoltanLoadBalancer<Cell>(world, cellDatatype, zoltan_create_wrapper, zoltan_LB<Cell>));
 
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);

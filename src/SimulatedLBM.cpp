@@ -9,28 +9,35 @@
 #include "zupply.hpp"
 #include "Utils.hpp"
 #include "io.hpp"
-
-SimulatedLBM::SimulatedLBM(SimulationParams params, const MPI_Comm comm, SimulatedLBM::LBAlgorithm *load_balancer) :
-        params(params), comm(comm), load_balancer(load_balancer) {}
+#include "ULBA.hpp"
+SimulatedLBM::SimulatedLBM(SimulationParams params, MPI_Comm comm, SimulatedLBM::LBAlgorithm *load_balancer) :
+        params(std::move(params)), comm(comm), load_balancer(load_balancer) {}
 
 void SimulatedLBM::run(float alpha) {
-
+    auto world = this->comm;
     int worldsize;
     int rank;
+    MPI_Comm_size(world, &worldsize);
+    MPI_Comm_rank(world, &rank);
 
     const unsigned int xprocs = params.xprocs,
                      yprocs = params.xprocs,
                      cell_per_process = params.cell_per_process,
                      MAX_STEP = params.MAX_STEP;
+
     const int seed = params.seed;
     unsigned int N = params.N;
     bool load_lattice = params.load_lattice, verbose = params.verbose;
 
-    auto world = this->comm;
-    MPI_Comm_size(world, &worldsize);
-    MPI_Comm_rank(world, &rank);
+    SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
+    SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
+
+    GossipDatabase<double> gossip_workload_db(worldsize,    2, 9999, world),
+                           gossip_waterslope_db(worldsize,  2, 8888, world);
+
     const bool i_am_foreman = rank == FOREMAN;
     auto datatype   = Cell::register_datatype();
+
     std::string str_rank = "[RANK " + std::to_string(rank) + "] ";
     std::mt19937 gen(seed); // common seed
     std::uniform_int_distribution<>  proc_dist(0, worldsize-1);
@@ -52,7 +59,7 @@ void SimulatedLBM::run(float alpha) {
     std::vector<int> loading_procs;
     //const int loading_proc = proc_dist(gen) % worldsize; //one randomly chosen load proc
     std::uniform_int_distribution<>  lproc_dist((int)N/2, worldsize-1-(int)N/2);
-    for(int i = worldsize-1; loading_procs.size() < N; i--){
+    for(int i = worldsize-1; loading_procs.size() < N; i--) {
         loading_procs.push_back(i);
     }
 
@@ -65,11 +72,13 @@ void SimulatedLBM::run(float alpha) {
 
     if(i_am_foreman) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
     std::vector<Cell> my_cells;
-    my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx,cell_in_my_cols,cell_in_my_rows, WATER_TYPE, 1.0, 0.0);
+    my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx, cell_in_my_cols, cell_in_my_rows, WATER_TYPE, 1.0, 0.0);
     int recv, sent;
     std::vector<double> lb_costs;
 
-    this->load_balancer->activate_load_balance(0, &my_cells, 0.0);
+    this->load_balancer->activate_load_balance(0, &my_cells);
+    // Uncomment this to use ULBA
+    // this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
 
     int bottom, top, stripe_size = msy / worldsize;
     bottom =  rank      * stripe_size;
@@ -99,16 +108,12 @@ void SimulatedLBM::run(float alpha) {
     std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
     std::tuple<int, int, int, int> bbox; // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
     //populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
+
     /* lets make it fun now...*/
-    GossipDatabase<double> gossip_workload_db(worldsize,    2, 9999, world),
-                           gossip_waterslope_db(worldsize,  2, 8888, world);
 
     double degradation_since_last_lb = 0.0;
     double perfect_time_value = 0.0;
     std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks, loadImbalance;
-
-    SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
-    SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
     unsigned int ncall;
     water.push_back(my_water_ptr.size());
     PAR_START_TIMING(loop_time, world);
@@ -123,35 +128,31 @@ void SimulatedLBM::run(float alpha) {
 #else   // NO_LOAD_BALANCING
         bool lb_condition = false;
 #endif
-
         if(lb_condition) {
-            unsigned int pcall = this->load_balancer->get_last_call();
+            bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
+            this->load_balancer->activate_load_balance(step, &my_cells);
+#ifdef AUTONOMIC_LOAD_BALANCING
             double median;
-
             if(std::distance(window_step_time.begin(), window_step_time.end() - 3) < 0)
                 median  = stats::median<double>(window_step_time.begin(), window_step_time.end());
-            else
-                median  = stats::median<double>(window_step_time.end() - 3, window_step_time.end());
+            else median = stats::median<double>(window_step_time.end() - 3, window_step_time.end());
             auto mean   = stats::mean<double>(window_step_time.begin(), window_step_time.end());
 
-            bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
-            this->load_balancer->activate_load_balance(step, &my_cells, overloading ? alpha : 0.0);
-
+            unsigned int pcall = this->load_balancer->get_last_call();
+            ncall = (unsigned int) this->load_balancer->estimate_best_ncall(((step - pcall) - 1), median-mean);
+#elif  CYCLIC_LOAD_BALANCING
+            ncall = params.interval;
+#endif
             gossip_workload_db.reset();
             water.clear();
             degradation_since_last_lb = 0.0;
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
-
-#ifdef AUTONOMIC_LOAD_BALANCING
-            ncall = (unsigned int) this->load_balancer->estimate_best_ncall(((step - pcall) - 1), median-mean);
-#elif  CYCLIC_LOAD_BALANCING
-            ncall = params.interval;
-#endif
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
             water.push_back(n);
             deltaWorks.clear();
         }
+
         PAR_STOP_TIMING(loop_time, world);
         PAR_STOP_TIMING(step_time, world);
 
@@ -188,6 +189,7 @@ void SimulatedLBM::run(float alpha) {
         if(this->load_balancer->get_last_call() == step) perfect_time_value = comp_time;
 
         double currDegradation = std::max((comp_time - perfect_time_value), 0.0);
+
         deltaWorks.push_back(currDegradation);
 
         compTimes.push_back(comp_time);

@@ -271,6 +271,7 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                 idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
                 thetas[7]        = 1.0f/1.4142135f;
             }
+
             for (int j = 0; j < 8; ++j) {
                 auto idx_neighbor = idx_neighbors[j];
                 auto theta = thetas[j];

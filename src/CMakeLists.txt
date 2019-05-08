@@ -44,7 +44,7 @@ if(DEFINED PRODUCE_OUTPUTS)
     message(${CNPY_INCLUDES})
 endif()
 
-add_executable(SPEC main.cpp zupply.cpp SimulatedLBM.cpp LoadBalancer.cpp Cell.cpp Utils.cpp ../include/ZoltanLoadBalancer.hpp ../include/SimulationParams.hpp ../include/Simflow.hpp Simflow.cpp CLIParser.cpp ../include/CLIParser.hpp GossipPropagator.cpp ../include/GossipPropagator.hpp)
+add_executable(SPEC main.cpp zupply.cpp SimulatedLBM.cpp LoadBalancer.cpp Cell.cpp Utils.cpp ../include/ZoltanLoadBalancer.hpp ../include/SimulationParams.hpp ../include/Simflow.hpp Simflow.cpp CLIParser.cpp ../include/CLIParser.hpp LoadBalancingApproach.cpp ../include/LoadBalancingApproach.hpp ULBA.cpp ../include/ULBA.hpp ../include/StripeLoadBalancer.hpp StdApproach.cpp ../include/StdApproach.hpp)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${BINARY_NAME})
 

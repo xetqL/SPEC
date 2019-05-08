@@ -12,16 +12,22 @@
 template<class Data>
 class ZoltanLoadBalancer : public LoadBalancer<Data> {
     using ZoltanCreateFunc = std::function<Zoltan_Struct* (bool, MPI_Comm)>;
-    //using ZoltanCreateFunc = Zoltan_Struct* (bool, MPI_Comm);
     using ZoltanLBFunc     = std::function<void (std::vector<Data>*, Zoltan_Struct*, bool)>;
-    //using ZoltanLBFunc     = void (std::vector<Data>*, Zoltan_Struct*, bool);
+
     Zoltan_Struct* zoltan_lb;
-    //ZoltanLBFunc   lb_func;
-    void (*lb_func)(std::vector<Data>*, Zoltan_Struct*, bool);
+    ZoltanLBFunc lb_func;
 public:
-    ZoltanLoadBalancer(MPI_Comm world, MPI_Datatype datatype, Zoltan_Struct* (*zoltan_create_wrapper)(bool, MPI_Comm),
-                       void (*lb_func)(std::vector<Data>*, Zoltan_Struct*, bool)) :
-    LoadBalancer<Data>(world, datatype), lb_func(lb_func) {
+    ZoltanLoadBalancer(MPI_Comm world, MPI_Datatype datatype,
+                       ZoltanCreateFunc zoltan_create_wrapper,
+                       ZoltanLBFunc lb_func) :
+            LoadBalancer<Data>(world, datatype, new StdApproach(world)), lb_func(lb_func) {
+        zoltan_lb = zoltan_create_wrapper(true, world);
+    }
+
+    ZoltanLoadBalancer(MPI_Comm world, MPI_Datatype datatype, LoadBalancingApproach* approach,
+                       ZoltanCreateFunc& zoltan_create_wrapper,
+                       ZoltanLBFunc& lb_func) :
+    LoadBalancer<Data>(world, datatype, approach), lb_func(lb_func) {
         zoltan_lb = zoltan_create_wrapper(true, world);
     }
 
@@ -29,10 +35,16 @@ public:
                                 int *nb_elements_recv, int *nb_elements_sent,
                                 double cell_size) override;
 private:
-    void load_balance(std::vector<Data> *_data, double alpha) override;
+    void load_balance(std::vector<Data> *_data) override;
 };
 
-template<class Data> void ZoltanLoadBalancer<Data>::load_balance(std::vector<Data> *_data, double alpha) {
+//TODO: alpha should be a struct holding the algorithm and the data?
+template<class Data> void ZoltanLoadBalancer<Data>::load_balance(std::vector<Data> *_data) {
+    float share, alpha;
+    std::tie(share, alpha) = this->approach->compute_share(this->rank);
+    int parts_num[1] = {this->rank}, weight_per_obj[1] = {0};
+    float part_size[1] = {share};
+    Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
     lb_func(_data, zoltan_lb, true);
 }
 

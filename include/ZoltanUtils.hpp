@@ -130,7 +130,7 @@ void post_migrate_particles (
 
 }
 
-Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm/*, int num_global_part = -1, int part_on_me = -1*/) {
+Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm) {
     //std::string ngp = std::to_string(num_global_part);
     //std::string pom = std::to_string(part_on_me);
 
@@ -164,7 +164,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm/*, 
     return zz;
 }
 
-Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration = false) {
+Zoltan_Struct* __zoltan_create_wrapper(bool automatic_migration = false) {
     return zoltan_create_wrapper(automatic_migration, MPI_COMM_WORLD);
 }
 

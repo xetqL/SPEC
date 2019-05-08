@@ -56,21 +56,19 @@ class StripeLoadBalancer : LoadBalancer<Cell>{
         }
     };
 public:
-    StripeLoadBalancer(/*LBDecision *lb_decision, */const MPI_Comm world, const MPI_Datatype datatype,
-                       const int master, const int sizeX, const int sizeY, const MPI_Datatype datatype1,
-                       const MPI_Comm world1) :
-            LoadBalancer(world, datatype), master(master), sizeX(sizeX), sizeY(sizeY), datatype(datatype1),
-            world(world1) {
+    StripeLoadBalancer(const MPI_Comm world, const MPI_Datatype datatype, LoadBalancingApproach* approach,
+                       const int master, const int sizeX, const int sizeY) :
+            LoadBalancer(world, datatype, approach), master(master), sizeX(sizeX), sizeY(sizeY), datatype(datatype),
+            world(world) {
         MPI_Comm_rank(world, &myrank);
         MPI_Comm_size(world, &worldsize);
-        partition.resize(2*worldsize);
+        partition.resize(2 * worldsize);
         register_datatype();
     }
 
     void setLoggerPtr(const zz::log::LoggerPtr &loggerPtr) {
         StripeLoadBalancer::loggerPtr = loggerPtr;
     }
-
 
     virtual std::vector<Cell> propagate(const std::vector<Cell> &data,
                                                     int* nb_elements_recv,
@@ -157,7 +155,7 @@ private:
      * @param _data
      * @param alpha
      */
-    void load_balance(std::vector<Cell>* _data, double alpha = 0.0) override {
+    void load_balance(std::vector<Cell>* _data) override {
 
         if(worldsize == 1) {
             partition[0] = 0; partition[1] = sizeY;
@@ -172,13 +170,15 @@ private:
         // Gather
         auto p_rows_load = gather_elements_on(my_rows_load, 0, row_load_datatype,   world);
         auto rows_load   = merge(p_rows_load);
+
         if(myrank == 0) {
             std::sort(p_rows_load.begin(), p_rows_load.end());
-            //    for(auto& wl : p_rows_load) {
-            //        std::cout << wl << std::endl;
-            //    }
         }
-        auto alphas      = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
+
+        double share, alpha;
+        std::tie(share, alpha) = this->approach->compute_share(rank);
+
+        auto alphas = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
 
         // Partition
         execute_partitioning_algorithm(rows_load, alphas);
