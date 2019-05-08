@@ -56,7 +56,7 @@ class GossipDatabase {
     EntryPropagationPredicate default_predicate = [](auto e) { return e.idx >= 0; };
 
     using EntryUpdateStrategy = std::function<DatabaseEntry (DatabaseEntry, DatabaseEntry)>;
-    EntryUpdateStrategy update_strategy = [&](DatabaseEntry old, DatabaseEntry mine) { return old.idx == mine.idx ? mine : is_initialized(old) ? DatabaseEntry(old.idx, old.age+1, old.load) : old;};
+    EntryUpdateStrategy update_strategy = GossipDatabase::default_update_strategy; //[&](DatabaseEntry old, DatabaseEntry mine) { };
 
     using value_type = typename std::enable_if<
             std::is_same<StoredDataType , double>::value ||
@@ -75,6 +75,11 @@ class GossipDatabase {
     mutable std::vector<MPI_Request> current_send_reqs;
     mutable int  step_counter = 0;
     mutable std::vector<std::vector<DatabaseEntry>> snd_entries;
+
+    static DatabaseEntry default_update_strategy(DatabaseEntry old, DatabaseEntry mine) {
+        return old.idx == mine.idx ? mine : is_initialized(old) ? DatabaseEntry(old.idx, old.age+1, old.load) : old;
+    }
+
 public:
 
     GossipDatabase(int database_size, int number_of_message, int send_tag, MPI_Comm _world, EntryUpdateStrategy strategy) :
@@ -299,7 +304,7 @@ private:
         merge_into_database(std::move(data), [](auto old, auto recv){ return old.age < recv.age ? old : recv;});
     }
 
-    inline bool is_initialized(const DatabaseEntry& entry) {
+    static bool is_initialized(const DatabaseEntry& entry) {
         return entry.age < std::numeric_limits<int>::max();
     }
 
