@@ -85,7 +85,7 @@ void SimulatedLBM::run(float alpha) {
 
     this->load_balancer->activate_load_balance(0, &my_cells);
 
-#if LB_APPROACH == ULBA
+#if LB_APPROACH == 1
     this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
 #endif
 
@@ -113,7 +113,6 @@ void SimulatedLBM::run(float alpha) {
     //populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
 
     /* lets make it fun now...*/
-
     double degradation_since_last_lb = 0.0;
     double perfect_time_value = 0.0;
     std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks, loadImbalance;
