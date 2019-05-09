@@ -74,19 +74,20 @@ void SimulatedLBM::run(float alpha) {
     std::vector<Cell> my_cells;
     my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx, cell_in_my_cols, cell_in_my_rows, WATER_TYPE, 1.0, 0.0);
 
-    int bottom, top, stripe_size = msy / worldsize;
+    int bottom, top;
 
     bottom = y_proc_idx * cell_in_my_rows;
-    top    =(y_proc_idx+1) * cell_in_my_rows;
+    top    = (y_proc_idx+1) * cell_in_my_rows;
     generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.3f : 0.05f, bottom, top);
 
     int recv, sent;
     std::vector<double> lb_costs;
 
     this->load_balancer->activate_load_balance(0, &my_cells);
-    // Uncomment this to use ULBA
-    // this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
 
+#if LB_APPROACH == ULBA
+    this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
+#endif
 
 #ifdef PRODUCE_OUTPUTS
     std::vector<std::array<int,2>> all_types(total_cell);
