@@ -59,8 +59,13 @@ void SimulatedLBM::run(float alpha) {
     std::vector<int> loading_procs;
     //const int loading_proc = proc_dist(gen) % worldsize; //one randomly chosen load proc
     std::uniform_int_distribution<>  lproc_dist((int)N/2, worldsize-1-(int)N/2);
-    for(int i = worldsize-1; loading_procs.size() < N; i--) {
-        loading_procs.push_back(i);
+
+    const int center = lproc_dist(gen);
+    loading_procs.push_back(center);
+
+    for(int i = 1; i < N; i++) {
+        loading_procs.push_back(center-i);
+        loading_procs.push_back(center+i);
     }
 
     std::for_each(loading_procs.begin(), loading_procs.end(), [](auto v){std::cout << v << std::endl;});
