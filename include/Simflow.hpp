@@ -141,6 +141,7 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy,
 }*/
 
 #ifdef PRODUCE_OUTPUTS
+/*
 #include <cnpy.h>
 std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy, int x_proc_idx, int y_proc_idx,
                                                          int cell_in_my_cols, int cell_in_my_rows,
@@ -174,6 +175,7 @@ std::vector<Cell> generate_lattice_percolation_diffusion(int msx, int msy, int x
     std::sort(my_cells.begin(), my_cells.end(), [](auto a, auto b){return a.gid < b.gid;});
     return my_cells;
 }
+ */
 #endif
 
 /// COMPUTATION

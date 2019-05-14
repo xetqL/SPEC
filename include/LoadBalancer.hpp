@@ -24,6 +24,7 @@ protected:
     int rank, worldsize;
     std::unique_ptr<const LoadBalancingApproach> approach;
     const zz::log::LoggerPtr logger;
+
 public:
 
     LoadBalancer(MPI_Comm world, MPI_Datatype datatype, LoadBalancingApproach* approach) :

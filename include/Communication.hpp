@@ -71,6 +71,7 @@ inline void gather_elements_on(const std::vector<A> &local_el,
     unsigned int nb_elements = std::accumulate(counts.begin(), counts.end(), 0);
     for (int cpt = 0; cpt < world_size; ++cpt) displs[cpt] = cpt == 0 ? 0 : displs[cpt - 1] + counts[cpt - 1];
     //if(_dest_el->size() == nb_elements)
+    //if (my_rank == dest_rank) dest_el.resize(nb_elements);
     MPI_Gatherv(&local_el.front(), nlocal, sendtype,
                 &_dest_el->front(), &counts.front(), &displs.front(), sendtype, dest_rank, comm);
     /*else {

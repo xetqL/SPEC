@@ -9,7 +9,13 @@
 #include "zupply.hpp"
 #include "Utils.hpp"
 #include "io.hpp"
+
 #include "ULBA.hpp"
+
+#ifdef PRODUCE_OUTPUTS
+#include <cnpy.h>
+#endif
+
 SimulatedLBM::SimulatedLBM(SimulationParams params, MPI_Comm comm, SimulatedLBM::LBAlgorithm *load_balancer) :
         params(std::move(params)), comm(comm), load_balancer(load_balancer) {}
 
@@ -44,6 +50,7 @@ void SimulatedLBM::run(float alpha) {
 
     int cell_in_my_rows = (int) std::sqrt(cell_per_process), cell_in_my_cols = cell_in_my_rows;
     int xcells = cell_in_my_rows * xprocs, ycells = cell_in_my_rows * yprocs;
+    auto total_cell = xcells * ycells;
     std::vector<int> cols(ycells);
     std::iota(cols.begin(), cols.end(), 0);
 
@@ -95,19 +102,37 @@ void SimulatedLBM::run(float alpha) {
 #endif
 
 #ifdef PRODUCE_OUTPUTS
-    std::vector<std::array<int,2>> all_types(total_cell);
-    std::vector<std::array<int,2>> my_types(my_cell_count);
+    int inner_type = WATER_TYPE;
+    int shape[2] = {msx, msy};
+
+    if(i_am_foreman) cnpy::npz_save("gids-out.npz", "shape", &shape[0],   {2}, "w");
+    if(i_am_foreman) cnpy::npz_save("gids-out.npz", "type",  &inner_type, {1}, "a");
+
+    auto my_cell_count = my_cells.size();
+
+    std::vector<std::array<int,2>> all_types(worldsize*cell_per_process), my_types(my_cell_count);
+
     for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
+
     gather_elements_on(my_types, FOREMAN, &all_types, datatype.minimal_datatype, world);
+
     if(i_am_foreman) {
+
         std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
+
         std::vector<int> types, water_gid;
-        std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
+
+        //std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
+
         std::for_each(all_types.begin(), all_types.end(), [&water_gid, &inner_type](auto e){if(e[1] == inner_type) water_gid.push_back(e[0]);});
-        assert((*(all_types.end() - 1))[0] == total_cell-1);
+
+        //assert((*(all_types.end() - 1))[0] == total_cell-1);
         cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
+
     }
+    MPI_Barrier(world);
     if(i_am_foreman) all_types.resize(total_cell);
+
 #endif
 
     std::vector<unsigned long> my_water_ptr;
@@ -243,9 +268,10 @@ void SimulatedLBM::run(float alpha) {
         }
 
 #ifdef PRODUCE_OUTPUTS
+        unsigned long cell_cnt = my_cells.size();
+        std::vector<std::array<int,2>> my_types(cell_cnt);
+
         if(step % 5 == 0){
-            unsigned long cell_cnt = my_cells.size();
-            std::vector<std::array<int,2>> my_types(cell_cnt);
             for (unsigned int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
             gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
             if(i_am_foreman) {
@@ -256,6 +282,18 @@ void SimulatedLBM::run(float alpha) {
                 cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
             }
         }
+
+        for (unsigned int i = 0; i < cell_cnt; ++i)
+        { my_types[i] = {my_cells[i].gid, rank}; std::cout << cell_cnt<< " " << rank << std::endl;}
+        gather_elements_on(my_types, FOREMAN, &all_types, datatype.minimal_datatype, world);
+
+        if(i_am_foreman) {
+            std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
+            std::vector<int> part_idx;
+            std::for_each(all_types.begin(), all_types.end(), [&part_idx](auto e){part_idx.push_back(e[1]);});
+            cnpy::npz_save("gids-out.npz", "partition-step-"+std::to_string(step+1), &part_idx[0], {part_idx.size()}, "a");
+        }
+
 #endif
 
         PAR_RESTART_TIMING(loop_time, world);

@@ -12,7 +12,7 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
     unsigned int N;
     bool load_lattice, verbose;
     float alpha;
-    std::string lattice_fname;
+    std::string lattice_fname, outputfname;
 
     zz::cfg::ArgParser parser;
     parser.add_opt_version('V', "version", "0.1");
@@ -43,6 +43,6 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
         std::cout << parser.get_help() << std::endl;
         return std::make_pair<SimulationParams>({}, true);
     } else {
-        return std::make_pair<SimulationParams>({xprocs, yprocs, N, MAX_STEP, cell_per_process, interval, seed, load_lattice, verbose, lattice_fname}, false);
+        return std::make_pair<SimulationParams>({xprocs, yprocs, N, MAX_STEP, cell_per_process, interval, seed, load_lattice, verbose, lattice_fname, outputfname}, false);
     }
 }

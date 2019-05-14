@@ -14,7 +14,7 @@
 #include <random>
 #include "LoadBalancer.hpp"
 
-class StripeLoadBalancer : LoadBalancer<Cell>{
+class StripeLoadBalancer : LoadBalancer<Cell> {
     typedef unsigned int PEIndex;
     int worldsize, myrank;
     const int master, sizeX, sizeY;
@@ -23,6 +23,7 @@ class StripeLoadBalancer : LoadBalancer<Cell>{
     std::vector<PEIndex> partition;
     zz::log::LoggerPtr loggerPtr = nullptr;
     MPI_Datatype row_load_datatype;
+
     struct RowWorkload {
         int row;
         int age;

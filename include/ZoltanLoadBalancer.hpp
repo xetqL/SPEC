@@ -16,6 +16,7 @@ class ZoltanLoadBalancer : public LoadBalancer<Data> {
 
     Zoltan_Struct* zoltan_lb;
     ZoltanLBFunc lb_func;
+
 public:
     ZoltanLoadBalancer(MPI_Comm world, MPI_Datatype datatype,
                        ZoltanCreateFunc zoltan_create_wrapper,
@@ -42,9 +43,9 @@ private:
 template<class Data> void ZoltanLoadBalancer<Data>::load_balance(std::vector<Data> *_data) {
     float share, alpha;
     std::tie(share, alpha) = this->approach->compute_share(this->rank);
-    int parts_num[1] = {this->rank}, weight_per_obj[1] = {0};
-    float part_size[1] = {share};
-    Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 1, parts_num, weight_per_obj, part_size);
+    int parts_num[2] = {this->rank, this->rank}, weight_per_obj[2] = {0, 1};
+    float part_size[2] = {share, 1};
+    //Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 2, parts_num, weight_per_obj, part_size);
     lb_func(_data, zoltan_lb, true);
 }
 

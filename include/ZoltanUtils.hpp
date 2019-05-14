@@ -32,7 +32,8 @@ void get_object_list(void *data, int sizeGID, int sizeLID,
     auto *mesh = (std::vector<Cell> *)data;
     const auto mesh_size = mesh->size();
     for (i=0; i < mesh_size; i++){
-        obj_wgts[i] = mesh->at(i).weight;
+        obj_wgts[wgt_dim*i] = mesh->at(i).weight;
+        //obj_wgts[wgt_dim*i+1] = 1-mesh->at(i).type;
         globalID[i] = mesh->at(i).gid;
         localID[i]  = i;
     }
@@ -145,7 +146,9 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm) {
     //if(part_on_me >= 1)      Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS",  pom.c_str());
 
     Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1");
-    Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "1");
+    Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "2");
+    Zoltan_Set_Param(zz, "OBJ_WEIGHTS_COMPARABLE", "1");
+    Zoltan_Set_Param(zz, "RCB_MULTICRITERIA_NORM", "3");
 
     Zoltan_Set_Param(zz, "RETURN_LISTS", "ALL");
 

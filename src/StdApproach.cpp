@@ -8,7 +8,7 @@ StdApproach::StdApproach(MPI_Comm world) : LoadBalancingApproach(world) {}
 
 std::pair<LoadBalancingApproach::WorkloadShare, LoadBalancingApproach::WorkloadWeight>
 StdApproach::compute_share(int rank) const {
-    return std::pair<WorkloadShare, WorkloadWeight>(1, 0);
+    return {1, 0};
 }
 
 std::string StdApproach::to_string() const {
