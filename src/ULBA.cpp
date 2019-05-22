@@ -3,7 +3,7 @@
 //
 
 #include "ULBA.hpp"
-
+#include <iostream>
 ULBA::ULBA(MPI_Comm world, GossipDatabase<double> *wirdb, double threshold, double alpha) :
         LoadBalancingApproach(world),
         wirdb(wirdb),
