@@ -56,9 +56,9 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
         int gid = cell.gid;
         auto pos = cell_to_global_position(msx, msy, gid);
         for(auto& rock : rocks_data){
-            std::tie(cx,cy,cr) = rock;
+            std::tie(cx, cy, cr) = rock;
             if(std::sqrt( std::pow(cx-pos.first, 2) + std::pow(cy - pos.second, 2) ) < cr) {
-                cell.type  = ROCK_TYPE;
+                cell.type  = Cell::ROCK_TYPE;
                 cell.weight= 0.0;
                 cell.erosion_probability = erosion_probability;
                 break;
@@ -70,7 +70,7 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
 int checkpoint(int h, int k, int x, int y, int a, int b) {
     // checking the equation of
     // ellipse with the given point
-    int p = (std::pow((x - h), 2) / std::pow(a, 2)) + (std::pow((y - k), 2) / std::pow(b, 2));
+    int p = (int) (std::pow((x - h), 2) / std::pow(a, 2)) + (std::pow((y - k), 2) / std::pow(b, 2));
     return p;
 }
 
@@ -90,7 +90,7 @@ void generate_lattice_ellipse(int msx, int msy,
         for(auto& rock : rocks_data){
             std::tie(cx, cy, rx, ry) = rock;
             if(checkpoint(cx, cy, pos.first, pos.second, rx, ry) <= 1) {
-                cell.type  = ROCK_TYPE;
+                cell.type  = Cell::ROCK_TYPE;
                 cell.weight= 0.0;
                 cell.erosion_probability = erosion_probability;
                 break;

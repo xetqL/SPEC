@@ -15,12 +15,11 @@
 
 #include "Cell.hpp"
 
-
 #define ENABLE_AUTOMATIC_MIGRATION true
 #define DISABLE_AUTOMATIC_MIGRATION FALSE
 
 int get_number_of_objects(void *data, int *ierr) {
-    std::vector<Cell> *mesh = (std::vector<Cell> *)data;
+    auto *mesh = (std::vector<Cell> *)data;
     *ierr = ZOLTAN_OK;
     return mesh->size();
 }
@@ -31,11 +30,13 @@ void get_object_list(void *data, int sizeGID, int sizeLID,
     size_t i;
     auto *mesh = (std::vector<Cell> *)data;
     const auto mesh_size = mesh->size();
+
     for (i=0; i < mesh_size; i++){
         obj_wgts[wgt_dim*i] = mesh->at(i).weight;
-        //obj_wgts[wgt_dim*i+1] = 1-mesh->at(i).type;
-        globalID[i] = mesh->at(i).gid;
-        localID[i]  = i;
+        if(wgt_dim > 1)
+            obj_wgts[wgt_dim*i+1] = (float) mesh->at(i).slope; //slope
+        globalID[i] = (ZOLTAN_ID_TYPE) mesh->at(i).gid;
+        localID[i]  = (ZOLTAN_ID_TYPE) i;
     }
 
     *ierr = ZOLTAN_OK;
@@ -61,9 +62,10 @@ void get_geometry_list(void *data, int sizeGID, int sizeLID,
 
     *ierr = ZOLTAN_OK;
 
-    for (i=0;  i < num_obj; i++){
-        auto gid = mesh->at(i).gid;
-        int x,y; std::tie(x,y) = cell_to_global_position(Cell::get_msx(), Cell::get_msy(), gid);
+    for (i = 0;  i < num_obj; i++){
+        auto lid = localID[i];
+        auto gid = mesh->at(lid).gid;
+        int x, y; std::tie(x,y) = cell_to_global_position(Cell::get_msx(), Cell::get_msy(), gid);
         geom_vec[2 * i]     = x;
         geom_vec[2 * i + 1] = y;
     }
@@ -89,8 +91,8 @@ void pack_particles(void *data,
                     char *buf,
                     int *ierr) {
     auto all_mesh_data = (std::vector<Cell> *) data;
-    memcpy(buf, &(all_mesh_data->operator[]((int)(*local_id))), sizeof(class std::vector<Cell>));
-    all_mesh_data->operator[]((int)(*local_id)).gid = -1;
+    memcpy(buf, &(all_mesh_data->operator[]((unsigned int)(*local_id))), sizeof(class std::vector<Cell>));
+    all_mesh_data->operator[]((unsigned int)(*local_id)).gid = -1;
     *ierr = ZOLTAN_OK;
 }
 
@@ -105,7 +107,6 @@ void unpack_particles ( void *data,
     memcpy(&v, buf, sizeof(Cell));
     all_mesh_data->push_back(v);
     *ierr = ZOLTAN_OK;
-
 }
 
 void post_migrate_particles (
@@ -136,33 +137,32 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm) {
     //std::string pom = std::to_string(part_on_me);
 
     auto zz = Zoltan_Create(comm);
+    Zoltan_Set_Param(zz, "KEEP_CUTS", "1");
 
     Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0");
-    Zoltan_Set_Param(zz, "LB_METHOD", "RCB");
+    Zoltan_Set_Param(zz, "LB_METHOD", "HSFC");
     Zoltan_Set_Param(zz, "DETERMINISTIC", "1");
     Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1");
 
-    //if(num_global_part >= 1) Zoltan_Set_Param(zz, "NUM_GLOBAL_PARTS", ngp.c_str());
-    //if(part_on_me >= 1)      Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS",  pom.c_str());
-
+    //if(num_global_part >= 1)
+    //if(part_on_me >= 1)
+    //Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS",  "2");
+    //Zoltan_Set_Param(zz, "NUM_GLOBAL_PARTS", "8");
     Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1");
-    Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM", "2");
-    Zoltan_Set_Param(zz, "OBJ_WEIGHTS_COMPARABLE", "1");
+    Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM",  "1");
+    Zoltan_Set_Param(zz, "OBJ_WEIGHTS_COMPARABLE", "0");
     Zoltan_Set_Param(zz, "RCB_MULTICRITERIA_NORM", "3");
 
     Zoltan_Set_Param(zz, "RETURN_LISTS", "ALL");
 
-    Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "0");
-    Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "0");
+    // Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "2");
+    //Zoltan_Set_Param(zz, "CHECK_GEOM", "1");
+    //Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "1");
     Zoltan_Set_Param(zz, "RCB_REUSE", "1");
-    Zoltan_Set_Param(zz, "KEEP_CUTS", "1");
 
-    Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
+    //Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
 
-    if(automatic_migration)
-        Zoltan_Set_Param(zz, "AUTO_MIGRATE", "TRUE");
-    else
-        Zoltan_Set_Param(zz, "AUTO_MIGRATE", "FALSE");
+    // Zoltan_Set_Param(zz, "AUTO_MIGRATE", "FALSE");
 
     return zz;
 }
@@ -227,12 +227,10 @@ inline void zoltan_LB(std::vector<Data>* mesh_data,
                         &exportProcs,       /* Process to which I send each of the vertices */
                         &exportToPart);     /* Partition to which each vertex will belong */
 
-    if(automatic_migration)
-        Zoltan_Migrate(load_balancer, numImport, importGlobalGids, importLocalGids, importProcs, importToPart, numExport, exportGlobalGids, exportLocalGids, exportProcs, exportToPart);
-    else {
-        throw std::runtime_error("No automatic migration. Undefined behavior.");
-    }
+    Zoltan_Migrate(load_balancer, numImport, importGlobalGids, importLocalGids, importProcs, importToPart, numExport, exportGlobalGids, exportLocalGids, exportProcs, exportToPart);
+
     Zoltan_LB_Free_Part(&importGlobalGids, &importLocalGids, &importProcs, &importToPart);
+
     Zoltan_LB_Free_Part(&exportGlobalGids, &exportLocalGids, &exportProcs, &exportToPart);
 }
 

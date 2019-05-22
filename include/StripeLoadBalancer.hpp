@@ -14,7 +14,7 @@
 #include <random>
 #include "LoadBalancer.hpp"
 
-class StripeLoadBalancer : LoadBalancer<Cell> {
+class StripeLoadBalancer : public LoadBalancer<Cell> {
     typedef unsigned int PEIndex;
     int worldsize, myrank;
     const int master, sizeX, sizeY;
@@ -23,7 +23,6 @@ class StripeLoadBalancer : LoadBalancer<Cell> {
     std::vector<PEIndex> partition;
     zz::log::LoggerPtr loggerPtr = nullptr;
     MPI_Datatype row_load_datatype;
-
     struct RowWorkload {
         int row;
         int age;
@@ -57,10 +56,10 @@ class StripeLoadBalancer : LoadBalancer<Cell> {
         }
     };
 public:
-    StripeLoadBalancer(const MPI_Comm world, const MPI_Datatype datatype, LoadBalancingApproach* approach,
+    StripeLoadBalancer(const MPI_Comm world, const MPI_Datatype datatype,
                        const int master, const int sizeX, const int sizeY) :
-            LoadBalancer(world, datatype, approach), master(master), sizeX(sizeX), sizeY(sizeY), datatype(datatype),
-            world(world) {
+            LoadBalancer(world, datatype, new StdApproach(world)), master(master), sizeX(sizeX), sizeY(sizeY), datatype(datatype),
+            world(world){
         MPI_Comm_rank(world, &myrank);
         MPI_Comm_size(world, &worldsize);
         partition.resize(2 * worldsize);
@@ -159,11 +158,13 @@ private:
     void load_balance(std::vector<Cell>* _data) override {
 
         if(worldsize == 1) {
-            partition[0] = 0; partition[1] = sizeY;
+            partition[0] = 0;
+            partition[1] = sizeY;
             return;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
         std::vector<Cell>& data = *_data;
 
         auto my_rows_load = get_partial_rows_load(data);
@@ -186,8 +187,6 @@ private:
 
         // Mapping
         execute_mapping_algorithm(_data);
-
-
 
         // Affectation
         //_data->assign(mesh.begin(), mesh.end());
@@ -215,14 +214,12 @@ private:
                 std::vector<double> desired_workloads, effective_workloads(worldsize);
 
                 std::transform(alphas.cbegin(), alphas.cend(), std::back_inserter(desired_workloads),
-                        [&](auto a) { return a > 0.0 ? average_workload * (1.0 - alpha) : (1.0 + (alpha*N)/(worldsize-N)) * average_workload; } );
+                        [&](auto a) { return a > 0.0 ? average_workload * (1.0 - alpha) : (1.0 + (alpha*N)/(worldsize-N)) * average_workload; });
 
                 //std::for_each(desired_workloads.begin(), desired_workloads.end(), [](auto v){std::cout << v << std::endl;});
-
                 // Greedy algorithm to compute the stripe for each process
                 unsigned int begin_stripe = 0, end_stripe = 0;
-                for(PEIndex p = 0; p < (unsigned int) worldsize; ++p)
-                {
+                for(PEIndex p = 0; p < (unsigned int) worldsize; ++p) {
                     double current_process_workload = 0.0;
                     //bool overloading = alphas[p] > 0.0;
                     //double remaining_workload = std::accumulate(rows_load.cbegin()+begin_stripe, rows_load.cend(), 0.0);
@@ -249,7 +246,7 @@ private:
                 assert(partition[2 * (worldsize-1) + 1] == (unsigned int) sizeY-1);
                 if(loggerPtr != nullptr) {
                     double maxPart = *std::max_element(effective_workloads.begin(), effective_workloads.end());
-                    double avgPart = stats::mean<double>(effective_workloads.begin(), effective_workloads.end());
+                    auto avgPart   = stats::mean<double>(effective_workloads.begin(), effective_workloads.end());
                     loggerPtr->info("[PartitionInfo]") << " load imbalance:" << (maxPart/avgPart-1.0)*100.0;
                 }
             }

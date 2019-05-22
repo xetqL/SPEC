@@ -14,20 +14,19 @@
 #define ROCK_WEIGHT 0.0
 #define WATER_WEIGHT 1.0
 
-struct CellStatistics {
-    double average_load;
-};
-
 struct Cell {
+    static const int WATER_TYPE = 1;
+    static const int ROCK_TYPE  = 0;
+
     int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
-    double average_load = 2000;
+    double slope;
 
-    Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0) {};
+    Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0), slope(1.0) {};
     Cell(int gid, int type, float weight, float erosion_probability)
-            : gid(gid), type(type), weight(weight), erosion_probability(erosion_probability) {};
-    Cell(int gid, int type, float weight, float erosion_probability, double average_load)
-            : gid(gid), type(type), weight(weight), erosion_probability(erosion_probability), average_load(average_load) {};
+            : gid(gid), type(type), weight(weight), erosion_probability(erosion_probability), slope(1.0-type) {};
+    Cell(int gid, int type, float weight, float erosion_probability, double slope)
+            : gid(gid), type(type), weight(weight), erosion_probability(erosion_probability), slope(slope) {};
 
     template<class NumericType>
     std::array<NumericType, 2> get_position_as_array() const {
@@ -55,6 +54,7 @@ struct Cell {
         blockcount_element[0] = number_of_int_elements; // gid, lid, exit, waiting_time
         blockcount_element[1] = number_of_float_elements; // position <x,y>
         blockcount_element[2] = number_of_double_elements; // position <x,y>
+
         //int
         MPI_Type_contiguous(number_of_int_elements, MPI_INT, &gid_type_datatype); // position
         MPI_Type_commit(&gid_type_datatype);
@@ -75,13 +75,14 @@ struct Cell {
         MPI_Type_create_struct(3, blockcount_element, offset, blocktypes, &cell_datatype);
         MPI_Type_commit(&cell_datatype);
 
-        return CommunicationDatatype(cell_datatype, gid_type_datatype);
+        return {cell_datatype, gid_type_datatype};
     }
 
     static int& get_msx(){
         static int msx;
         return msx;
     }
+
     static int& get_msy(){
         static int msy;
         return msy;
@@ -125,9 +126,16 @@ void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, M
     slope = std::max(slope, 0.0); // wtf is a negative slope
     for(auto& cell : my_cells) if(cell.type == type) nb_type++;
     for(auto& cell : my_cells) if(cell.type == type) {
-            cell.weight = f(cell.weight, (float) slope);
-        }
+        cell.weight = f(cell.weight, (float) slope);
+    }
 
+}
+
+template<class Applier>
+void update_cells(std::vector<Cell>* _my_cells, double slope, Applier f) {
+    std::vector<Cell>& my_cells = *(_my_cells);
+    slope = std::max(slope, 0.0); // wtf is a negative slope
+    for(auto& cell : my_cells) f(cell, slope);
 }
 
 void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type);

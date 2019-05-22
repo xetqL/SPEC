@@ -16,9 +16,9 @@
 #include <thread>
 #include "Cell.hpp"
 
-#define WATER_TYPE 1
-#define ROCK_TYPE 0
-#define EMPTY_TYPE -1
+//#define WATER_TYPE 1
+//#define ROCK_TYPE 0
+//#define EMPTY_TYPE -1
 
 static std::random_device rd;
 static std::mt19937 gen(rd());

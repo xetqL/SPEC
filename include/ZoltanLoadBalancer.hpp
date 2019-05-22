@@ -13,7 +13,6 @@ template<class Data>
 class ZoltanLoadBalancer : public LoadBalancer<Data> {
     using ZoltanCreateFunc = std::function<Zoltan_Struct* (bool, MPI_Comm)>;
     using ZoltanLBFunc     = std::function<void (std::vector<Data>*, Zoltan_Struct*, bool)>;
-
     Zoltan_Struct* zoltan_lb;
     ZoltanLBFunc lb_func;
 
@@ -35,6 +34,7 @@ public:
     std::vector<Data> propagate(const std::vector<Data> &data,
                                 int *nb_elements_recv, int *nb_elements_sent,
                                 double cell_size) override;
+
 private:
     void load_balance(std::vector<Data> *_data) override;
 };
@@ -45,7 +45,7 @@ template<class Data> void ZoltanLoadBalancer<Data>::load_balance(std::vector<Dat
     std::tie(share, alpha) = this->approach->compute_share(this->rank);
     int parts_num[2] = {this->rank, this->rank}, weight_per_obj[2] = {0, 1};
     float part_size[2] = {share, 1};
-    //Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 2, parts_num, weight_per_obj, part_size);
+    Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 2, parts_num, weight_per_obj, part_size);
     lb_func(_data, zoltan_lb, true);
 }
 

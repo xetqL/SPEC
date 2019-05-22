@@ -106,7 +106,7 @@ const std::vector<A> zoltan_exchange_data(Zoltan_Struct *load_balancer,
 
     std::vector<std::vector<A>> data_to_migrate(wsize);
     size_t data_id = 0;
-    std::vector<int> PEs(wsize, -1);
+    std::vector<int> PEs(wsize, -1), parts(wsize, -1);
     int num_found, num_known = 0;
     std::vector<int> export_gids, export_lids, export_procs;
 
@@ -114,14 +114,15 @@ const std::vector<A> zoltan_exchange_data(Zoltan_Struct *load_balancer,
     // as DIM << PE <<<< n
     while (data_id < data.size()) {
         auto pos_in_double = data.at(data_id).template get_position_as_array<double>();
-        Zoltan_LB_Box_Assign(load_balancer,
+        int numparts;
+        Zoltan_LB_Box_PP_Assign(load_balancer,
                              pos_in_double.at(0) - cell_size,
                              pos_in_double.at(1) - cell_size,
                              pos_in_double.size() == 3 ? pos_in_double.at(2) - cell_size : 0.0,
                              pos_in_double.at(0) + cell_size,
                              pos_in_double.at(1) + cell_size,
                              pos_in_double.size() == 3 ? pos_in_double.at(2) + cell_size : 0.0,
-                             &PEs.front(), &num_found);
+                             &PEs.front(), &num_found, parts.data(), &numparts);
 
         for (int PE_idx = 0; PE_idx < num_found; PE_idx++) {
             int PE = PEs[PE_idx];

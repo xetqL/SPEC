@@ -27,7 +27,7 @@ void SimulatedLBM::run(float alpha) {
     MPI_Comm_rank(world, &rank);
 
     const unsigned int xprocs = params.xprocs,
-                     yprocs = params.xprocs,
+                       yprocs = params.yprocs,
                      cell_per_process = params.cell_per_process,
                      MAX_STEP = params.MAX_STEP;
 
@@ -50,6 +50,7 @@ void SimulatedLBM::run(float alpha) {
 
     int cell_in_my_rows = (int) std::sqrt(cell_per_process), cell_in_my_cols = cell_in_my_rows;
     int xcells = cell_in_my_rows * xprocs, ycells = cell_in_my_rows * yprocs;
+
     auto total_cell = xcells * ycells;
     std::vector<int> cols(ycells);
     std::iota(cols.begin(), cols.end(), 0);
@@ -71,11 +72,11 @@ void SimulatedLBM::run(float alpha) {
     loading_procs.push_back(center);
 
     for(int i = 1; i < N; i++) {
-        loading_procs.push_back(center-i);
-        loading_procs.push_back(center+i);
+        loading_procs.push_back(center - i);
+        loading_procs.push_back(center + i);
     }
 
-    std::for_each(loading_procs.begin(), loading_procs.end(), [](auto v){std::cout << v << std::endl;});
+    //std::for_each(loading_procs.begin(), loading_procs.end(), [](auto v){std::cout << v << std::endl;});
 
     const bool i_am_loading_proc = std::find(loading_procs.begin(), loading_procs.end(), rank) != loading_procs.end();
 
@@ -84,7 +85,7 @@ void SimulatedLBM::run(float alpha) {
 
     if(i_am_foreman) steplogger->info() << cell_in_my_cols << " " << cell_in_my_rows;
     std::vector<Cell> my_cells;
-    my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx, cell_in_my_cols, cell_in_my_rows, WATER_TYPE, 1.0, 0.0);
+    my_cells = generate_lattice_single_type(msx, msy, x_proc_idx, y_proc_idx, cell_in_my_cols, cell_in_my_rows, Cell::WATER_TYPE, 1.0, 0.0);
 
     int bottom, top;
 
@@ -102,7 +103,7 @@ void SimulatedLBM::run(float alpha) {
 #endif
 
 #ifdef PRODUCE_OUTPUTS
-    int inner_type = WATER_TYPE;
+    int inner_type = Cell::ROCK_TYPE;
     int shape[2] = {msx, msy};
 
     if(i_am_foreman) cnpy::npz_save("gids-out.npz", "shape", &shape[0],   {2}, "w");
@@ -161,9 +162,10 @@ void SimulatedLBM::run(float alpha) {
         bool lb_condition = false;
 #endif
         if(lb_condition) {
-            bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
+            // bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             this->load_balancer->activate_load_balance(step, &my_cells);
 #ifdef AUTONOMIC_LOAD_BALANCING
+
             double median;
             if(std::distance(window_step_time.begin(), window_step_time.end() - 3) < 0)
                 median  = stats::median<double>(window_step_time.begin(), window_step_time.end());
@@ -172,6 +174,7 @@ void SimulatedLBM::run(float alpha) {
 
             unsigned int pcall = this->load_balancer->get_last_call();
             ncall = (unsigned int) this->load_balancer->estimate_best_ncall(((step - pcall) - 1), median-mean);
+
 #elif  CYCLIC_LOAD_BALANCING
             ncall = params.interval;
 #endif
@@ -185,7 +188,6 @@ void SimulatedLBM::run(float alpha) {
             deltaWorks.clear();
         }
 
-        PAR_STOP_TIMING(loop_time, world);
         PAR_STOP_TIMING(step_time, world);
 
         double add_weight;
@@ -202,8 +204,9 @@ void SimulatedLBM::run(float alpha) {
 
         PAR_START_TIMING(comp_time, world);
         PAR_RESTART_TIMING(step_time, world);
-        PAR_RESTART_TIMING(loop_time, world);
+
         compute_fluid_time(total_cells_before_cpt);
+
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
@@ -214,7 +217,6 @@ void SimulatedLBM::run(float alpha) {
         PAR_STOP_TIMING(comp_time, world);
         PAR_STOP_TIMING(step_time, world);
         CHECKPOINT_TIMING(loop_time, time_since_start);
-        PAR_STOP_TIMING(loop_time, world);
 
         MPI_Allreduce(&my_comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
 
@@ -230,20 +232,21 @@ void SimulatedLBM::run(float alpha) {
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
         window_my_time.add(my_comp_time); // monitor evolution of my workload    with a window
 
+#if LB_APPROACH == 1
         gossip_waterslope_db.execute(rank, get_slope<double>(water.begin(), water.end()));
-        gossip_workload_db.execute(rank, my_comp_time);
+        gossip_workload_db.execute(rank,   my_comp_time);
+#endif
+
+//update_cells(&my_cells, gossip_waterslope_db.get(rank), [](Cell &c, auto v){c.slope = v;});
 
         if(this->load_balancer->get_last_call() + 1 < step) {
             degradation_since_last_lb +=
                     stats::median<double>(window_step_time.end()-3, window_step_time.end()) - perfect_time_value;
-            //std::for_each(window_step_time.newest(), window_step_time.window_step_time.newest()-2(), [](auto v){ std::cout << v << std::endl; });
         }
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-        std::vector<double> exch_timings(worldsize);
-        std::vector<double> slopes(worldsize);
+        std::vector<double> exch_timings(worldsize), slopes(worldsize);
         std::vector<int> tloads(worldsize);
         std::vector<float> all_the_workloads(worldsize);
 
@@ -253,9 +256,12 @@ void SimulatedLBM::run(float alpha) {
         MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(),           1, MPI_DOUBLE, FOREMAN, world);
 
         if(i_am_foreman) {
-            steplogger->info("time for step ") << step << " = " << step_time << " time for comp. = "<< comp_time
-                                               << " total: " << time_since_start
+            auto total_slope = get_slope<double>(window_step_time.data_container);
+            steplogger->info("degradation since last LB ") << degradation_since_last_lb << ", avg_lb_cost " << this->load_balancer->get_average_cost() << ", total slope: " << total_slope;
+            steplogger->info("time for step ") << step << " = " << step_time << " computation_time = "<< comp_time
+                                               << " total = " << time_since_start
                                                << " dW: "<< stats::mean<double>(deltaWorks.begin(), deltaWorks.end());
+
             double max = *std::max_element(timings.cbegin(), timings.cend()),
                     average = std::accumulate(timings.cbegin(), timings.cend(), 0.0) / worldsize,
                     load_imbalance = (max / average - 1.0) * 100.0;
@@ -271,8 +277,12 @@ void SimulatedLBM::run(float alpha) {
         unsigned long cell_cnt = my_cells.size();
         std::vector<std::array<int,2>> my_types(cell_cnt);
 
-        if(step % 5 == 0){
-            for (unsigned int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
+        if(step % 5 == 0) {
+            //std::cout << cell_cnt << std::endl;
+            for (unsigned int i = 0; i < cell_cnt; ++i) {
+                my_types[i] = {my_cells[i].gid, my_cells[i].type};
+                //this->steplogger->info() << my_cells[i].type;
+            }
             gather_elements_on(my_types, 0, &all_types, datatype.minimal_datatype, world);
             if(i_am_foreman) {
                 std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
@@ -281,24 +291,22 @@ void SimulatedLBM::run(float alpha) {
                 std::for_each(all_types.begin(), all_types.end(), [&rock_gid, &inner_type](auto e){if(e[1] == inner_type) rock_gid.push_back(e[0]);});
                 cnpy::npz_save("gids-out.npz", "step-"+std::to_string(step+1), &rock_gid[0], {rock_gid.size()}, "a");
             }
+
+            for (unsigned int i = 0; i < cell_cnt; ++i) my_types[i] = {my_cells[i].gid, rank};
+
+            gather_elements_on(my_types, FOREMAN, &all_types, datatype.minimal_datatype, world);
+
+            if(i_am_foreman) {
+                std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
+                std::vector<int> part_idx;
+                std::for_each(all_types.begin(), all_types.end(), [&part_idx](auto e){part_idx.push_back(e[1]);});
+                cnpy::npz_save("gids-out.npz", "partition-step-"+std::to_string(step+1), &part_idx[0], {part_idx.size()}, "a");
+            }
         }
-
-        for (unsigned int i = 0; i < cell_cnt; ++i)
-        { my_types[i] = {my_cells[i].gid, rank}; std::cout << cell_cnt<< " " << rank << std::endl;}
-        gather_elements_on(my_types, FOREMAN, &all_types, datatype.minimal_datatype, world);
-
-        if(i_am_foreman) {
-            std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
-            std::vector<int> part_idx;
-            std::for_each(all_types.begin(), all_types.end(), [&part_idx](auto e){part_idx.push_back(e[1]);});
-            cnpy::npz_save("gids-out.npz", "partition-step-"+std::to_string(step+1), &part_idx[0], {part_idx.size()}, "a");
-        }
-
 #endif
-
-        PAR_RESTART_TIMING(loop_time, world);
     }
     PAR_STOP_TIMING(loop_time, world);
+
     if(i_am_foreman) perflogger->info("\"total_time\":")     << loop_time;
     if(i_am_foreman) perflogger->info("\"step times\":")     << stepTimes;
     if(i_am_foreman) perflogger->info("\"comp times\":")     << compTimes;

@@ -4,6 +4,7 @@
 #include <functional>
 #ifdef WITH_ZOLTAN
 #include <ZoltanLoadBalancer.hpp>
+#include <StripeLoadBalancer.hpp>
 #include <ULBA.hpp>
 
 #else
@@ -547,7 +548,8 @@ zz::log::LoggerPtr perflogger, steplogger, proctime;
 int main(int argc, char** argv) {
 
     MPI_Init(&argc, &argv);
-
+    float ver;
+    Zoltan_Initialize( 0, NULL, &ver );
     auto world = MPI_COMM_WORLD;
 
     auto cellDatatype = Cell::register_datatype().element_datatype;
@@ -563,7 +565,8 @@ int main(int argc, char** argv) {
     }
 
     SimulatedLBM simulation(params, world,
-            new ZoltanLoadBalancer<Cell>(world, cellDatatype, zoltan_create_wrapper, zoltan_LB<Cell>));
+            new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
+            //new ZoltanLoadBalancer<Cell>(world, cellDatatype, zoltan_create_wrapper, zoltan_LB<Cell>));
 
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);
