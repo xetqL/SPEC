@@ -149,6 +149,7 @@ void SimulatedLBM::run(float alpha) {
     std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks, loadImbalance;
     unsigned int ncall = MAX_STEP;
     water.push_back(my_water_ptr.size());
+    double my_gossip_time = 0.0;
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         if(i_am_foreman) steplogger->info() << "Beginning step "<< step;
@@ -233,8 +234,10 @@ void SimulatedLBM::run(float alpha) {
         window_my_time.add(my_comp_time); // monitor evolution of my workload    with a window
 
 #if LB_APPROACH == 1
+        RESTART_TIMING(my_gossip_time);
         gossip_waterslope_db.execute(rank, get_slope<double>(water.begin(), water.end()));
         gossip_workload_db.execute(rank,   my_comp_time);
+        STOP_TIMING(my_gossip_time);
 #endif
 
 //update_cells(&my_cells, gossip_waterslope_db.get(rank), [](Cell &c, auto v){c.slope = v;});
@@ -306,11 +309,13 @@ void SimulatedLBM::run(float alpha) {
 #endif
     }
     PAR_STOP_TIMING(loop_time, world);
-
+    double total_gossip_time;
+    MPI_Allreduce(&my_gossip_time, &total_gossip_time, 1, MPI_DOUBLE, MPI_MAX, world);
     if(i_am_foreman) perflogger->info("\"total_time\":")     << loop_time;
     if(i_am_foreman) perflogger->info("\"step times\":")     << stepTimes;
     if(i_am_foreman) perflogger->info("\"comp times\":")     << compTimes;
     if(i_am_foreman) perflogger->info("\"load imbalance\":") << loadImbalance;
+    if(i_am_foreman) perflogger->info("\"total_gossip_time\":") << total_gossip_time;
     datatype.free_datatypes();
 }
 
