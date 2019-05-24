@@ -52,9 +52,11 @@ void populate_data_pointers(int msx, int msy,
         std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
     }
     auto mine_size = cells.size();
+    int x,y;
     for (size_t i = 0; i < mine_size; ++i) {
         const Cell& cell = cells[i];
-        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        cell_to_local_position(msx, msy, bbox, cell.gid, &x, &y);
+        auto lid = position_to_cell(x2-x1, y2-y1, x, y);
         data_pointers[lid] = i+displ;
     }
 }

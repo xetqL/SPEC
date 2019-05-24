@@ -4,17 +4,29 @@
 
 #include "Simflow.hpp"
 
+volatile float BUFFER_DATA[10] = {
+        1.41421f, 1.61803, 2.6854520010f, 2.7182818284f, 3.1415926535f, 6.6666f, 1.0101f, 9.81f, 2.061993f, 5.011992f
+};
+
 // FLOP simulation
-void consume_cpu_flops(double& flop_to_consume) {
+inline void consume_cpu_flops(double flop_to_consume, int i) {
     while (res < 0.5) {
         res = res + one / flop_to_consume; // 2 FLOP
     }
 }
-void consume_cpu_flops(float& flop_to_consume) {
-    double f2c = flop_to_consume;
-    while(res < 0.5) {
-        res = res + one / f2c; // 2 FLOP
+inline void consume_cpu_flops(float flop_to_consume, int i) {
+
+    auto k = (float) i;
+
+    while(flop_to_consume > 1.0f) {
+        BUFFER_DATA[i] = BUFFER_DATA[i] * k; // 1 FLOP
+        flop_to_consume -= 2.0f;             // 1 FLOP
     }
+
+    if(flop_to_consume == 1.0f){
+        BUFFER_DATA[i] = BUFFER_DATA[i] - k;
+    }
+
 }
 
 // Domain generation
@@ -344,28 +356,31 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
     return my_cells;
 }
 */
-std::tuple<std::vector<Cell>, std::vector<unsigned long>, double>
+std::vector<Cell>
 dummy_erosion_computation3(int step,
                             int msx, int msy,
                             const std::vector<Cell>& my_old_cells,
                             const std::vector<unsigned long>& my_water_ptr,
                             const std::vector<Cell>& remote_cells,
                             const std::vector<unsigned long>& remote_water_ptr,
-                            const std::vector<size_t>& data_pointers,
-                            const std::tuple<int, int, int, int>& bbox) {
+                            const size_t *data_pointers,
+                            const std::tuple<int, int, int, int>& bbox,
+                            std::vector<unsigned long>* new_water_cells, double* total_weight) {
+
+    const unsigned int my_old_cells_size = my_old_cells.size();
 
     std::vector<Cell> my_cells = my_old_cells;
 
+    auto cells_data = my_cells.data();
     int x1,x2,y1,y2; std::tie(x1,x2, y1,y2) = bbox;
     int total_box = (x2-x1) * (y2-y1);
     const size_t my_water_cell_count = my_water_ptr.size();
     const size_t remote_water_count  = remote_water_ptr.size();
     const size_t all_water_count     = my_water_cell_count + remote_water_count;
 
-    std::vector<size_t> idx_neighbors(8, -1);
-    std::vector<float>  thetas(8, 0);
-    std::vector<unsigned long> new_water_cells;
-    double total_weight = 0;
+    size_t idx_neighbors[8] = {my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size};
+    float  thetas[8] = {0, 0, 0, 0, 0, 1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
+    //std::vector<unsigned long> new_water_cells;
 
     for(unsigned int i = 0; i < all_water_count; ++i) {
         const Cell* cell;
@@ -378,38 +393,37 @@ dummy_erosion_computation3(int step,
             cell = &remote_cells[cell_idx];
         }
 
-        auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
-        auto lid = position_to_cell(x2-x1, y2-y1, __pos);
-        std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
+        int pX, pY;
+        cell_to_local_position(msx, msy, x1,x2,y1,y2, cell->gid, &pX, &pY);
+        auto lid = position_to_cell(x2-x1, y2-y1, pX, pY);
+
+        //std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
+        memset(idx_neighbors, my_old_cells_size, 8);
+
         if(lid+1 < total_box) {
             idx_neighbors[0] = (data_pointers[lid+1]);
-            thetas[0]        = 0;//1.0f;
         }
         if((lid-(x2-x1))+1 >= 0) {
             idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
-            thetas[1]        = 0;//1.0f/1.4142135f;
         }
         if(lid-(x2-x1) >= 0) {
             idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
-            thetas[2]        = 0;
         }
         if(lid+(x2-x1) < total_box) {
             idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
-            thetas[6]        = 1.0f;
         }
         if(lid+(x2-x1)+1 < total_box) {
             idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
-            thetas[7]        = 1.0f/1.4142135f;
         }
         if(lid+(x2-x1)-1 < total_box) {
             idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
-            thetas[5]        = 1.0f/1.4142135f;
         }
+
         for (int j = 0; j < 8; ++j) {
             auto idx_neighbor = idx_neighbors[j];
             auto theta = thetas[j];
-            if(idx_neighbor >= my_old_cells.size()) continue;
-            if(my_cells[idx_neighbor].type) continue;
+            if(idx_neighbor >= my_old_cells_size) continue;
+            if(cells_data[idx_neighbor].type) continue;
             auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
             //auto x = cell_to_global_position(msx, msy, idx_neighbor);
             auto p = udist(gen);
@@ -417,13 +431,13 @@ dummy_erosion_computation3(int step,
             bool eroded;
 
             if( erosion_proba < 1.0 ) eroded = p < (theta) * erosion_proba;
-            else eroded = p < (msx - __pos.first) / (float) msx;
+            else eroded = p < (msx - pX) / (float) msx;
 
             if(eroded) {
                 my_cells[idx_neighbor].type   = 1;
                 my_cells[idx_neighbor].weight = 4;
-                new_water_cells.push_back(idx_neighbor);
-                total_weight += my_cells[idx_neighbor].weight;
+                new_water_cells->push_back(idx_neighbor);
+                *total_weight += my_cells[idx_neighbor].weight;
             }
         }
 
@@ -431,7 +445,7 @@ dummy_erosion_computation3(int step,
         /* stop */
     }
 
-    return std::make_tuple(my_cells, new_water_cells, total_weight);
+    return my_cells;
 }
 
 
@@ -441,12 +455,15 @@ void compute_fluid(const std::vector<Cell>& my_old_cells) {
         total_cells += cell.weight;
     }
     double total_flops = total_cells * flops;
-    consume_cpu_flops(total_flops);
+    consume_cpu_flops(total_flops, 0);
 }
 
 void compute_fluid(float total_cells) {
-    double total_flops = total_cells * flops;
-    consume_cpu_flops(total_flops);
+    //double total_flops = total_cells * flops;
+    for(int i = 0; i < total_cells; ++i){
+        consume_cpu_flops(flops, i % 10);
+    }
+
 }
 // based on CPU_TIME for 145 flops
 void compute_fluid_time(float total_cells) {

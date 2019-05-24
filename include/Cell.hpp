@@ -39,6 +39,10 @@ struct Cell {
         return cell_to_global_position(Cell::get_msx(), Cell::get_msy(), gid);
     }
 
+    void get_position_as_pair(int* x, int *y) const {
+        to_global_position(Cell::get_msx(), Cell::get_msy(), gid, x, y);
+    }
+
     static CommunicationDatatype register_datatype() {
 
         MPI_Datatype cell_datatype, gid_type_datatype;

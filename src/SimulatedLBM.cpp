@@ -58,6 +58,7 @@ void SimulatedLBM::run(float alpha) {
     std::shuffle(cols.begin(), cols.end(), gen);
     cols = {0, 1};
     std::vector<int> water_cols(cols.begin(), cols.begin()+1 );
+
     std::sort(water_cols.begin(), water_cols.end());
     //std::for_each(water_cols.cbegin(), water_cols.cend(), [](auto v){ std::cout << v << std::endl; });
 
@@ -210,8 +211,8 @@ void SimulatedLBM::run(float alpha) {
         RESTART_TIMING(loop_time);
         PAR_RESTART_TIMING(step_time, world);
 
-        std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
-        compute_fluid_time(total_cells_before_cpt);
+        my_cells = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers.data(), bbox, &new_water_ptr, &add_weight);
+        compute_fluid(total_cells_before_cpt);
 
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 

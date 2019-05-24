@@ -20,7 +20,18 @@ long long position_to_cell(int msx, int msy, const int x, const int y);
 
 std::pair<int, int> cell_to_global_position(int msx, int msy, long long position) ;
 
-std::pair<int, int> cell_to_local_position(int msx, int msy, std::tuple<int,int,int,int> bounding_box, long long position);
+void to_global_position(int msx, int msy, long long position, int *x, int *y);
+
+std::pair<int, int> cell_to_local_position(int msx, int msy, const std::tuple<int,int,int,int>& bounding_box, long long position);
+
+void cell_to_local_position(int msx, int msy, const std::tuple<int,int,int,int>& bounding_box, long long position, int* pX, int* pY);
+
+inline void cell_to_local_position(int msx, int msy, int minx, int maxx, int miny, int maxy, long long position, int* pX, int* pY ) {
+    //int minx = std::get<0>(bounding_box), maxx = std::get<1>(bounding_box), miny = std::get<2>(bounding_box), maxy = std::get<3>(bounding_box);
+    int gidx =  position % msx, gidy = (int) position / msx;
+    *pX = gidx - minx;
+    *pY = gidy - miny;
+}
 
 template<typename K, typename V>
 std::vector<std::pair<K,V>> mapToVector(const std::unordered_map<K,V> &map) {
@@ -56,12 +67,12 @@ std::tuple<int, int, int, int> get_bounding_box(
 
     //create boundaries from vehicles
     for(const auto& v : my_data) {
-        std::tie(x, y) = v.get_position_as_pair();
+        v.get_position_as_pair(&x, &y);
         minx = std::min(x, minx); miny = std::min(y, miny);
         maxx = std::max(x, maxx); maxy = std::max(y, maxy);
     }
     for(const auto& v : remote_data) {
-        std::tie(x, y) = v.get_position_as_pair();
+        v.get_position_as_pair(&x, &y);
         minx = std::min(x, minx); miny = std::min(y, miny);
         maxx = std::max(x, maxx); maxy = std::max(y, maxy);
     }
@@ -77,7 +88,7 @@ template<class A>
 std::tuple<int, int, int, int> get_bounding_box(const std::vector<A>& my_data) {
     int x, y, minx= std::numeric_limits<int>::max(), miny = std::numeric_limits<int>::max(), maxx=-1, maxy=-1;
     for(const auto& v : my_data) { //create boundaries from vehicles
-        std::tie(x, y) = v.get_position_as_pair();
+        v.get_position_as_pair(&x, &y);
         minx = std::min(x, minx); miny = std::min(y, miny);
         maxx = std::max(x, maxx); maxy = std::max(y, maxy);
     }
