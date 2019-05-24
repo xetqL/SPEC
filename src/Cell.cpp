@@ -14,20 +14,20 @@ void populate_data_pointers(int msx, int msy,
     int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
     int my_box = (x2-x1) * (y2-y1);
 
-    if(create){
+    auto mine_size   = my_cells.size();
+
+    if(create) {
         data_pointers.clear();
         data_pointers.resize(my_box);
         std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
+        for (size_t i = 0; i < mine_size; ++i) {
+            const Cell& cell = my_cells[i];
+            auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+            data_pointers[lid] = i;
+        }
     }
 
-    auto mine_size   = my_cells.size();
     auto remote_size = remote_cells.size();
-
-    for (size_t i = 0; i < mine_size; ++i) {
-        const Cell& cell = my_cells[i];
-        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
-        data_pointers[lid] = i;
-    }
 
     for (size_t i = 0; i < remote_size; ++i) {
         const Cell& cell = remote_cells[i];

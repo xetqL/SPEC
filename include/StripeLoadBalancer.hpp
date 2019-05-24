@@ -127,7 +127,6 @@ public:
                                std::make_move_iterator(bufferB.end()));
         }
 
-        MPI_Barrier(world);
 
         return remote_data;
 
