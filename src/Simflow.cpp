@@ -3,18 +3,18 @@
 //
 
 #include "Simflow.hpp"
-
+volatile float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
 volatile float BUFFER_DATA[10] = {
         1.41421f, 1.61803, 2.6854520010f, 2.7182818284f, 3.1415926535f, 6.6666f, 1.0101f, 9.81f, 2.061993f, 5.011992f
 };
 
 // FLOP simulation
-inline void consume_cpu_flops(double flop_to_consume, int i) {
+void consume_cpu_flops(double flop_to_consume, int i) {
     while (res < 0.5) {
         res = res + one / flop_to_consume; // 2 FLOP
     }
 }
-inline void consume_cpu_flops(float flop_to_consume, int i) {
+void consume_cpu_flops(float flop_to_consume, int i) {
 
     auto k = (float) i;
 
@@ -460,7 +460,7 @@ void compute_fluid(const std::vector<Cell>& my_old_cells) {
 
 void compute_fluid(float total_cells) {
     //double total_flops = total_cells * flops;
-    for(int i = 0; i < total_cells; ++i){
+    for(int i = 0; i < total_cells; ++i) {
         consume_cpu_flops(flops, i % 10);
     }
 

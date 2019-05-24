@@ -23,7 +23,6 @@
 static std::random_device rd;
 static std::mt19937 gen(rd());
 static std::normal_distribution<float> ndist(9, 1);
-static float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
 static std::uniform_real_distribution<float> udist(0, 1);
 static volatile double res = 0.0;
 static volatile double one = 1.0;
