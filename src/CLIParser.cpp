@@ -43,6 +43,9 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
         std::cout << parser.get_help() << std::endl;
         return std::make_pair<SimulationParams>({}, true);
     } else {
-        return std::make_pair<SimulationParams>({xprocs, yprocs, N, MAX_STEP, cell_per_process, interval, seed, load_lattice, verbose, lattice_fname, outputfname}, false);
+        SimulationParams p = {xprocs, yprocs, N, MAX_STEP, cell_per_process, interval, seed, load_lattice, verbose, lattice_fname, outputfname};
+        p.alpha = alpha;
+        return {p, false};
+   
     }
 }

@@ -18,6 +18,7 @@ struct SimulationParams {
     int seed = 0;
     bool load_lattice = false;
     bool verbose = false;
+    float alpha = 0.0;	
     std::string filename, outputfname;
 
     SimulationParams() {}

@@ -573,9 +573,11 @@ int main(int argc, char** argv) {
     steplogger = zz::log::get_logger("steps", true);
     proctime   = zz::log::get_logger("proctime", true);
 
+    steplogger->info("Starting simulation with alpha = ") << params.alpha;	
+
     simulation.set_loggers(perflogger, steplogger, proctime);
 
-    simulation.run(0.1);
+    simulation.run(params.alpha);
 
     MPI_Finalize();
 

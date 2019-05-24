@@ -68,7 +68,7 @@ void SimulatedLBM::run(float alpha) {
     //const int loading_proc = proc_dist(gen) % worldsize; //one randomly chosen load proc
     std::uniform_int_distribution<>  lproc_dist((int)N/2, worldsize-1-(int)N/2);
 
-    const int center = lproc_dist(gen);
+    const int center = worldsize-1;//lproc_dist(gen);
     loading_procs.push_back(center);
 
     for(int i = 1; i < N; i++) {
@@ -190,7 +190,7 @@ void SimulatedLBM::run(float alpha) {
         }
 
         PAR_STOP_TIMING(step_time, world);
-
+	STOP_TIMING(loop_time);
         double add_weight;
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
         decltype(my_water_ptr) remote_water_ptr;
@@ -204,6 +204,7 @@ void SimulatedLBM::run(float alpha) {
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
         PAR_START_TIMING(comp_time, world);
+        RESTART_TIMING(loop_time);
         PAR_RESTART_TIMING(step_time, world);
 
         compute_fluid_time(total_cells_before_cpt);
