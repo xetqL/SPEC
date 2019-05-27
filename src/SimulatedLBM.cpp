@@ -205,7 +205,7 @@ void SimulatedLBM::run(float alpha) {
 
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
 
-        auto total_cells_before_cpt = compute_estimated_workload(my_cells);
+        auto total_cells_before_cpt = n;//compute_estimated_workload(my_cells);
 
         PAR_START_TIMING(comp_time, world);
         RESTART_TIMING(loop_time);

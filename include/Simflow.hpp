@@ -225,6 +225,7 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
 std::pair<unsigned long, std::vector<unsigned long>> create_water_ptr_vector(const std::vector<Cell>& cells);
 
 const std::vector<const Cell*> create_water_ptr(const std::vector<Cell>& cells);
+
 /*
 std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                                              const std::vector<Cell>& _my_cells,
@@ -310,8 +311,8 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
                                                                                              const std::vector<Cell>& remote_cells,
                                                                                              const std::vector<unsigned long>& remote_water_ptr,
                                                                                              const std::vector<size_t>& data_pointers,
-                                                                                             const std::tuple<int, int, int, int>& bbox);
-*/
+                                                                                             const std::tuple<int, int, int, int>& bbox);*/
+
 std::vector<Cell>
 dummy_erosion_computation3(int step,
                            int msx, int msy,
@@ -322,6 +323,7 @@ dummy_erosion_computation3(int step,
                            const size_t *data_pointers,
                            const std::tuple<int, int, int, int>& bbox,
                            std::vector<unsigned long>* new_water_cells, double* total_weight);
+
 void compute_fluid(const std::vector<Cell>& my_old_cells);
 
 void compute_fluid(float total_cells);
