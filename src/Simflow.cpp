@@ -3,7 +3,7 @@
 //
 
 #include "Simflow.hpp"
-volatile float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
+volatile float flops = 145; //  https://arxiv.org/pdf/1703.08015.pdf
 volatile float BUFFER_DATA[10] = {
         1.41421f, 1.61803, 2.6854520010f, 2.7182818284f, 3.1415926535f, 6.6666f, 1.0101f, 9.81f, 2.061993f, 5.011992f
 };
@@ -14,19 +14,17 @@ void consume_cpu_flops(double flop_to_consume, int i) {
         res = res + one / flop_to_consume; // 2 FLOP
     }
 }
+
 void consume_cpu_flops(float flop_to_consume, int i) {
 
     auto k = (float) i;
-
     while(flop_to_consume > 1.0f) {
         BUFFER_DATA[i] = BUFFER_DATA[i] * k; // 1 FLOP
         flop_to_consume -= 2.0f;             // 1 FLOP
     }
-
-    if(flop_to_consume == 1.0f){
+    if(flop_to_consume == 1.0f) {
         BUFFER_DATA[i] = BUFFER_DATA[i] - k;
     }
-
 }
 
 // Domain generation
@@ -398,7 +396,7 @@ dummy_erosion_computation3(int step,
         auto lid = position_to_cell(x2-x1, y2-y1, pX, pY);
 
         //std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
-        memset(idx_neighbors, my_old_cells_size, 8);
+        memset(idx_neighbors, my_old_cells_size, 8 * sizeof(unsigned int));
 
         if(lid+1 < total_box) {
             idx_neighbors[0] = (data_pointers[lid+1]);

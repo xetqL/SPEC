@@ -147,7 +147,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm) {
     //if(num_global_part >= 1)
     //if(part_on_me >= 1)
     //Zoltan_Set_Param(zz, "NUM_LOCAL_PARTS",  "2");
-    //Zoltan_Set_Param(zz, "NUM_GLOBAL_PARTS", "8");
+    //Zoltan_Set_Param(zz, "NUM_GLOBAL_PARTS", "");
     Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1");
     Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM",  "1");
     Zoltan_Set_Param(zz, "OBJ_WEIGHTS_COMPARABLE", "0");
