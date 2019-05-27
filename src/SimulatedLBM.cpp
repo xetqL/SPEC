@@ -193,7 +193,7 @@ void SimulatedLBM::run(float alpha) {
         PAR_STOP_TIMING(step_time, world);
 	    STOP_TIMING(loop_time);
 
-        double add_weight;
+        double add_weight = 0;
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
         decltype(my_water_ptr) remote_water_ptr;
 
@@ -212,7 +212,7 @@ void SimulatedLBM::run(float alpha) {
         PAR_RESTART_TIMING(step_time, world);
 
         my_cells = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers.data(), bbox, &new_water_ptr, &add_weight);
-        compute_fluid(total_cells_before_cpt);
+        compute_fluid_time(total_cells_before_cpt);
 
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 

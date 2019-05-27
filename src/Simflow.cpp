@@ -467,6 +467,6 @@ void compute_fluid(float total_cells) {
 }
 // based on CPU_TIME for 145 flops
 void compute_fluid_time(float total_cells) {
-    int64_t to_wait = 601 * (int) total_cells;
+    int64_t to_wait = 801 * (int) total_cells; //601 normally
     std::this_thread::sleep_for(std::chrono::nanoseconds(to_wait));
 }
