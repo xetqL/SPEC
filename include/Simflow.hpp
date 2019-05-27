@@ -66,7 +66,7 @@ std::vector<Cell> generate_lattice_single_type( int msx, int msy,
 void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
                              std::vector<Cell>* _cells,
                              float erosion_probability,
-                             int begin_stripe, int end_stripe);
+                             int begin_stripe, int end_stripe, float radius);
 int checkpoint(int h, int k, int x, int y, int a, int b);
 
 

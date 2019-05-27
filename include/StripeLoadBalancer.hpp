@@ -55,6 +55,9 @@ class StripeLoadBalancer : public LoadBalancer<Cell> {
             return os;
         }
     };
+    bool is_between(int A, int from, int to){
+        return from <= A && A <= to;
+    }
 public:
     StripeLoadBalancer(const MPI_Comm world, const MPI_Datatype datatype,
                        const int master, const int sizeX, const int sizeY) :
@@ -191,6 +194,7 @@ private:
         //_data->assign(mesh.begin(), mesh.end());
 
     }
+
     /**
      * Partition data into stripe of equal workload (minus alpha*100%).
      * Broadcast the resulting partition to the world.

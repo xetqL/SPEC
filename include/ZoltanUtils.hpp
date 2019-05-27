@@ -140,7 +140,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm) {
     Zoltan_Set_Param(zz, "KEEP_CUTS", "1");
 
     Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0");
-    Zoltan_Set_Param(zz, "LB_METHOD", "HSFC");
+    Zoltan_Set_Param(zz, "LB_METHOD", "RCB");
     Zoltan_Set_Param(zz, "DETERMINISTIC", "1");
     Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1");
 
@@ -171,13 +171,12 @@ Zoltan_Struct* __zoltan_create_wrapper(bool automatic_migration = false) {
     return zoltan_create_wrapper(automatic_migration, MPI_COMM_WORLD);
 }
 
-
 void zoltan_fn_init(Zoltan_Struct* zz, std::vector<Cell>* mesh_data, bool automatic_migration = false) {
     Zoltan_Set_Num_Obj_Fn(   zz, get_number_of_objects, mesh_data);
     Zoltan_Set_Obj_List_Fn(  zz, get_object_list,       mesh_data);
     Zoltan_Set_Num_Geom_Fn(  zz, get_num_geometry,      mesh_data);
     Zoltan_Set_Geom_Multi_Fn(zz, get_geometry_list,     mesh_data);
-    if(automatic_migration){
+    if(automatic_migration) {
         Zoltan_Set_Obj_Size_Fn(zz, cpt_obj_size, mesh_data);
         Zoltan_Set_Pack_Obj_Fn(zz, pack_particles, mesh_data);
         Zoltan_Set_Unpack_Obj_Fn(zz, unpack_particles, mesh_data);

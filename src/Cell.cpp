@@ -76,7 +76,6 @@ long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) {
  * @param _my_cells
  * @param slope
  */
-
 void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type){
     std::vector<Cell>& my_cells = *(_my_cells);
     int nb_type = 0;

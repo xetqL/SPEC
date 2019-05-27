@@ -92,7 +92,7 @@ void SimulatedLBM::run(float alpha) {
 
     bottom = y_proc_idx * cell_in_my_rows;
     top    = (y_proc_idx+1) * cell_in_my_rows;
-    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.4f : 0.00f, bottom, top);
+    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.4f : 0.00f, bottom, top, (top-bottom) / 3);
 
     int recv, sent;
     std::vector<double> lb_costs;

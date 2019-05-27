@@ -565,8 +565,8 @@ int main(int argc, char** argv) {
     }
 
     SimulatedLBM simulation(params, world,
-            new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
-            //new ZoltanLoadBalancer<Cell>(world, cellDatatype, zoltan_create_wrapper, zoltan_LB<Cell>));
+            //new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
+            new ZoltanLoadBalancer<Cell>(world, cellDatatype, zoltan_create_wrapper, zoltan_LB<Cell>));
 
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);
