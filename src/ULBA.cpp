@@ -15,9 +15,7 @@ ULBA::ULBA(MPI_Comm world, GossipDatabase<double> *wirdb, double threshold, doub
 std::pair<LoadBalancingApproach::WorkloadShare, LoadBalancingApproach::WorkloadWeight> ULBA::compute_share(int rank) const {
     int N = 0, overloading = wirdb->zscore(rank) > threshold ? 1 : 0;
     auto data = wirdb->get_all_data();
-    for(auto pute: data){
-       std::cout << rank << " " << pute << std::endl;
-    } 
+
     // Count the number of overloading processes
     MPI_Allreduce(&overloading, &N, 1, MPI_INT, MPI_SUM, this->world);
 
