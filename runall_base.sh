@@ -6,8 +6,8 @@ shift
 for P in "$@"
 do
 
-sbatch --constraint=E5-2630V4 -p $partition --output N?_ULBA_"$P"_%j.out -n $P -c 1 -J SPEC -t $time spec.slurm bin/SPEC_ULBA $P 1 2000 450 12 ? 0.3
+sbatch --constraint=E5-2630V4 -p $partition --output %j_N?_ULBA_"$P".out -n $P -c 1 -J SPEC -t $time spec.slurm bin/SPEC_ULBA $P 1 2000 450 12 ? 0.3
 
-sbatch --constraint=E5-2630V4 -p $partition --output N?_STD_"$P"_%j.out -n $P -c 1 -J SPEC -t $time spec.slurm bin/SPEC_STD $P 1 2000 450 12 ? 0.3
+sbatch --constraint=E5-2630V4 -p $partition --output %j_N?_STD_"$P".out -n $P -c 1 -J SPEC -t $time spec.slurm bin/SPEC_STD $P 1 2000 450 12 ? 0.3
 
 done 

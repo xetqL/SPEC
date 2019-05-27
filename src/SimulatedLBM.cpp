@@ -151,6 +151,8 @@ void SimulatedLBM::run(float alpha) {
     unsigned int ncall = MAX_STEP;
     water.push_back(my_water_ptr.size());
     double my_gossip_time = 0.0;
+
+    n = compute_estimated_workload(my_cells);
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         if(i_am_foreman) steplogger->info() << "Beginning step "<< step;
@@ -207,12 +209,14 @@ void SimulatedLBM::run(float alpha) {
 
         auto total_cells_before_cpt = n;//compute_estimated_workload(my_cells);
 
+        my_cells = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers.data(), bbox, &new_water_ptr, &add_weight);
+        
         PAR_START_TIMING(comp_time, world);
+        
         RESTART_TIMING(loop_time);
         PAR_RESTART_TIMING(step_time, world);
-
-        my_cells = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers.data(), bbox, &new_water_ptr, &add_weight);
-        compute_fluid_time(total_cells_before_cpt);
+	 
+        compute_fluid_time(n);
 
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 
