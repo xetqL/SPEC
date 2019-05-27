@@ -178,7 +178,7 @@ private:
 
         double share, alpha;
         std::tie(share, alpha) = this->approach->compute_share(rank);
-        std::cout << "GROSSE PUTE" << std::endl;
+        //std::cout << "GROSSE PUTE" << std::endl;
         auto alphas = gather_elements_on({alpha}, 0, MPI_DOUBLE, world);
 
         // Partition
