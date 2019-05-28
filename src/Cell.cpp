@@ -61,10 +61,18 @@ void populate_data_pointers(int msx, int msy,
     }
 }
 // O(n) => very long
-float compute_estimated_workload(const std::vector<Cell>& _my_cells) {
-    float load = 0;
+template<class IntegerType>
+IntegerType compute_estimated_workload(const std::vector<Cell>& _my_cells) {
+    IntegerType load = 0;
     for (const auto& cell : _my_cells)
-        load += cell.weight;
+        load += (IntegerType) cell.weight;
+    return load;
+}
+template<>
+int64_t compute_estimated_workload(const std::vector<Cell>& _my_cells) {
+    int64_t load = 0;
+    for (const auto& cell : _my_cells)
+        load += (int64_t) cell.weight;
     return load;
 }
 

@@ -328,6 +328,6 @@ void compute_fluid(const std::vector<Cell>& my_old_cells);
 
 void compute_fluid(float total_cells);
 
-void compute_fluid_time(float total_cells);
+void compute_fluid_time(int64_t total_cells);
 
 #endif //SPEC_PROBLEM_HPP

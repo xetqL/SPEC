@@ -138,7 +138,7 @@ void SimulatedLBM::run(float alpha) {
 #endif
 
     std::vector<unsigned long> my_water_ptr;
-    unsigned long n;
+    int64_t n;
     std::vector<size_t> data_pointers, remote_data_pointers;
     std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
     std::tuple<int, int, int, int> bbox; // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
@@ -152,7 +152,7 @@ void SimulatedLBM::run(float alpha) {
     water.push_back(my_water_ptr.size());
     double my_gossip_time = 0.0;
 
-    n = compute_estimated_workload(my_cells);
+    n = compute_estimated_workload<int64_t>(my_cells);
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         if(i_am_foreman) steplogger->info() << "Beginning step "<< step;
@@ -190,7 +190,7 @@ void SimulatedLBM::run(float alpha) {
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
             water.push_back(n);
             deltaWorks.clear();
-            n = compute_estimated_workload(my_cells);
+            n = compute_estimated_workload<int64_t>(my_cells);
         }
 
         PAR_STOP_TIMING(step_time, world);
@@ -223,7 +223,8 @@ void SimulatedLBM::run(float alpha) {
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
-        n += (unsigned long) add_weight; // adapt the number of cell to compute
+
+        n += (int64_t) add_weight; // adapt the number of cell to compute
 
         water.push_back(n);
 
@@ -248,7 +249,7 @@ void SimulatedLBM::run(float alpha) {
 #if LB_APPROACH == 1
         RESTART_TIMING(my_gossip_time);
         gossip_waterslope_db.execute(rank, get_slope<double>(water.begin(), water.end()));
-        gossip_workload_db.execute(rank,   my_comp_time);
+        gossip_workload_db.execute(  rank,   my_comp_time);
         STOP_TIMING(my_gossip_time);
 #endif
 
@@ -263,12 +264,12 @@ void SimulatedLBM::run(float alpha) {
 
         std::vector<double> exch_timings(worldsize), slopes(worldsize);
         std::vector<int> tloads(worldsize);
-        std::vector<float> all_the_workloads(worldsize);
+        std::vector<int64_t> all_the_workloads(worldsize);
 
-        float my_workload = n;
+        int64_t my_workload = n;
 
-        MPI_Gather(&my_workload,  1, MPI_FLOAT,  &all_the_workloads.front(), 1, MPI_FLOAT,  FOREMAN, world);
-        MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(),           1, MPI_DOUBLE, FOREMAN, world);
+        MPI_Gather(&my_workload,  1, MPI_INT64_T,  &all_the_workloads.front(), 1, MPI_INT64_T,  FOREMAN, world);
+        MPI_Gather(&my_comp_time, 1, MPI_DOUBLE,   &timings.front(),           1, MPI_DOUBLE,   FOREMAN, world);
 
         if(i_am_foreman) {
             auto total_slope = get_slope<double>(window_step_time.data_container);

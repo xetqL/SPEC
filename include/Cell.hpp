@@ -113,8 +113,8 @@ void populate_data_pointers(int msx, int msy,
                             int displ,
                             const std::tuple<int, int, int, int>& bbox,
                             bool create = false);
-
-float compute_estimated_workload(const std::vector<Cell>& _my_cells);
+template<class IntegerType>
+IntegerType compute_estimated_workload(const std::vector<Cell>& _my_cells);
 
 long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) ;
 
