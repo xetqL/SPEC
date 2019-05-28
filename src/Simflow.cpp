@@ -356,14 +356,14 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
 */
 std::vector<Cell>
 dummy_erosion_computation3(int step,
-                            int msx, int msy,
-                            const std::vector<Cell>& my_old_cells,
-                            const std::vector<unsigned long>& my_water_ptr,
-                            const std::vector<Cell>& remote_cells,
-                            const std::vector<unsigned long>& remote_water_ptr,
-                            const size_t *data_pointers,
-                            const std::tuple<int, int, int, int>& bbox,
-                            std::vector<unsigned long>* new_water_cells, double* total_weight) {
+                           int msx, int msy,
+                           const std::vector<Cell>& my_old_cells,
+                           const std::vector<unsigned long>& my_water_ptr,
+                           const std::vector<Cell>& remote_cells,
+                           const std::vector<unsigned long>& remote_water_ptr,
+                           const size_t *data_pointers,
+                           const std::tuple<int, int, int, int>& bbox,
+                           std::vector<unsigned long>* new_water_cells, double* total_weight) {
 
     const unsigned int my_old_cells_size = my_old_cells.size();
 
@@ -446,7 +446,6 @@ dummy_erosion_computation3(int step,
     return my_cells;
 }
 
-
 void compute_fluid(const std::vector<Cell>& my_old_cells) {
     double total_cells = 0.0;
     for(const auto& cell : my_old_cells) {
@@ -463,6 +462,7 @@ void compute_fluid(float total_cells) {
     }
 
 }
+
 // based on CPU_TIME for 145 flops
 void compute_fluid_time(float total_cells) {
     int64_t to_wait = 601 * (int) total_cells; //601 normally

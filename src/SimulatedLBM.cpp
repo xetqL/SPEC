@@ -210,15 +210,14 @@ void SimulatedLBM::run(float alpha) {
 
         populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
 
-        auto total_cells_before_cpt = n;//compute_estimated_workload(my_cells);
+        // compute_estimated_workload(my_cells);
 
         my_cells = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers.data(), bbox, &new_water_ptr, &add_weight);
         
         PAR_START_TIMING(comp_time, world);
-        
         RESTART_TIMING(loop_time);
         PAR_RESTART_TIMING(step_time, world);
-	 
+
         compute_fluid_time(n);
 
         CHECKPOINT_TIMING(comp_time, my_comp_time);
@@ -266,7 +265,7 @@ void SimulatedLBM::run(float alpha) {
         std::vector<int> tloads(worldsize);
         std::vector<float> all_the_workloads(worldsize);
 
-        auto my_workload = compute_estimated_workload(my_cells);
+        float my_workload = n;
 
         MPI_Gather(&my_workload,  1, MPI_FLOAT,  &all_the_workloads.front(), 1, MPI_FLOAT,  FOREMAN, world);
         MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(),           1, MPI_DOUBLE, FOREMAN, world);

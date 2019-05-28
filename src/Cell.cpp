@@ -63,7 +63,8 @@ void populate_data_pointers(int msx, int msy,
 // O(n) => very long
 float compute_estimated_workload(const std::vector<Cell>& _my_cells) {
     float load = 0;
-    for (const auto& cell : _my_cells) load += cell.weight;
+    for (const auto& cell : _my_cells)
+        load += cell.weight;
     return load;
 }
 
