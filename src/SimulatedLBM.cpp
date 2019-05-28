@@ -190,13 +190,16 @@ void SimulatedLBM::run(float alpha) {
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
             water.push_back(n);
             deltaWorks.clear();
+            n = compute_estimated_workload(my_cells);
         }
 
         PAR_STOP_TIMING(step_time, world);
 	    STOP_TIMING(loop_time);
 
         double add_weight = 0;
+
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
+
         decltype(my_water_ptr) remote_water_ptr;
 
         std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);
