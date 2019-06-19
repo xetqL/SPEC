@@ -563,21 +563,30 @@ int main(int argc, char** argv) {
         MPI_Abort(world, MPI_ERR_UNKNOWN);
         return EXIT_FAILURE;
     }
-
-    SimulatedLBM simulation(params, world,
-            new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
-            //new ZoltanLoadBalancer<Cell>(world, cellDatatype, zoltan_create_wrapper, zoltan_LB<Cell>));
-
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);
     steplogger = zz::log::get_logger("steps", true);
     proctime   = zz::log::get_logger("proctime", true);
 
-    steplogger->info("Starting simulation with alpha = ") << params.alpha;	
+    {
+        SimulatedLBM simulation(params, world,
+                                new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
+                //new ZoltanLoadBalancer<Cell>(world, cellDatatype, zoltan_create_wrapper, zoltan_LB<Cell>));
 
-    simulation.set_loggers(perflogger, steplogger, proctime);
+        simulation.set_loggers(perflogger, steplogger, proctime);
 
-    simulation.run(params.alpha);
+        simulation.run<StdApproach>(params.alpha);
+    }
+
+    {
+        SimulatedLBM simulation(params, world,
+                                new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
+        //new ZoltanLoadBalancer<Cell>(world, cellDatatype, zoltan_create_wrapper, zoltan_LB<Cell>));
+
+        simulation.set_loggers(perflogger, steplogger, proctime);
+
+        simulation.run<ULBA>(params.alpha);
+    }
 
     MPI_Finalize();
 

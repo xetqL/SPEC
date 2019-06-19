@@ -35,6 +35,8 @@ public:
                                 int *nb_elements_recv, int *nb_elements_sent,
                                 double cell_size) override;
 
+    std::string to_string() override;
+
 private:
     void load_balance(std::vector<Data> *_data) override;
 };
@@ -58,6 +60,11 @@ template<class Data> void ZoltanLoadBalancer<Data>::load_balance(std::vector<Dat
 template<class Data> std::vector<Data> ZoltanLoadBalancer<Data>::propagate(const std::vector<Data> &data,
                             int *nb_elements_recv, int *nb_elements_sent, double cell_size) {
     return zoltan_exchange_data<Data>(zoltan_lb, data, nb_elements_recv, nb_elements_sent, this->datatype, this->world, cell_size);
+}
+
+template<class Data>
+std::string ZoltanLoadBalancer<Data>::to_string() {
+    return "ZoltanRCBLB";
 }
 
 

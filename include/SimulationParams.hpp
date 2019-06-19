@@ -7,6 +7,8 @@
 
 #include <string>
 #include <cmath>
+#include <ostream>
+
 struct SimulationParams {
     unsigned int xprocs = 0;
     unsigned int yprocs = 0;
@@ -17,6 +19,15 @@ struct SimulationParams {
     unsigned int xcells, ycells;
     int seed = 0;
     bool load_lattice = false;
+
+    friend std::ostream &operator<<(std::ostream &os, const SimulationParams &params) {
+        os << "xprocs: " << params.xprocs << ", yprocs: " << params.yprocs << ", N: " << params.N << ", MAX_STEP: "
+           << params.MAX_STEP << ", cell_per_process: " << params.cell_per_process << ", interval: " << params.interval
+           << ", xcells: " << params.xcells << ", ycells: " << params.ycells << ", seed: " << params.seed << ", alpha: "
+           << params.alpha;
+        return os;
+    }
+
     bool verbose = false;
     float alpha = 0.0;	
     std::string filename, outputfname;
@@ -31,6 +42,8 @@ struct SimulationParams {
         xcells = xprocs * (int) std::sqrt(cell_per_process);
         ycells = yprocs * (int) std::sqrt(cell_per_process);
     }
+
+
 };
 
 #endif //SPEC_SIMULATIONPARAMS_HPP

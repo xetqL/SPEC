@@ -3,7 +3,7 @@ project(SPEC C CXX)
 
 #enable_language(C CXX)
 find_package(MPI REQUIRED)
-find_package (Threads)
+find_package(Threads)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 14)

@@ -17,13 +17,14 @@ std::pair<LoadBalancingApproach::WorkloadShare, LoadBalancingApproach::WorkloadW
     auto data = wirdb->get_all_data();
     // Count the number of overloading processes
     MPI_Allreduce(&overloading, &N, 1, MPI_INT, MPI_SUM, this->world);
+    if(!rank) std::cout << N << " outliers" << std::endl;
     double share = 1;
     if(overloading) {
-        std::cout << "outlier..." << std::endl;
+        //std::cout << "outlier..." << std::endl;
         share = (1 - this->alpha) * share;
         return {share, this->alpha};
     } else {
-        std::cout << N << " outliers" << std::endl;
+        //std::cout << N << " outliers" << std::endl;
         share = (1 + this->alpha * ((double) N / (double) (P-N))) * share;
         return {share, 0.0};
     }

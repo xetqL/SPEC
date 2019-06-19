@@ -36,6 +36,10 @@ public:
         MPI_Comm_size(world, &worldsize);
     };
 
+    std::string get_approach_name(){
+        return approach->to_string();
+    }
+
     void activate_load_balance(int step, std::vector<Data>* _data) {
         if(rank == 0) logger->info("Calling load balancer at step {} with {}", step, this->approach->to_string());
 
@@ -66,7 +70,7 @@ public:
     void set_approach(LoadBalancingApproach* approach) {
         this->approach.reset(approach);
     }
-
+    virtual std::string to_string() = 0;
 private:
     virtual void load_balance(std::vector<Data>* _data) = 0;
 };
