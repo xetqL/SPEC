@@ -18,13 +18,20 @@ long long position_to_cell(int msx, int msy, const std::pair<int, int> & positio
 
 long long position_to_cell(int msx, int msy, const int x, const int y);
 
-std::pair<int, int> cell_to_global_position(int msx, int msy, long long position) ;
+inline std::pair<int, int> cell_to_global_position(int msx, int msy, long long position){
+    return std::make_pair(position % msx, (int) position / msx);
+}
 
 void to_global_position(int msx, int msy, long long position, int *x, int *y);
 
 std::pair<int, int> cell_to_local_position(int msx, int msy, const std::tuple<int,int,int,int>& bounding_box, long long position);
 
-void cell_to_local_position(int msx, int msy, const std::tuple<int,int,int,int>& bounding_box, long long position, int* pX, int* pY);
+inline void cell_to_local_position(int msx, int msy, const std::tuple<int,int,int,int>& bounding_box, long long position, int* pX, int* pY) {
+    int minx = std::get<0>(bounding_box), miny = std::get<2>(bounding_box);
+    int gidx =  position % msx, gidy = (int) position / msx;
+    *pX = gidx - minx;
+    *pY = gidy - miny;
+}
 
 inline void cell_to_local_position(int msx, int msy, int minx, int maxx, int miny, int maxy, long long position, int* pX, int* pY ) {
     //int minx = std::get<0>(bounding_box), maxx = std::get<1>(bounding_box), miny = std::get<2>(bounding_box), maxy = std::get<3>(bounding_box);
