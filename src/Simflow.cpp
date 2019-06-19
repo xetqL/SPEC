@@ -365,20 +365,24 @@ dummy_erosion_computation3(int step,
                            const std::tuple<int, int, int, int>& bbox,
                            std::vector<unsigned long>* new_water_cells, double* total_weight) {
 
-    const unsigned int my_old_cells_size = my_old_cells.size();
+    const auto my_old_cells_size = my_old_cells.size();
 
     std::vector<Cell> my_cells = my_old_cells;
-
     auto cells_data = my_cells.data();
+
     int x1,x2,y1,y2; std::tie(x1,x2, y1,y2) = bbox;
     int total_box = (x2-x1) * (y2-y1);
     const size_t my_water_cell_count = my_water_ptr.size();
     const size_t remote_water_count  = remote_water_ptr.size();
     const size_t all_water_count     = my_water_cell_count + remote_water_count;
+    const size_t total_cell_count    = my_old_cells.size();
 
-    size_t idx_neighbors[8] = {my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size,my_old_cells_size};
-    float  thetas[8] = {0, 0, 0, 0, 0, 1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
+    size_t idx_neighbors[8] = {my_old_cells_size, my_old_cells_size, my_old_cells_size, my_old_cells_size, my_old_cells_size, my_old_cells_size, my_old_cells_size, my_old_cells_size};
+    const float  thetas[8] = {0, 0, 0, 0, 0, 1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
     //std::vector<unsigned long> new_water_cells;
+
+    //can't have more new water than the actual number of rocks
+    new_water_cells->reserve(total_cell_count - my_water_cell_count);
 
     for(unsigned int i = 0; i < all_water_count; ++i) {
         const Cell* cell;
@@ -417,11 +421,15 @@ dummy_erosion_computation3(int step,
             idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
         }
 
+        //check each of the eight neighbors
         for (int j = 0; j < 8; ++j) {
             auto idx_neighbor = idx_neighbors[j];
             auto theta = thetas[j];
+
+            // check if this cell belongs to me
             if(idx_neighbor >= my_old_cells_size) continue;
             if(cells_data[idx_neighbor].type) continue;
+
             auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
             //auto x = cell_to_global_position(msx, msy, idx_neighbor);
             auto p = udist(gen);
@@ -439,9 +447,10 @@ dummy_erosion_computation3(int step,
             }
         }
 
-        /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
-        /* stop */
     }
+
+    //shrink to fit the real number of data, optional
+    new_water_cells->shrink_to_fit();
 
     return my_cells;
 }

@@ -39,7 +39,7 @@ struct Cell {
         return cell_to_global_position(Cell::get_msx(), Cell::get_msy(), gid);
     }
 
-    void get_position_as_pair(int* x, int *y) const {
+    void get_position_as_pair(int *x, int *y) const {
         to_global_position(Cell::get_msx(), Cell::get_msy(), gid, x, y);
     }
 
@@ -124,7 +124,7 @@ long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) ;
  * @param slope
  */
 template<class MapFunc>
-void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, MapFunc f) {
+void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, MapFunc &f) {
     std::vector<Cell>& my_cells = *(_my_cells);
     int nb_type = 0;
     slope = std::max(slope, 0.0); // wtf is a negative slope
@@ -132,13 +132,12 @@ void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, M
     for(auto& cell : my_cells) if(cell.type == type) {
         cell.weight = f(cell.weight, (float) slope);
     }
-
 }
 
 template<class Applier>
-void update_cells(std::vector<Cell>* _my_cells, double slope, Applier f) {
+void update_cells(std::vector<Cell>* _my_cells, double slope, Applier &f) {
     std::vector<Cell>& my_cells = *(_my_cells);
-    slope = std::max(slope, 0.0); // wtf is a negative slope
+    // slope = std::max(slope, 0.0); // wtf is a negative slope
     for(auto& cell : my_cells) f(cell, slope);
 }
 

@@ -9,12 +9,12 @@
 #include "GossipDatabase.hpp"
 
 class ULBA : public LoadBalancingApproach {
-    GossipDatabase<double> * const wirdb;
+    using Slope = double;
+    GossipDatabase<Slope> * const wirdb;
     const double threshold, alpha;
     int P;
 public:
-
-    ULBA(MPI_Comm world, GossipDatabase<double> *wirdb, double threshold, double alpha);
+    ULBA(MPI_Comm world, GossipDatabase<Slope> *wirdb, double threshold, double alpha);
     std::pair<WorkloadShare, WorkloadWeight> compute_share(int rank) const override;
     std::string to_string() const override;
 };

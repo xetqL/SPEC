@@ -247,6 +247,7 @@ inline int zoltan_load_balance(std::vector<Cell>* mesh_data,
     automatic_migration = do_migration ? automatic_migration : false;
 
     zoltan_fn_init(load_balancer, mesh_data, true);
+
     Zoltan_LB_Partition(load_balancer,      /* input (all remaining fields are output) */
                         &changes,           /* 1 if partitioning was changed, 0 otherwise */
                         &numGidEntries,     /* Number of integers used for a global ID */
@@ -261,6 +262,7 @@ inline int zoltan_load_balance(std::vector<Cell>* mesh_data,
                         &exportLocalGids,   /* Local IDs of the vertices I must send */
                         &exportProcs,       /* Process to which I send each of the vertices */
                         &exportToPart);     /* Partition to which each vertex will belong */
+
     int export_load = 0;
     int import_load = 0;
     //auto& md = *mesh_data;

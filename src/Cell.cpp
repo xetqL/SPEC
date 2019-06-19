@@ -15,23 +15,24 @@ void populate_data_pointers(int msx, int msy,
     int my_box = (x2-x1) * (y2-y1);
 
     auto mine_size   = my_cells.size();
-
+    int lX, lY;
     if(create) {
-        data_pointers.clear();
+
         data_pointers.resize(my_box);
         std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
         for (size_t i = 0; i < mine_size; ++i) {
             const Cell& cell = my_cells[i];
-            auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+            cell_to_local_position(msx, msy, bbox, cell.gid, &lX, &lY);
+            auto lid = position_to_cell(x2-x1, y2-y1, lX, lY);
             data_pointers[lid] = i;
         }
     }
 
     auto remote_size = remote_cells.size();
-
     for (size_t i = 0; i < remote_size; ++i) {
         const Cell& cell = remote_cells[i];
-        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        cell_to_local_position(msx, msy, bbox, cell.gid, &lX, &lY);
+        auto lid = position_to_cell(x2-x1, y2-y1, lX, lY);
         data_pointers[lid] = i+mine_size;
     }
 
@@ -60,6 +61,7 @@ void populate_data_pointers(int msx, int msy,
         data_pointers[lid] = i+displ;
     }
 }
+
 // O(n) => very long
 template<class IntegerType>
 IntegerType compute_estimated_workload(const std::vector<Cell>& _my_cells) {
@@ -85,15 +87,14 @@ long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) {
  * @param _my_cells
  * @param slope
  */
-void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type){
+void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type) {
     std::vector<Cell>& my_cells = *(_my_cells);
-    int nb_type = 0;
     slope = std::max(slope, 0.0); // wtf is a negative slope
-    for(auto& cell : my_cells) if(cell.type == type) nb_type++;
-    for(auto& cell : my_cells) if(cell.type == type) cell.weight = cell.weight - (float) slope * 1.0f / nb_type;
+    //for(auto& cell : my_cells) if(cell.type == type) nb_type++;
+    for(auto& cell : my_cells) if(cell.type == type) cell.weight += slope;
 }
 
-void reset_cell_weights(std::vector<Cell>* _my_cells){
+void reset_cell_weights(std::vector<Cell>* _my_cells) {
     std::vector<Cell>& my_cells = *(_my_cells);
     for(auto& cell : my_cells) cell.weight = cell.type ? WATER_WEIGHT : ROCK_WEIGHT;
 }

@@ -22,6 +22,7 @@ public:
     virtual std::string to_string() const {
         return "Undefined approach.";
     }
+
 };
 
 #endif //SPEC_LOADBALANCINGAPPROACH_HPP

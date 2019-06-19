@@ -25,7 +25,7 @@
     int gidx =  position % msx, gidy = (int) position / msx;
     return std::make_pair(gidx - minx,  gidy - miny);
 }
-void cell_to_local_position(int msx, int msy, const std::tuple<int,int,int,int>& bounding_box, long long position, int* pX, int* pY ) {
+inline void cell_to_local_position(int msx, int msy, const std::tuple<int,int,int,int>& bounding_box, long long position, int* pX, int* pY ) {
     int minx = std::get<0>(bounding_box), miny = std::get<2>(bounding_box);
     int gidx =  position % msx, gidy = (int) position / msx;
     *pX = gidx - minx;

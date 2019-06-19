@@ -43,9 +43,15 @@ private:
 template<class Data> void ZoltanLoadBalancer<Data>::load_balance(std::vector<Data> *_data) {
     float share, alpha;
     std::tie(share, alpha) = this->approach->compute_share(this->rank);
-    int parts_num[2] = {this->rank, this->rank}, weight_per_obj[2] = {0, 1};
-    float part_size[2] = {share, 1};
-    Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 2, parts_num, weight_per_obj, part_size);
+    //int parts_num[2] = {this->rank, this->rank}, weight_per_obj[2] = {0, 1};
+    //float part_size[2] = {share, 1};
+    //Zoltan_LB_Set_Part_Sizes(zoltan_lb, 1, 2, parts_num, weight_per_obj, part_size);
+#if LB_APPROACH == 1
+    update_cell_weights(_data, alpha, Cell::ROCK_TYPE);
+    //get_slope<double>(water.begin(), water.end());
+#endif
+
+
     lb_func(_data, zoltan_lb, true);
 }
 
