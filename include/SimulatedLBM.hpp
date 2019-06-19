@@ -229,11 +229,10 @@ public:
             std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);
 
             decltype(my_water_ptr) new_water_ptr;
-
+            STOP_TIMING(comp_time);
             if(lb_condition || step == 0) bbox = get_bounding_box(my_cells, remote_cells);
-
             populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
-
+            RESTART_TIMING(comp_time);
             // compute_estimated_workload(my_cells);
 
             //RESTART_TIMING(loop_time);
