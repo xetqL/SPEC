@@ -278,7 +278,7 @@ public:
                 degradation_since_last_lb +=
                         stats::median<double>(window_step_time.end()-3, window_step_time.end()) - perfect_time_value;
             }
-            STOP_TIMING(v);
+            STOP_TIMING(loop_time);
 
             /// COMPUTATION STOP
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -341,6 +341,7 @@ public:
                 }
             }
 #endif
+            RESTART_TIMING(loop_time);
         }
         PAR_STOP_TIMING(loop_time, world);
         double total_gossip_time;
