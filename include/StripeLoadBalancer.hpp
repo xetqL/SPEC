@@ -197,7 +197,7 @@ private:
 
         // Affectation
         //_data->assign(mesh.begin(), mesh.end());
-
+        // compute top-bottom frontier
     }
 
     /**
@@ -286,6 +286,7 @@ private:
 
         PE = 0;
         std::vector<MPI_Request> reqs(worldsize, MPI_REQUEST_NULL);
+
         for(auto& buf_to_send : data_to_migrate){
             if(PE != (unsigned int) myrank){
                 auto send_size = buf_to_send.size();

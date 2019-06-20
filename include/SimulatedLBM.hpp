@@ -216,12 +216,12 @@ public:
 
             //PAR_STOP_TIMING(step_time, world);
             //STOP_TIMING(loop_time);
-
-            PAR_START_TIMING(comp_time, world);
-
             double add_weight = 0;
 
             auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
+
+            PAR_START_TIMING(comp_time, world);
+
 
             decltype(my_water_ptr) remote_water_ptr;
 
