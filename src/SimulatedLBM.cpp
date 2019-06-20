@@ -190,7 +190,7 @@ void SimulatedLBM::run(float alpha) {
         }
 
         PAR_STOP_TIMING(step_time, world);
-	STOP_TIMING(loop_time);
+	//STOP_TIMING(loop_time);
         double add_weight;
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
         decltype(my_water_ptr) remote_water_ptr;

@@ -1,6 +1,6 @@
 #!/bin/bash
 #make clean
-git pull origin ieee-clusters-experiments
+git pull origin towards-a-predictive-lb-approach
 
 #rm CMakeCache.txt
 #~/cmake-3.11.0-Linux-x86_64/bin/cmake -DCMAKE_BUILD_TYPE=Release -DBINARY_NAME=SPEC_NO_LB . && make
