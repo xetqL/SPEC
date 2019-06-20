@@ -43,9 +43,9 @@ public:
     void activate_load_balance(int step, std::vector<Data>* _data) {
         if(rank == 0) logger->info("Calling load balancer at step {} with {}", step, this->approach->to_string());
 
-        PAR_START_TIMING(current_lb_cost, world);
+        START_TIMING(current_lb_cost);
         load_balance(_data);
-        PAR_STOP_TIMING(current_lb_cost, world);
+        STOP_TIMING(current_lb_cost);
         MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
         lb_costs.push_back(current_lb_cost);
         pcall = (unsigned int) step;

@@ -20,6 +20,7 @@ struct Cell {
 
     int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
+
     double slope;
 
     Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0), slope(1.0) {};

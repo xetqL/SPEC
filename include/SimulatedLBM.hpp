@@ -229,6 +229,7 @@ public:
             std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);
 
             decltype(my_water_ptr) new_water_ptr;
+
             STOP_TIMING(comp_time);
             if(lb_condition || step == 0) bbox = get_bounding_box(my_cells, remote_cells);
             populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
@@ -241,7 +242,6 @@ public:
             my_cells = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers.data(), bbox, &new_water_ptr, &add_weight);
             compute_fluid_time(n);
 
-
             my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
             n += (int64_t) add_weight; // adapt the number of cell to compute
             water.push_back(n);
@@ -251,22 +251,20 @@ public:
             PAR_STOP_TIMING(comp_time, world);
             PAR_STOP_TIMING(step_time, world);
             CHECKPOINT_TIMING(loop_time, time_since_start);
-
+            STOP_TIMING(loop_time);
             MPI_Allreduce(&my_comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
 
             // this is the reference time for further steps
             if(this->load_balancer->get_last_call() == step) perfect_time_value = comp_time;
-
             double currDegradation = std::max((comp_time - perfect_time_value), 0.0);
 
             deltaWorks.push_back(currDegradation);
-
             compTimes.push_back(comp_time);
             stepTimes.push_back(step_time);
-
             window_step_time.add(comp_time);  // monitor evolution of computing time with a window
             window_my_time.add(my_comp_time); // monitor evolution of my workload    with a window
 
+            RESTART_TIMING(loop_time);
             if(std::is_same<Approach , ULBA>::value) {
                 RESTART_TIMING(my_gossip_time);
                 gossip_waterslope_db.execute(rank, get_slope<double>(water.begin(), water.end()));
@@ -280,6 +278,8 @@ public:
                 degradation_since_last_lb +=
                         stats::median<double>(window_step_time.end()-3, window_step_time.end()) - perfect_time_value;
             }
+            STOP_TIMING(v);
+
             /// COMPUTATION STOP
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -344,8 +344,10 @@ public:
         }
         PAR_STOP_TIMING(loop_time, world);
         double total_gossip_time;
+        double total_loop_time;
         MPI_Allreduce(&my_gossip_time, &total_gossip_time, 1, MPI_DOUBLE, MPI_MAX, world);
-        if(i_am_foreman) perflogger->info("total_time for ") << load_balancer->to_string() << " with " << load_balancer->get_approach_name() << " :"        << loop_time;
+        MPI_Allreduce(&loop_time,      &total_loop_time, 1,   MPI_DOUBLE, MPI_MAX, world);
+        if(i_am_foreman) perflogger->info("total_time for ") << load_balancer->to_string() << " with " << load_balancer->get_approach_name() << " :"        << total_loop_time;
         if(i_am_foreman) perflogger->info("\"step times\":")        << stepTimes;
         if(i_am_foreman) perflogger->info("\"comp times\":")        << compTimes;
         if(i_am_foreman) perflogger->info("\"load imbalance\":")    << loadImbalance;
