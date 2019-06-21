@@ -362,11 +362,13 @@ dummy_erosion_computation3(int step,
     const size_t remote_water_count  = remote_water_ptr.size();
     const size_t all_water_count     = my_water_cell_count + remote_water_count;
 
-    std::vector<size_t> idx_neighbors(8, -1);
-    std::vector<float>  thetas(8, 0);
+    std::vector<size_t> _idx_neighbors(8, -1);
+    size_t* idx_neighbors = _idx_neighbors.data();
+    std::vector<float>  _thetas = {0.0f, 0.0f, 0.0f, -1.0f, -1.0f,  1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
+    auto thetas = _thetas.data();
     std::vector<unsigned long> new_water_cells;
     double total_weight = 0;
-
+    new_water_cells.reserve(1000);
     for(unsigned int i = 0; i < all_water_count; ++i) {
         const Cell* cell;
 
@@ -380,31 +382,28 @@ dummy_erosion_computation3(int step,
 
         auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
         auto lid = position_to_cell(x2-x1, y2-y1, __pos);
-        std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
+
+        memset(idx_neighbors, (size_t) my_old_cells.size()+1, 8);
+
         if(lid+1 < total_box) {
             idx_neighbors[0] = (data_pointers[lid+1]);
-            thetas[0]        = 0;//1.0f;
         }
         if((lid-(x2-x1))+1 >= 0) {
             idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
-            thetas[1]        = 0;//1.0f/1.4142135f;
         }
         if(lid-(x2-x1) >= 0) {
             idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
-            thetas[2]        = 0;
         }
         if(lid+(x2-x1) < total_box) {
             idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
-            thetas[6]        = 1.0f;
         }
         if(lid+(x2-x1)+1 < total_box) {
             idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
-            thetas[7]        = 1.0f/1.4142135f;
         }
         if(lid+(x2-x1)-1 < total_box) {
             idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
-            thetas[5]        = 1.0f/1.4142135f;
         }
+
         for (int j = 0; j < 8; ++j) {
             auto idx_neighbor = idx_neighbors[j];
             auto theta = thetas[j];
