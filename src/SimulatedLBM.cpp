@@ -231,7 +231,6 @@ void SimulatedLBM::run(float alpha) {
         deltaWorks.push_back(currDegradation);
 
         compTimes.push_back(comp_time);
-        stepTimes.push_back(step_time);
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
         window_my_time.add(my_comp_time); // monitor evolution of my workload    with a window
@@ -253,6 +252,7 @@ void SimulatedLBM::run(float alpha) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         STOP_TIMING(loop_time);
         PAR_STOP_TIMING(step_time, world);
+        stepTimes.push_back(step_time);
 
         std::vector<double> exch_timings(worldsize), slopes(worldsize);
         std::vector<int> tloads(worldsize);
