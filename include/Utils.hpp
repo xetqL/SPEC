@@ -54,7 +54,7 @@ std::tuple<int, int, int, int> get_bounding_box(
         const std::vector<A>& remote_data) {
     int x, y, minx= std::numeric_limits<int>::max(), miny = std::numeric_limits<int>::max(), maxx=-1, maxy=-1;
 
-    //create boundaries from vehicles
+    // create boundaries from vehicles
     for(const auto& v : my_data) {
         std::tie(x, y) = v.get_position_as_pair();
         minx = std::min(x, minx); miny = std::min(y, miny);
@@ -71,6 +71,25 @@ std::tuple<int, int, int, int> get_bounding_box(
     assert(miny >= 0);
     assert((unsigned int)  (maxx-minx) * (maxy-miny) >= (my_data.size() + remote_data.size()));
     return std::make_tuple(minx, maxx, miny, maxy);
+}
+
+
+template<class A>
+std::tuple<int, int, int, int> get_bounding_box(int msx, int msy, const std::vector<A>& my_data) {
+    int x, y, minx= std::numeric_limits<int>::max(), miny = std::numeric_limits<int>::max(), maxx=-1, maxy=-1;
+
+    // create boundaries from vehicles
+    for(const auto& v : my_data) {
+        std::tie(x, y) = v.get_position_as_pair();
+        minx = std::min(x, minx); miny = std::min(y, miny);
+        maxx = std::max(x, maxx); maxy = std::max(y, maxy);
+    }
+
+    maxx++;maxy++;
+    assert(minx >= 0);
+    assert(miny >= 0);
+    assert((unsigned int)  (maxx-minx) * (maxy-miny) >= (my_data.size()));
+    return std::make_tuple(std::max(0, minx-1), std::min(msx, maxx+1), std::max(0, miny-1), std::min(msy, maxy+1));
 }
 
 template<class A>

@@ -109,7 +109,16 @@ void populate_data_pointers(int msx, int msy,
                             int displ,
                             const std::tuple<int, int, int, int>& bbox,
                             bool create = false);
+void init_populate_data_pointers(int msx, int msy,
+                                 std::vector<size_t>* _data_pointers,
+                                 const std::vector<Cell>& my_cells,
+                                 const std::tuple<int, int, int, int>& bbox);
 
+void add_remote_data_to_arr(int msx, int msy,
+                            std::vector<size_t>* _data_pointers,
+                            int mine_size,
+                            const std::vector<Cell>& remote_cells,
+                            const std::tuple<int, int, int, int>& bbox);
 float compute_estimated_workload(const std::vector<Cell>& _my_cells);
 
 long compute_effective_workload(const std::vector<Cell>& _my_cells, int type) ;

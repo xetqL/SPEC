@@ -23,6 +23,8 @@ class StripeLoadBalancer : public LoadBalancer<Cell> {
     std::vector<PEIndex> partition;
     zz::log::LoggerPtr loggerPtr = nullptr;
     MPI_Datatype row_load_datatype;
+    std::vector<long> neighboringCellsId;
+
     struct RowWorkload {
         int row;
         int age;
@@ -55,6 +57,33 @@ class StripeLoadBalancer : public LoadBalancer<Cell> {
             return os;
         }
     };
+    //heavy
+    void compute_neighboring_cells(const std::vector<Cell> &data, const std::pair<int, int>& neighbors){
+        const auto size = data.size();
+        const auto my_top_frontier    = partition[2 * myrank];
+        const auto my_bottom_frontier = partition[2 * myrank + 1];
+        int k = 0;
+
+        if(neighbors.first < 0 || neighbors.second < 0)
+            neighboringCellsId.resize(sizeX*2);
+        else
+            neighboringCellsId.resize(sizeX*4);
+
+        for(long i = 0; i < size; ++i) {
+            long row = cell_to_position(sizeX, sizeY, data[i].gid).second;
+            if(row == my_top_frontier && neighbors.first > -1) {
+                neighboringCellsId[2*k] = i;
+                neighboringCellsId[2*k+1] = 0;
+                k++;
+            } else if (row == my_bottom_frontier && neighbors.second > -1) {
+                neighboringCellsId[2*k] = i;
+                neighboringCellsId[2*k+1] = 1;
+                k++;
+            }
+        }
+
+        //std::for_each(neighboringCellsId.begin(), neighboringCellsId.end(), [](auto a){std::cout << a << std::endl;});
+    }
 public:
     StripeLoadBalancer(const MPI_Comm world, const MPI_Datatype datatype,
                        const int master, const int sizeX, const int sizeY) :
@@ -63,6 +92,7 @@ public:
         MPI_Comm_rank(world, &myrank);
         MPI_Comm_size(world, &worldsize);
         partition.resize(2 * worldsize);
+
         register_datatype();
     }
 
@@ -75,12 +105,22 @@ public:
                                                     int* nb_elements_sent,
                                                     double cell_size = 1.0) override {
 
-
         std::vector<Cell> remote_data;
         if(worldsize == 1) return remote_data;
         std::vector<std::vector<Cell>> data_to_migrate(2);
 
         auto neighbors = get_my_neighbors();
+
+        const auto neighboringCells = neighboringCellsId.size() / 2;
+        data_to_migrate[0].reserve(sizeX); data_to_migrate[1].reserve(sizeX);
+        for(auto i = 0; i < neighboringCells; ++i) {
+            data_to_migrate[neighboringCellsId[2*i+1]].push_back(data[neighboringCellsId[2*i]]);
+        }
+
+        //data_to_migrate[0].shrink_to_fit();
+        //data_to_migrate[1].shrink_to_fit();
+/*
+        //auto neighbors = get_my_neighbors();
         auto my_top_frontier    = partition[2 * myrank];
         auto my_bottom_frontier = partition[2 * myrank + 1];
 
@@ -92,7 +132,7 @@ public:
                 data_to_migrate[1].push_back(cell);
             }
         }
-
+*/
         MPI_Request reqs[2]  = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
         //MPI_Request reqs2[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
@@ -107,27 +147,27 @@ public:
         }
 
         if(neighbors.first > -1) {
-            MPI_Send(&(data_to_migrate[0].front()), data_to_migrate[0].size(), datatype, neighbors.first, 547, world);
+            MPI_Send(&(data_to_migrate[0].front()), sizeX, datatype, neighbors.first, 547, world);
         }
 
         if(neighbors.second > -1) {
-            MPI_Send(&(data_to_migrate[1].front()), data_to_migrate[1].size(), datatype, neighbors.second, 547, world);
+            MPI_Send(&(data_to_migrate[1].front()), sizeX, datatype, neighbors.second, 547, world);
         }
 
         //auto p = 1; //rand() % 2;
 
         MPI_Waitall(2, reqs, MPI_STATUSES_IGNORE);
 
+        //std::cout << "sent " << std::endl;
+        //MPII_Barrier(world);
+
         if(neighbors.first > -1) {
-            remote_data.insert(remote_data.end(), std::make_move_iterator(bufferA.begin()),
-                               std::make_move_iterator(bufferA.end()));
+            remote_data.insert(remote_data.end(), std::make_move_iterator(bufferA.begin()), std::make_move_iterator(bufferA.end()));
         }
         if(neighbors.second > -1) {
             remote_data.insert(remote_data.end(), std::make_move_iterator(bufferB.begin()),
                                std::make_move_iterator(bufferB.end()));
         }
-
-        MPI_Barrier(world);
 
         return remote_data;
 
@@ -190,7 +230,8 @@ private:
 
         // Affectation
         //_data->assign(mesh.begin(), mesh.end());
-
+        auto neighbors = get_my_neighbors();
+        compute_neighboring_cells(data, neighbors);
     }
     /**
      * Partition data into stripe of equal workload (minus alpha*100%).
