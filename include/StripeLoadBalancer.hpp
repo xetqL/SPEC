@@ -165,8 +165,7 @@ public:
             remote_data.insert(remote_data.end(), std::make_move_iterator(bufferA.begin()), std::make_move_iterator(bufferA.end()));
         }
         if(neighbors.second > -1) {
-            remote_data.insert(remote_data.end(), std::make_move_iterator(bufferB.begin()),
-                               std::make_move_iterator(bufferB.end()));
+            remote_data.insert(remote_data.end(), std::make_move_iterator(bufferB.begin()), std::make_move_iterator(bufferB.end()));
         }
 
         return remote_data;

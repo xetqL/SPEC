@@ -424,10 +424,11 @@ dummy_erosion_computation3(int step,
                 total_weight += my_cells[idx_neighbor].weight;
             }
         }
+
         if(i >= my_water_cell_count) continue;
 
         auto cell_idx = my_water_ptr[i];
-        cell = &my_old_cells[cell_idx];
+        cell = &my_cells[cell_idx];
 
         auto p = udist(gen);
 
@@ -447,7 +448,6 @@ dummy_erosion_computation3(int step,
         cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
         cell->fakeInnerData = 1.0f/cell->fakeInnerData + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
         cell->fakeInnerData = 1.0f/p + cell->fakeInnerData*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-
 
 
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
