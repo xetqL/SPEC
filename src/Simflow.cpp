@@ -437,6 +437,19 @@ dummy_erosion_computation3(int step,
             tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - tmp_var);
             tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + tmp_var*(tmp_var - 1.0f);
             tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*tmp_var*tmp_var + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/tmp_var+ p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + tmp_var*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(tmp_var - 1.0f) - 0.5*p*tmp_var + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - tmp_var) - 0.5*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - tmp_var*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*tmp_var*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*tmp_var + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + tmp_var*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(tmp_var - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - tmp_var);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + tmp_var*(tmp_var - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*tmp_var*tmp_var + p*(p - 1.0f);
 
         }
 
