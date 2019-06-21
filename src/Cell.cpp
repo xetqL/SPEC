@@ -19,7 +19,6 @@ void add_remote_data_to_arr(int msx, int msy,
     }
 }
 
-
 void populate_data_pointers(int msx, int msy,
                             std::vector<size_t>* _data_pointers,
                             const std::vector<Cell>& my_cells,

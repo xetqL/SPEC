@@ -96,8 +96,11 @@ void SimulatedLBM::run(float alpha) {
     int recv, sent;
     std::vector<double> lb_costs;
 
-    this->load_balancer->activate_load_balance(0, &my_cells);
+    std::vector<size_t> data_pointers, remote_data_pointers;
 
+    this->load_balancer->activate_load_balance(0, &my_cells);
+    std::tuple<int, int, int, int> bbox = get_bounding_box(msx, msy, my_cells);
+    init_populate_data_pointers(msx, msy, &data_pointers, my_cells, bbox);
 #if LB_APPROACH == 1
     this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
 #endif
@@ -138,9 +141,8 @@ void SimulatedLBM::run(float alpha) {
 
     std::vector<unsigned long> my_water_ptr;
     unsigned long n;
-    std::vector<size_t> data_pointers, remote_data_pointers;
     std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
-    std::tuple<int, int, int, int> bbox; // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
+     // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
     //populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
 
     /* lets make it fun now...*/
@@ -185,13 +187,13 @@ void SimulatedLBM::run(float alpha) {
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
-            bbox = get_bounding_box(msx,msy, my_cells);
+            bbox = get_bounding_box(msx, msy, my_cells);
             init_populate_data_pointers(msx, msy, &data_pointers, my_cells, bbox);
             water.push_back(n);
             deltaWorks.clear();
         }
 
-        PAR_STOP_TIMING(step_time, world);
+        START_TIMING(comp_time);
 	    //STOP_TIMING(loop_time);
         double add_weight;
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
@@ -202,29 +204,28 @@ void SimulatedLBM::run(float alpha) {
 
         //if(lb_condition || step == 0)
         //    bbox = get_bounding_box(my_cells, remote_cells);
-
+        assert(data_pointers.size() >= my_cells.size() + remote_cells.size());
         add_remote_data_to_arr(msx, msy, &data_pointers, my_cells.size(), remote_cells, bbox);
 
-        PAR_START_TIMING(comp_time, world);
+
         //RESTART_TIMING(loop_time);
-        PAR_RESTART_TIMING(step_time, world);
 
         auto total_cells_before_cpt = compute_estimated_workload(my_cells);
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         compute_fluid_time(total_cells_before_cpt);
 
-        CHECKPOINT_TIMING(comp_time, my_comp_time);
+
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         n += (unsigned long) add_weight; // adapt the number of cell to compute
 
         water.push_back(n);
+        CHECKPOINT_TIMING(comp_time, my_comp_time);
+        STOP_TIMING(comp_time);
 
-        PAR_STOP_TIMING(comp_time, world);
-        PAR_STOP_TIMING(step_time, world);
+        MPI_Allreduce(MPI_IN_PLACE, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world);
+
         CHECKPOINT_TIMING(loop_time, time_since_start);
-
-        MPI_Allreduce(&my_comp_time, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world); // i should not need that!
 
         if(this->load_balancer->get_last_call() == step) perfect_time_value = comp_time;
 
@@ -254,7 +255,7 @@ void SimulatedLBM::run(float alpha) {
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         STOP_TIMING(loop_time);
-
+        PAR_STOP_TIMING(step_time, world);
         std::vector<double> exch_timings(worldsize), slopes(worldsize);
         std::vector<int> tloads(worldsize);
         std::vector<float> all_the_workloads(worldsize);
