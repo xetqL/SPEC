@@ -98,9 +98,8 @@ void SimulatedLBM::run(float alpha) {
 
     std::vector<size_t> data_pointers, remote_data_pointers;
 
-    this->load_balancer->activate_load_balance(0, &my_cells);
-    std::tuple<int, int, int, int> bbox = get_bounding_box(msx, msy, my_cells);
-    init_populate_data_pointers(msx, msy, &data_pointers, my_cells, bbox);
+    auto bbox = this->load_balancer->activate_load_balance(msx, msy, 0, &my_cells, &data_pointers);
+
 #if LB_APPROACH == 1
     this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
 #endif
@@ -166,7 +165,7 @@ void SimulatedLBM::run(float alpha) {
 #endif
         if(lb_condition) {
             // bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
-            this->load_balancer->activate_load_balance(step, &my_cells);
+            bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
 #ifdef AUTONOMIC_LOAD_BALANCING
 
             double median;
@@ -187,8 +186,6 @@ void SimulatedLBM::run(float alpha) {
             window_my_time.data_container.clear();
             window_step_time.data_container.clear();
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
-            bbox = get_bounding_box(msx, msy, my_cells);
-            init_populate_data_pointers(msx, msy, &data_pointers, my_cells, bbox);
             water.push_back(n);
             deltaWorks.clear();
         }
@@ -256,6 +253,7 @@ void SimulatedLBM::run(float alpha) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         STOP_TIMING(loop_time);
         PAR_STOP_TIMING(step_time, world);
+
         std::vector<double> exch_timings(worldsize), slopes(worldsize);
         std::vector<int> tloads(worldsize);
         std::vector<float> all_the_workloads(worldsize);
