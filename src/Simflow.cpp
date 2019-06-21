@@ -3,7 +3,7 @@
 //
 
 #include "Simflow.hpp"
-
+static volatile float tmp_var = 1.0f;
 // FLOP simulation
 void consume_cpu_flops(double& flop_to_consume) {
     while (res < 0.5) {
@@ -412,7 +412,6 @@ dummy_erosion_computation3(int step,
             auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
             //auto x = cell_to_global_position(msx, msy, idx_neighbor);
             auto p = udist(gen);
-
             bool eroded;
 
             if( erosion_proba < 1.0 ) eroded = p < (theta) * erosion_proba;
@@ -424,6 +423,21 @@ dummy_erosion_computation3(int step,
                 new_water_cells.push_back(idx_neighbor);
                 total_weight += my_cells[idx_neighbor].weight;
             }
+
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/tmp_var+ p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + tmp_var*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(tmp_var - 1.0f) - 0.5*p*tmp_var + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - tmp_var) - 0.5*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - tmp_var*p*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*tmp_var*p + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*tmp_var + p*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + tmp_var*(p - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(tmp_var - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - tmp_var);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + tmp_var*(tmp_var - 1.0f);
+            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*tmp_var*tmp_var + p*(p - 1.0f);
+
         }
 
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
@@ -449,6 +463,6 @@ void compute_fluid(float total_cells) {
 }
 // based on CPU_TIME for 145 flops
 void compute_fluid_time(float total_cells) {
-    int64_t to_wait = 601 * (int) total_cells;
+    int64_t to_wait = 300 * (int) total_cells;
     std::this_thread::sleep_for(std::chrono::nanoseconds(to_wait));
 }
