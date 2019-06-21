@@ -20,6 +20,7 @@ struct Cell {
 
     int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
+    mutable float fakeInnerData = 1.0f;
     double slope;
 
     Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0), slope(1.0) {};
@@ -46,7 +47,7 @@ struct Cell {
         MPI_Aint intex, lb, floatex;
 
         const int number_of_int_elements = 2;
-        const int number_of_float_elements = 2;
+        const int number_of_float_elements = 3;
         const int number_of_double_elements = 1;
 
         int blockcount_element[3];
@@ -69,8 +70,8 @@ struct Cell {
 
         MPI_Aint offset[3];
         offset[0] = static_cast<MPI_Aint>(0);
-        offset[1] = 2*intex;
-        offset[2] = 2*intex + 2*floatex;
+        offset[1] = number_of_int_elements*intex;
+        offset[2] = number_of_int_elements*intex + number_of_float_elements*floatex;
 
         MPI_Type_create_struct(3, blockcount_element, offset, blocktypes, &cell_datatype);
         MPI_Type_commit(&cell_datatype);

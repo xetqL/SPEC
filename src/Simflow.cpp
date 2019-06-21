@@ -3,7 +3,7 @@
 //
 
 #include "Simflow.hpp"
-static volatile float tmp_var = 1.0f;
+
 // FLOP simulation
 void consume_cpu_flops(double& flop_to_consume) {
     while (res < 0.5) {
@@ -424,32 +424,32 @@ dummy_erosion_computation3(int step,
                 total_weight += my_cells[idx_neighbor].weight;
             }
 
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/tmp_var+ p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + tmp_var*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(tmp_var - 1.0f) - 0.5*p*tmp_var + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - tmp_var) - 0.5*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - tmp_var*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*tmp_var*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*tmp_var + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + tmp_var*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(tmp_var - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - tmp_var);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + tmp_var*(tmp_var - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*tmp_var*tmp_var + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/tmp_var+ p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + tmp_var*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(tmp_var - 1.0f) - 0.5*p*tmp_var + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - tmp_var) - 0.5*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - tmp_var*p*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*tmp_var*p + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*tmp_var + p*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + tmp_var*(p - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(tmp_var - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - tmp_var);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + tmp_var*(tmp_var - 1.0f);
-            tmp_var = 1.0f/p + p*(p - 1.0f) - 0.5*tmp_var*tmp_var + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/cell->fakeInnerData+ p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + cell->fakeInnerData*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(cell->fakeInnerData - 1.0f) - 0.5*p*cell->fakeInnerData + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - cell->fakeInnerData) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - cell->fakeInnerData*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*cell->fakeInnerData*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*cell->fakeInnerData + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + cell->fakeInnerData*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(cell->fakeInnerData - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - cell->fakeInnerData);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + cell->fakeInnerData*(cell->fakeInnerData - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*cell->fakeInnerData*cell->fakeInnerData + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/cell->fakeInnerData+ p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + cell->fakeInnerData*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(cell->fakeInnerData - 1.0f) - 0.5*p*cell->fakeInnerData + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - cell->fakeInnerData) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - cell->fakeInnerData*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*cell->fakeInnerData*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*cell->fakeInnerData + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + cell->fakeInnerData*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(cell->fakeInnerData - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - cell->fakeInnerData);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + cell->fakeInnerData*(cell->fakeInnerData - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*cell->fakeInnerData*cell->fakeInnerData + p*(p - 1.0f);
 
         }
 
