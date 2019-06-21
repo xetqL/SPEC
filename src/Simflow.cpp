@@ -438,7 +438,7 @@ dummy_erosion_computation3(int step,
             cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + cell->fakeInnerData*(cell->fakeInnerData - 1.0f);
             cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*cell->fakeInnerData*cell->fakeInnerData + p*(p - 1.0f);
             cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-            cell->fakeInnerData = 1.0f/cell->fakeInnerData+ p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/cell->fakeInnerData + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
             cell->fakeInnerData = 1.0f/p + cell->fakeInnerData*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
             cell->fakeInnerData = 1.0f/p + p*(cell->fakeInnerData - 1.0f) - 0.5*p*cell->fakeInnerData + p*(p - 1.0f);
             cell->fakeInnerData = 1.0f/p + p*(p - cell->fakeInnerData) - 0.5*p*p + p*(p - 1.0f);
