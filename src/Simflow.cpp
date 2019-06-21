@@ -432,23 +432,24 @@ dummy_erosion_computation3(int step,
 
         auto p = udist(gen);
 
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/cell->fakeInnerData+ p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + cell->fakeInnerData*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(cell->fakeInnerData - 1.0f) - 0.5*p*cell->fakeInnerData + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(p - cell->fakeInnerData) - 0.5*p*p + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - cell->fakeInnerData*p*p + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*cell->fakeInnerData*p + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*cell->fakeInnerData + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + cell->fakeInnerData*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(cell->fakeInnerData - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - cell->fakeInnerData);
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + cell->fakeInnerData*(cell->fakeInnerData - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*cell->fakeInnerData*cell->fakeInnerData + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/cell->fakeInnerData + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-        cell->fakeInnerData = 1.0f/p + cell->fakeInnerData*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
-
+        for(int i = 0; i < cell->weight; ++i) {
+            cell->fakeInnerData = cell->fakeInnerData + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/cell->fakeInnerData+ p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + cell->fakeInnerData*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(cell->fakeInnerData - 1.0f) - 0.5*p*cell->fakeInnerData + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - cell->fakeInnerData) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - cell->fakeInnerData*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*cell->fakeInnerData*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*cell->fakeInnerData + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + cell->fakeInnerData*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(cell->fakeInnerData - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - cell->fakeInnerData);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + cell->fakeInnerData*(cell->fakeInnerData - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*cell->fakeInnerData*cell->fakeInnerData + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/cell->fakeInnerData + p*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+            cell->fakeInnerData = 1.0f/p + cell->fakeInnerData*(p - 1.0f) - 0.5*p*p + p*(p - 1.0f);
+        }
 
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
         /* stop */

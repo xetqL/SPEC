@@ -131,8 +131,8 @@ void SimulatedLBM::run(float alpha) {
 
         //assert((*(all_types.end() - 1))[0] == total_cell-1);
         cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
-
     }
+
     MPI_Barrier(world);
     if(i_am_foreman) all_types.resize(total_cell);
 
