@@ -27,7 +27,24 @@ static float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
 static std::uniform_real_distribution<float> udist(0, 1);
 static volatile double res = 0.0;
 static volatile double one = 1.0;
+static std::uniform_int_distribution<> dis(0, 1000);
+static std::random_device r;
+static volatile float tmp[100];
 
+inline void consume_flops(float *f, int weight) {
+    int  displ = dis(gen) % 100;
+    float seed = tmp[displ];
+    while(weight > 0){
+        for(int l = 0; l < 9; l++){ //9 * 17 flops = 153 flops
+            *f += *f * seed + displ; //3 flops
+            tmp[displ] /= displ * seed / 2.0f; // 3 flops
+            *f = *f - (((3.14f * tmp[displ]) + *f) / 180.0f) * ((*f)) / -0.96725058827f; // 6 flops
+            *f *= *f + 1.14f; // 1 flop
+            tmp[displ] *= *f + tmp[displ] * 360.0f; //3
+        }
+        weight--;
+    }
+}
 /// SIMULATION
 void consume_cpu_flops(double& flop_to_consume);
 void consume_cpu_flops(float& flop_to_consume);
@@ -224,86 +241,10 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
 }*/
 
 std::pair<unsigned long, std::vector<unsigned long>> create_water_ptr_vector(const std::vector<Cell>& cells);
+unsigned long create_water_ptr_vector(std::vector<Cell> *cells);
 
 const std::vector<const Cell*> create_water_ptr(const std::vector<Cell>& cells);
-/*
-std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
-                                             const std::vector<Cell>& _my_cells,
-                                             const std::vector<Cell>& remote_cells,
-                                             const std::vector<size_t>& data_pointers,
-                                             const std::tuple<int, int, int, int>& bbox) {
-    std::vector<Cell> my_cells = _my_cells;
-    const std::vector<Cell>& my_old_cells = _my_cells;
 
-    int x1,x2,y1,y2; std::tie(x1,x2, y1,y2) = bbox;
-    int total_box = (x2-x1) * (y2-y1);
-    const size_t my_cell_count = my_cells.size();
-    const size_t remote_count  = remote_cells.size();
-    const size_t all_count     = my_cell_count + remote_count;
-
-    std::vector<size_t> idx_neighbors(8, -1);
-    std::vector<float>  thetas(8, 0);
-    for(unsigned int i = 0; i < all_count; ++i) {
-        const Cell* cell;
-
-        if(i < my_cell_count) cell = &my_old_cells[i];
-        else cell = &remote_cells[i - my_cell_count];
-
-        if(cell->type) { // Do nothing if type == ROCK_TYPE
-            auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
-            auto lid = position_to_cell(x2-x1, y2-y1, __pos);
-            std::fill(idx_neighbors.begin(), idx_neighbors.end(), -1);
-            if(lid+1 < total_box) {
-                idx_neighbors[0] = (data_pointers[lid+1]);
-                thetas[0]        = 1.0f;
-            }
-            if((lid-(x2-x1))+1 >= 0) {
-                idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
-                thetas[1]        = 1.0f/1.4142135f;
-            }
-            if(lid-(x2-x1) >= 0) {
-                idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
-                thetas[2]        = 0;
-            }
-            if(lid+(x2-x1) < total_box) {
-                idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
-                thetas[6]        = 0;
-            }
-            if(lid+(x2-x1)+1 < total_box) {
-                idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
-                thetas[7]        = 1.0f/1.4142135f;
-            }
-
-            for (int j = 0; j < 8; ++j) {
-                auto idx_neighbor = idx_neighbors[j];
-                auto theta = thetas[j];
-                if(idx_neighbor >= my_cell_count) continue;
-                if(my_cells[idx_neighbor].type) continue;
-                auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
-                //auto x = cell_to_global_position(msx, msy, idx_neighbor);
-                auto p = udist(gen);
-                if( erosion_proba < 1.0 ) {
-                    if (p < (theta) * erosion_proba) {
-                        my_cells[idx_neighbor].type   = 1;
-                        my_cells[idx_neighbor].weight = 1;
-                    }
-                } else {
-                    if (p < (msx - __pos.first) / (float) msx) {
-                        my_cells[idx_neighbor].type   = 1;
-                        my_cells[idx_neighbor].weight = 1;
-                    }
-                }
-            }
-
-            //DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9
-            consume_cpu_flops(flops);
-
-
-        }
-    }
-    return my_cells;
-}
-*/
 std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_computation3(int step,
                                                                                              int msx, int msy,
                                                                                              const std::vector<Cell>& my_old_cells,
@@ -312,7 +253,6 @@ std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_
                                                                                              const std::vector<unsigned long>& remote_water_ptr,
                                                                                              const std::vector<size_t>& data_pointers,
                                                                                              const std::tuple<int, int, int, int>& bbox);
-
 
 void compute_fluid(const std::vector<Cell>& my_old_cells);
 

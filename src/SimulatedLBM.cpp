@@ -138,7 +138,7 @@ void SimulatedLBM::run(float alpha) {
 
 #endif
 
-    std::vector<unsigned long> my_water_ptr;
+    std::vector<unsigned long> my_water_ptr, remote_water_ptr, new_water_ptr;
     unsigned long n;
     std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
      // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
@@ -190,14 +190,15 @@ void SimulatedLBM::run(float alpha) {
             deltaWorks.clear();
         }
         double add_weight;
-        auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
+
         START_TIMING(comp_time);
+        auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
+
 	    //STOP_TIMING(loop_time);
 
-        decltype(my_water_ptr) remote_water_ptr;
+        //decltype(my_water_ptr) remote_water_ptr;
 
         std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);
-        decltype(my_water_ptr) new_water_ptr;
 
         //if(lb_condition || step == 0)
         //    bbox = get_bounding_box(my_cells, remote_cells);
@@ -206,18 +207,14 @@ void SimulatedLBM::run(float alpha) {
 
         //RESTART_TIMING(loop_time);
         //auto total_cells_before_cpt = compute_estimated_workload(my_cells);
-        START_TIMING(dummy_comp);
+
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
         //compute_fluid_time(total_cells_before_cpt);
-        STOP_TIMING(dummy_comp);
-        std::cout << "dummy_erosion_computation3: " << dummy_comp << std::endl;
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         n += (unsigned long) add_weight; // adapt the number of cell to compute
 
         water.push_back(n);
-
-
 
         CHECKPOINT_TIMING(comp_time, my_comp_time);
         STOP_TIMING(comp_time);

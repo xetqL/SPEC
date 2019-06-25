@@ -344,6 +344,10 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
     return my_cells;
 }
 */
+
+
+
+
 #include "Time.hpp"
 std::tuple<std::vector<Cell>, std::vector<unsigned long>, double>
 dummy_erosion_computation3(int step,
@@ -355,6 +359,7 @@ dummy_erosion_computation3(int step,
                             const std::vector<size_t>& data_pointers,
                             const std::tuple<int, int, int, int>& bbox) {
     double boundarytimings = 0.0;
+    double fctime = 0.0;
 
     std::vector<Cell> my_cells = my_old_cells;
 
@@ -364,8 +369,9 @@ dummy_erosion_computation3(int step,
     const size_t remote_water_count  = remote_water_ptr.size();
     const size_t all_water_count     = my_water_cell_count + remote_water_count;
 
-    std::vector<size_t> _idx_neighbors(8, -1);
+    std::vector<size_t>     _idx_neighbors(8, -1);
     size_t* idx_neighbors = _idx_neighbors.data();
+
     std::vector<float>  _thetas = {0.0f, 0.0f, 0.0f, -1.0f, -1.0f,  1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
     // std::vector<int>    _directions = {1, -(x2-x1)+1, -(x2-x1), (x2-x1), +(x2-x1)+1,  1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
 
@@ -385,59 +391,58 @@ dummy_erosion_computation3(int step,
             auto cell_idx = remote_water_ptr[i - my_water_cell_count];
             cell = &remote_cells[cell_idx];
         }
+        for(unsigned int w = 0; w < cell->weight; ++w){
+            auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
+            auto lid = position_to_cell(x2-x1, y2-y1, __pos);
 
-        auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
-        auto lid = position_to_cell(x2-x1, y2-y1, __pos);
+            memset(idx_neighbors, (size_t) my_old_cells.size() + 1, 8);
 
-        memset(idx_neighbors, (size_t) my_old_cells.size()+1, 8);
-        if(lid+1 < total_box) {
-            idx_neighbors[0] = (data_pointers[lid+1]);
-        }
-        if((lid-(x2-x1))+1 >= 0) {
-            idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
-        }
-        if(lid-(x2-x1) >= 0) {
-            idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
-        }
-        if(lid+(x2-x1) < total_box) {
-            idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
-        }
-        if(lid+(x2-x1)+1 < total_box) {
-            idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
-        }
-        if(lid+(x2-x1)-1 < total_box) {
-            idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
-        }
-        START_TIMING(boundary_check);
+            if(lid+1 < total_box) {
+                idx_neighbors[0] = (data_pointers[lid+1]);
+            }
+            if((lid-(x2-x1))+1 >= 0) {
+                idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
+            }
+            if(lid-(x2-x1) >= 0) {
+                idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
+            }
+            if(lid+(x2-x1) < total_box) {
+                idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
+            }
+            if(lid+(x2-x1)+1 < total_box) {
+                idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
+            }
+            if(lid+(x2-x1)-1 < total_box) {
+                idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
+            }
 
-        for (int j = 0; j < 8; ++j) {
-            auto idx_neighbor = idx_neighbors[j];
+            for (int j = 0; j < 8; ++j) {
+                auto idx_neighbor = idx_neighbors[j];
 
-            if(idx_neighbor >= my_old_cells.size() || my_cells[idx_neighbor].type) continue;
-            auto p = udist(gen);
+                if(idx_neighbor >= my_old_cells.size() || my_cells[idx_neighbor].type) continue;
+                auto p = udist(gen);
 
-            if(p < thetas[j] * my_old_cells[idx_neighbor].erosion_probability) {
-                my_cells[idx_neighbor].type   = 1;
-                my_cells[idx_neighbor].weight = 4;
-                new_water_cells.push_back(idx_neighbor);
-                total_weight += my_cells[idx_neighbor].weight;
+                if(p < thetas[j] * my_old_cells[idx_neighbor].erosion_probability) {
+                    my_cells[idx_neighbor].type   = 1;
+                    my_cells[idx_neighbor].weight = 32;
+                    new_water_cells.push_back(idx_neighbor);
+                    total_weight += my_cells[idx_neighbor].weight;
+                }
+            }
+
+            if(i < my_water_cell_count) {
+                //START_TIMING(flowcomp);
+                consume_flops(&cell->fakeInnerData, 1);
+                //STOP_TIMING(flowcomp);
+                //fctime += flowcomp;
             }
         }
-        STOP_TIMING(boundary_check);
-        boundarytimings += boundary_check;
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
         /* stop */
     }
-
-    START_TIMING(flowcomp);
-    compute_fluid_time(cells_with_refine*2);
-    STOP_TIMING(flowcomp);
-
-    std::cout << "Flow computation time " << flowcomp << std::endl;
-    std::cout << "Boundary check computation time " << boundarytimings << std::endl;
+    //std::cout << get_rank() << " Flow computation time " << fctime << " for " << cells_with_refine << std::endl;
     return std::make_tuple(my_cells, new_water_cells, total_weight);
 }
-
 
 void compute_fluid(const std::vector<Cell>& my_old_cells) {
     double total_cells = 0.0;

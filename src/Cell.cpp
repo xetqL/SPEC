@@ -6,7 +6,7 @@
 
 void add_remote_data_to_arr(int msx, int msy,
                             std::vector<size_t>* _data_pointers,
-                            int mine_size,
+                            long mine_size,
                             const std::vector<Cell>& remote_cells,
                             const std::tuple<int, int, int, int>& bbox){
     std::vector<size_t>& data_pointers = *(_data_pointers);

@@ -13,6 +13,13 @@
 #include <utility>
 #include <map>
 #include <vector>
+#include <mpi.h>
+
+inline int get_rank(){
+    int r;
+    MPI_Comm_rank(MPI_COMM_WORLD, &r);
+    return r;
+}
 
 long long position_to_cell(int msx, int msy, const std::pair<int, int> & position) ;
 

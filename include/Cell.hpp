@@ -20,7 +20,7 @@ struct Cell {
 
     int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
-    mutable volatile float fakeInnerData = 1.0f;
+    mutable float fakeInnerData = 1.0f;
     double slope;
 
     Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0), slope(1.0) {};
@@ -117,7 +117,7 @@ void init_populate_data_pointers(int msx, int msy,
 
 void add_remote_data_to_arr(int msx, int msy,
                             std::vector<size_t>* _data_pointers,
-                            int mine_size,
+                            long mine_size,
                             const std::vector<Cell>& remote_cells,
                             const std::tuple<int, int, int, int>& bbox);
 float compute_estimated_workload(const std::vector<Cell>& _my_cells);
