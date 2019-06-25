@@ -38,7 +38,7 @@ inline void consume_flops(float *f, int weight) {
         for(int l = 0; l < 9; l++){ //9 * 17 flops = 153 flops
             *f += *f * seed + displ; //3 flops
             tmp[displ] /= displ * seed / 2.0f; // 3 flops
-            *f = *f - (((3.14f * tmp[displ]) + *f) / 180.0f) * ((*f)) / -0.96725058827f; // 6 flops
+            //*f = *f - (((3.14f * tmp[displ]) + *f) / 180.0f) * ((*f)) / -0.96725058827f; // 6 flops
             *f *= *f + 1.14f; // 1 flop
             tmp[displ] *= *f + tmp[displ] * 360.0f; //3
         }
