@@ -138,6 +138,21 @@ void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, M
     for(auto& cell : my_cells) if(cell.type == type) {
         cell.weight = f(cell.weight, (float) slope);
     }
+}
+
+/**
+ * Divide the speed at which I am loading among all the work units that can load
+ * @param _my_cells
+ * @param slope
+ */
+template<class MapFunc>
+void update_cell_weights(std::vector<Cell>* _my_cells, int dw) {
+    //
+    auto actual_workload   = _my_cells->size();
+    auto previous_workload = actual_workload - dw;
+    auto next_estimated_workload = actual_workload + dw;
+    auto nb_of_generating_elements = 100;
+
 
 }
 

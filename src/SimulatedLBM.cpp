@@ -38,8 +38,8 @@ void SimulatedLBM::run(float alpha) {
     SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
     SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
-    GossipDatabase<double> gossip_workload_db(worldsize,    2, 9999, world),
-                           gossip_waterslope_db(worldsize,  2, 8888, world);
+    auto gossip_workload_db   = GossipDatabase<double>::get_instance(worldsize, 2, 9999, world),
+         gossip_waterslope_db = GossipDatabase<double>::get_instance(worldsize, 2, 8888, world);
 
     const bool i_am_foreman = rank == FOREMAN;
     auto datatype   = Cell::register_datatype();
@@ -101,7 +101,7 @@ void SimulatedLBM::run(float alpha) {
     auto bbox = this->load_balancer->activate_load_balance(msx, msy, 0, &my_cells, &data_pointers);
 
 #if LB_APPROACH == 1
-    this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
+    this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), 3.0, alpha));
 #endif
 
 #ifdef PRODUCE_OUTPUTS
@@ -232,12 +232,13 @@ void SimulatedLBM::run(float alpha) {
         compTimes.push_back(comp_time);
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
+
         window_my_time.add(my_comp_time); // monitor evolution of my workload    with a window
 
 #if LB_APPROACH == 1
         RESTART_TIMING(my_gossip_time);
-        gossip_waterslope_db.execute(rank, get_slope<double>(water.begin(), water.end()));
-        gossip_workload_db.execute(rank,   my_comp_time);
+        gossip_waterslope_db->execute(rank, get_slope<double>(water.begin(), water.end()));
+        gossip_workload_db->execute(rank,   my_comp_time);
         STOP_TIMING(my_gossip_time);
 #endif
 
