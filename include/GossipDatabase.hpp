@@ -480,7 +480,6 @@ public:
                 gossip_update(idx, data, strategy);
 
                 gossip_propagate(pred);
-                std::cout << t << std::endl;
                 propagation_timestamp = MPI_Wtime();
             }
         }
@@ -606,7 +605,8 @@ private:
 */
     void finish_gossip_step() {
         int flag;
-        for (int i = 0; i < number_of_message; ++i) {
+        for (int i = 0; i < number_of_message; ++i)
+        {
             MPI_Test(&current_recv_reqs[i], &flag, MPI_STATUS_IGNORE);
             if(flag) {
                 merge_into_database(std::move(rcv_entries[i]));
