@@ -393,7 +393,7 @@ dummy_erosion_computation3(int step,
             cell = &remote_cells[cell_idx];
         }
 
-        for(unsigned int w = 0; w < cell->weight; ++w){
+        for(unsigned int w = 0; w < cell->weight; ++w) {
             auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
             auto lid = position_to_cell(x2-x1, y2-y1, __pos);
 
@@ -433,9 +433,9 @@ dummy_erosion_computation3(int step,
             }
 
             if(i < my_water_cell_count) {
-                //START_TIMING(flowcomp);
+                // START_TIMING(flowcomp);
                 consume_flops(&cell->fakeInnerData, 1);
-                //STOP_TIMING(flowcomp);
+                // STOP_TIMING(flowcomp);
                 //fctime += flowcomp;
             }
         }

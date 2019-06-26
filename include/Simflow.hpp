@@ -45,6 +45,7 @@ inline void consume_flops(float *f, int weight) {
         weight--;
     }
 }
+
 /// SIMULATION
 void consume_cpu_flops(double& flop_to_consume);
 void consume_cpu_flops(float& flop_to_consume);

@@ -146,7 +146,7 @@ void update_cell_weights(std::vector<Cell>* _my_cells, double slope, int type, M
  * @param slope
  */
 template<class MapFunc>
-void update_cell_weights(std::vector<Cell>* _my_cells, int dw) {
+void update_cell_weights(std::vector<Cell>* _my_cells, int dw, int average_workload) {
     //
     auto actual_workload   = _my_cells->size();
     auto previous_workload = actual_workload - dw;

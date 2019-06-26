@@ -36,10 +36,10 @@ void SimulatedLBM::run(float alpha) {
     bool load_lattice = params.load_lattice, verbose = params.verbose;
 
     SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
-    SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
+    //SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
-    auto gossip_workload_db   = GossipDatabase<double>::get_instance(worldsize, 2, 9999, world),
-         gossip_waterslope_db = GossipDatabase<double>::get_instance(worldsize, 2, 8888, world);
+    auto gossip_workload_db   = GossipDatabase<unsigned long>::get_instance(worldsize, 2, 9999, world);
+    auto gossip_waterslope_db = GossipDatabase<double>::get_instance(worldsize, 2, 8888, world);
 
     const bool i_am_foreman = rank == FOREMAN;
     auto datatype   = Cell::register_datatype();
@@ -147,10 +147,13 @@ void SimulatedLBM::run(float alpha) {
     /* lets make it fun now...*/
     double degradation_since_last_lb = 0.0;
     double perfect_time_value = 0.0;
-    std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks, loadImbalance;
     unsigned int ncall = MAX_STEP;
-    water.push_back(my_water_ptr.size());
     double my_gossip_time = 0.0;
+    double add_weight;
+
+    std::vector<double> timings(worldsize), all_degradations, water, compTimes, stepTimes, deltaWorks, loadImbalance;
+    water.push_back(my_water_ptr.size());
+
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         if(i_am_foreman) steplogger->info() << "Beginning step "<< step;
@@ -183,33 +186,23 @@ void SimulatedLBM::run(float alpha) {
             gossip_workload_db.reset();
             water.clear();
             degradation_since_last_lb = 0.0;
-            window_my_time.data_container.clear();
+            //window_my_time.data_container.clear();
             window_step_time.data_container.clear();
             std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
             water.push_back(n);
             deltaWorks.clear();
         }
-        double add_weight;
-
         START_TIMING(comp_time);
+
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
 
 	    //STOP_TIMING(loop_time);
 
-        //decltype(my_water_ptr) remote_water_ptr;
-
         std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);
 
-        //if(lb_condition || step == 0)
-        //    bbox = get_bounding_box(my_cells, remote_cells);
-        //assert(data_pointers.size() >= my_cells.size() + remote_cells.size());
         add_remote_data_to_arr(msx, msy, &data_pointers, my_cells.size(), remote_cells, bbox);
 
-        //RESTART_TIMING(loop_time);
-        //auto total_cells_before_cpt = compute_estimated_workload(my_cells);
-
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
-        //compute_fluid_time(total_cells_before_cpt);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
         n += (unsigned long) add_weight; // adapt the number of cell to compute
@@ -221,8 +214,6 @@ void SimulatedLBM::run(float alpha) {
 
         MPI_Allreduce(MPI_IN_PLACE, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world);
 
-        CHECKPOINT_TIMING(loop_time, time_since_start);
-
         if(this->load_balancer->get_last_call() == step) perfect_time_value = comp_time;
 
         double currDegradation = std::max((comp_time - perfect_time_value), 0.0);
@@ -233,12 +224,12 @@ void SimulatedLBM::run(float alpha) {
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
 
-        window_my_time.add(my_comp_time); // monitor evolution of my workload    with a window
+        //window_my_time.add(my_comp_time); // monitor evolution of my workload    with a window
 
 #if LB_APPROACH == 1
         RESTART_TIMING(my_gossip_time);
         gossip_waterslope_db->execute(rank, get_slope<double>(water.begin(), water.end()));
-        gossip_workload_db->execute(rank,   my_comp_time);
+          gossip_workload_db->execute(rank, n);
         STOP_TIMING(my_gossip_time);
 #endif
 
@@ -250,8 +241,11 @@ void SimulatedLBM::run(float alpha) {
         }
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        STOP_TIMING(loop_time);
+
         PAR_STOP_TIMING(step_time, world);
+        CHECKPOINT_TIMING(loop_time, time_since_start);
+        STOP_TIMING(loop_time);
+
         stepTimes.push_back(step_time);
 
         std::vector<double> exch_timings(worldsize), slopes(worldsize);

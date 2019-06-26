@@ -358,6 +358,7 @@ class GossipDatabase {
             std::is_same<StoredDataType , double>::value ||
             std::is_same<StoredDataType , float>::value  ||
             std::is_same<StoredDataType , long>::value   ||
+            std::is_same<StoredDataType , unsigned long>::value   ||
             std::is_same<StoredDataType , int>::value   >::type;
 
     MPI_Datatype entry_datatype;
@@ -470,8 +471,6 @@ public:
     }
 
     void execute(Index idx, StoredDataType data, EntryUpdateStrategy &strategy, EntryPropagationPredicate &pred) {
-
-
         if(worldsize >= 2) {
             finish_gossip_step();
             auto t = MPI_Wtime() - propagation_timestamp;
@@ -489,7 +488,7 @@ public:
         return pe_load_data[idx].load;
     }
 
-    inline void reset(){
+    void reset(){
         pe_load_data.clear();
         pe_load_data.resize(database_size);
         step_counter = 0;
@@ -605,8 +604,7 @@ private:
 */
     void finish_gossip_step() {
         int flag;
-        for (int i = 0; i < number_of_message; ++i)
-        {
+        for (int i = 0; i < number_of_message; ++i){
             MPI_Test(&current_recv_reqs[i], &flag, MPI_STATUS_IGNORE);
             if(flag) {
                 merge_into_database(std::move(rcv_entries[i]));
@@ -627,10 +625,12 @@ private:
         blockcount_element[1] = number_of_data_elements; // position <x,y>
         oldtype_element[0] = MPI_INT;
 
-        if(std::is_same<StoredDataType, int>::value) oldtype_element[1]         = MPI_INT;
-        else if(std::is_same<StoredDataType, long>::value) oldtype_element[1]   = MPI_LONG;
-        else if(std::is_same<StoredDataType, float>::value) oldtype_element[1]  = MPI_FLOAT;
-        else if(std::is_same<StoredDataType, double>::value) oldtype_element[1] = MPI_DOUBLE;
+        if(std::is_same<StoredDataType,       int>::value) oldtype_element[1]          = MPI_INT;
+        else if(std::is_same<StoredDataType, long>::value) oldtype_element[1]          = MPI_LONG;
+        else if(std::is_same<StoredDataType, float>::value) oldtype_element[1]         = MPI_FLOAT;
+        else if(std::is_same<StoredDataType, double>::value) oldtype_element[1]        = MPI_DOUBLE;
+        else if(std::is_same<StoredDataType, unsigned long>::value) oldtype_element[1] = MPI_UNSIGNED_LONG;
+        else throw std::runtime_error("Unknown MPI_TYPE for gossip db");
 
         MPI_Type_get_extent(MPI_INT, &lb, &int_offset);
         offset[0] = static_cast<MPI_Aint>(0);
