@@ -17,6 +17,7 @@ public:
     ULBA(MPI_Comm world, GossipDatabase<double> *wirdb, double threshold, double alpha);
     std::pair<WorkloadShare, WorkloadWeight> compute_share(int rank) const override;
     std::string to_string() const override;
+    //todo: change_weight_according_to_share()
 };
 
 #endif //SPEC_ULBA_HPP

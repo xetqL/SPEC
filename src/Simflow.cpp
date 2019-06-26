@@ -260,6 +260,17 @@ std::pair<unsigned long, std::vector<unsigned long>> create_water_ptr_vector(con
     return std::make_pair(n, res);
 }
 
+std::tuple<unsigned long, std::vector<unsigned long>, std::vector<unsigned long>> create_all_ptr_vector(const std::vector<Cell>& cells) {
+    std::vector<unsigned long> res[2];
+    unsigned long n = 0;
+    const auto size = cells.size();
+    for(unsigned long i = 0; i < size; ++i) {
+        res[cells[i].type].push_back(i);
+        n += (unsigned long) cells[i].weight * cells[i].type;
+    }
+    return std::make_tuple(n, res[Cell::WATER_TYPE], res[Cell::ROCK_TYPE]);
+}
+
 const std::vector<const Cell*> create_water_ptr(const std::vector<Cell>& cells){
     std::vector<const Cell*> res;
     for(const auto& cell: cells) {

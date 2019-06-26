@@ -18,13 +18,14 @@ class SimulatedLBM {
     const int FOREMAN = 0;
 
     SimulationParams params;
+    GossipDatabase<unsigned long>* workdb;
 
     MPI_Comm comm;
     std::unique_ptr<LBAlgorithm> load_balancer;
 
     zz::log::LoggerPtr perflogger, steplogger, proctime;
 public:
-    SimulatedLBM(SimulationParams params, const MPI_Comm comm, LBAlgorithm *load_balancer);
+    SimulatedLBM(SimulationParams params, MPI_Comm comm, GossipDatabase<unsigned long>* workdb, LBAlgorithm *load_balancer);
 
     virtual void run(float alpha);
 

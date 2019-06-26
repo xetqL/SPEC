@@ -37,19 +37,20 @@ public:
     };
 
     std::tuple<int, int, int, int> activate_load_balance(int msx, int msy, int step,
-                                                      std::vector<Data>* _data, std::vector<size_t> *_data_pointers) {
+                                                         std::vector<Data>* _data, std::vector<size_t> *_data_pointers){
         if(rank == 0) logger->info("Calling load balancer at step {} with {}", step, this->approach->to_string());
 
-        PAR_START_TIMING(current_lb_cost, world);
+        START_TIMING(current_lb_cost);
         load_balance(_data);
-
-
         auto bbox = get_bounding_box(msx, msy, *(_data));
         init_populate_data_pointers(msx, msy, _data_pointers, *(_data), bbox);
-        PAR_STOP_TIMING(current_lb_cost, world);
-        MPI_Allreduce(&current_lb_cost, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
+        STOP_TIMING(current_lb_cost);
+
+        MPI_Allreduce(MPI_IN_PLACE, &current_lb_cost, 1, MPI_DOUBLE, MPI_MAX, world);
+
         pcall = (unsigned int) step;
         lb_costs.push_back(current_lb_cost);
+
         return bbox;
     }
 

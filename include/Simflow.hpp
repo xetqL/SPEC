@@ -242,6 +242,8 @@ std::vector<Cell> dummy_erosion_computation(int msx, int msy,
 }*/
 
 std::pair<unsigned long, std::vector<unsigned long>> create_water_ptr_vector(const std::vector<Cell>& cells);
+std::tuple<unsigned long, std::vector<unsigned long>, std::vector<unsigned long>> create_all_ptr_vector(const std::vector<Cell>& cells);
+
 unsigned long create_water_ptr_vector(std::vector<Cell> *cells);
 
 const std::vector<const Cell*> create_water_ptr(const std::vector<Cell>& cells);

@@ -16,8 +16,8 @@
 #include <cnpy.h>
 #endif
 
-SimulatedLBM::SimulatedLBM(SimulationParams params, MPI_Comm comm, SimulatedLBM::LBAlgorithm *load_balancer) :
-        params(std::move(params)), comm(comm), load_balancer(load_balancer) {}
+SimulatedLBM::SimulatedLBM(SimulationParams params, MPI_Comm comm, GossipDatabase<unsigned long>* workdb, SimulatedLBM::LBAlgorithm *load_balancer) :
+        params(std::move(params)), comm(comm), workdb(workdb), load_balancer(load_balancer) {}
 
 void SimulatedLBM::run(float alpha) {
     auto world = this->comm;
@@ -38,7 +38,6 @@ void SimulatedLBM::run(float alpha) {
     SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
     //SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
-    auto gossip_workload_db   = GossipDatabase<unsigned long>::get_instance(worldsize, 2, 9999, world);
     auto gossip_waterslope_db = GossipDatabase<double>::get_instance(worldsize, 2, 8888, world);
 
     const bool i_am_foreman = rank == FOREMAN;
@@ -138,10 +137,12 @@ void SimulatedLBM::run(float alpha) {
 
 #endif
 
-    std::vector<unsigned long> my_water_ptr, remote_water_ptr, new_water_ptr;
+    std::vector<unsigned long> my_water_ptr, remote_water_ptr, new_water_ptr,
+                               my_rock_ptr;
+
     unsigned long n;
-    std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
-     // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
+    std::tie(n, my_water_ptr, my_rock_ptr) = create_all_ptr_vector(my_cells);
+    // = add_to_bbox(msx, msy, get_bounding_box(my_cells), -10, 10, -10, 10);
     //populate_data_pointers(msx, msy, &data_pointers, my_cells, 0, bbox, true);
 
     /* lets make it fun now...*/
@@ -170,7 +171,6 @@ void SimulatedLBM::run(float alpha) {
             // bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
 #ifdef AUTONOMIC_LOAD_BALANCING
-
             double median;
             if(std::distance(window_step_time.begin(), window_step_time.end() - 3) < 0)
                 median  = stats::median<double>(window_step_time.begin(), window_step_time.end());
@@ -179,24 +179,20 @@ void SimulatedLBM::run(float alpha) {
 
             unsigned int pcall = this->load_balancer->get_last_call();
             ncall = (unsigned int) this->load_balancer->estimate_best_ncall(((step - pcall) - 1), median-mean);
-
 #elif  CYCLIC_LOAD_BALANCING
             ncall = params.interval;
 #endif
-            gossip_workload_db.reset();
+            workdb->reset();
             water.clear();
             degradation_since_last_lb = 0.0;
-            //window_my_time.data_container.clear();
             window_step_time.data_container.clear();
-            std::tie(n, my_water_ptr) = create_water_ptr_vector(my_cells);
+            std::tie(n, my_water_ptr, my_rock_ptr) = create_all_ptr_vector(my_cells);
             water.push_back(n);
             deltaWorks.clear();
         }
         START_TIMING(comp_time);
 
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
-
-	    //STOP_TIMING(loop_time);
 
         std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);
 
@@ -205,11 +201,13 @@ void SimulatedLBM::run(float alpha) {
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
         my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
+
         n += (unsigned long) add_weight; // adapt the number of cell to compute
 
         water.push_back(n);
 
         CHECKPOINT_TIMING(comp_time, my_comp_time);
+
         STOP_TIMING(comp_time);
 
         MPI_Allreduce(MPI_IN_PLACE, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world);
@@ -224,12 +222,10 @@ void SimulatedLBM::run(float alpha) {
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
 
-        //window_my_time.add(my_comp_time); // monitor evolution of my workload    with a window
-
 #if LB_APPROACH == 1
         RESTART_TIMING(my_gossip_time);
         gossip_waterslope_db->execute(rank, get_slope<double>(water.begin(), water.end()));
-          gossip_workload_db->execute(rank, n);
+          workdb->execute(rank, n);
         STOP_TIMING(my_gossip_time);
 #endif
 
