@@ -444,7 +444,7 @@ dummy_erosion_computation3(int step,
     //std::cout << get_rank() << " Flow computation time " << fctime << " for " << cells_with_refine << std::endl;
     return std::make_tuple(my_cells, new_water_cells, total_weight);
 }
-
+/*
 void compute_fluid(const std::vector<Cell>& my_old_cells) {
     double total_cells = 0.0;
     for(const auto& cell : my_old_cells) {
@@ -458,8 +458,9 @@ void compute_fluid(float total_cells) {
     double total_flops = total_cells * flops;
     consume_cpu_flops(total_flops);
 }
+
 // based on CPU_TIME for 145 flops
 void compute_fluid_time(long total_cells) {
     int64_t to_wait = 150 * total_cells;
     std::this_thread::sleep_for(std::chrono::nanoseconds(to_wait));
-}
+} */
