@@ -20,16 +20,16 @@
 //#define ROCK_TYPE 0
 //#define EMPTY_TYPE -1
 
-static std::random_device rd;
+static std::random_device r, rd;
 static std::mt19937 gen(rd());
 static std::normal_distribution<float> ndist(9, 1);
-static float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
 static std::uniform_real_distribution<float> udist(0, 1);
-static volatile double res = 0.0;
-static volatile double one = 1.0;
 static std::uniform_int_distribution<> dis(0, 1000);
-static std::random_device r;
 static volatile float tmp[100];
+
+//static volatile double res = 0.0;
+//static volatile double one = 1.0;
+//static float flops = 145; // https://arxiv.org/pdf/1703.08015.pdf
 
 inline void consume_flops(float *f, int weight) {
     int  displ = dis(gen) % 100;

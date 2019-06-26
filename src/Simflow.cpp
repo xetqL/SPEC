@@ -391,6 +391,7 @@ dummy_erosion_computation3(int step,
             auto cell_idx = remote_water_ptr[i - my_water_cell_count];
             cell = &remote_cells[cell_idx];
         }
+
         for(unsigned int w = 0; w < cell->weight; ++w){
             auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
             auto lid = position_to_cell(x2-x1, y2-y1, __pos);
