@@ -5,6 +5,7 @@
 #include "Simflow.hpp"
 
 // FLOP simulation
+/*
 void consume_cpu_flops(double& flop_to_consume) {
     while (res < 0.5) {
         res = res + one / flop_to_consume; // 2 FLOP
@@ -16,7 +17,7 @@ void consume_cpu_flops(float& flop_to_consume) {
         res = res + one / f2c; // 2 FLOP
     }
 }
-
+*/
 // Domain generation
 std::vector<Cell> generate_lattice_single_type( int msx, int msy,
                                                 int x_proc_idx, int y_proc_idx,
