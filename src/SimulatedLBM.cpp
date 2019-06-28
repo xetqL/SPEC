@@ -190,6 +190,7 @@ void SimulatedLBM::run(float alpha) {
             water.push_back(n);
             deltaWorks.clear();
         }
+
         START_TIMING(comp_time);
 
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
@@ -225,7 +226,7 @@ void SimulatedLBM::run(float alpha) {
 #if LB_APPROACH == 1
         RESTART_TIMING(my_gossip_time);
         gossip_waterslope_db->execute(rank, get_slope<double>(water.begin(), water.end()));
-          workdb->execute(rank, n);
+        workdb->execute(rank, n);
         STOP_TIMING(my_gossip_time);
 #endif
 
