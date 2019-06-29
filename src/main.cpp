@@ -2,13 +2,15 @@
 #include "zupply.hpp"
 #include <CLIParser.hpp>
 #include <functional>
+
 #ifdef WITH_ZOLTAN
 #include <ZoltanLoadBalancer.hpp>
 #include <StripeLoadBalancer.hpp>
 #include <ULBA.hpp>
-
 #else
-#include <BandPartitioner.hpp>
+#include <ZoltanLoadBalancer.hpp>
+#include <StripeLoadBalancer.hpp>
+#include <ULBA.hpp>
 #endif
 
 zz::log::LoggerPtr perflogger, steplogger, proctime;
@@ -550,7 +552,9 @@ int main(int argc, char** argv) {
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &worldsize);
     float ver;
+
     Zoltan_Initialize( 0, NULL, &ver );
+
     auto world = MPI_COMM_WORLD;
 
     auto cellDatatype = Cell::register_datatype().element_datatype;

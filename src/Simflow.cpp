@@ -357,9 +357,6 @@ std::vector<Cell> dummy_erosion_computation2(int msx, int msy,
 }
 */
 
-
-
-
 #include "Time.hpp"
 std::tuple<std::vector<Cell>, std::vector<unsigned long>, double>
 dummy_erosion_computation3(int step,
