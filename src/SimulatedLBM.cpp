@@ -14,6 +14,8 @@
 
 #ifdef PRODUCE_OUTPUTS
 #include <cnpy.h>
+#include <WeightUpdater.hpp>
+
 #endif
 
 SimulatedLBM::SimulatedLBM(SimulationParams params, MPI_Comm comm, GossipDatabase<unsigned long>* workdb, SimulatedLBM::LBAlgorithm *load_balancer) :
@@ -103,6 +105,8 @@ void SimulatedLBM::run(float alpha) {
     this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), 3.0, alpha));
 #endif
 
+    std::unique_ptr<WeightUpdater<Cell>> weight_updater(new RandomWeightUpdater<Cell>(1));
+
 #ifdef PRODUCE_OUTPUTS
     int inner_type = Cell::ROCK_TYPE;
     int shape[2] = {msx, msy};
@@ -168,6 +172,10 @@ void SimulatedLBM::run(float alpha) {
         bool lb_condition = false;
 #endif
         if(lb_condition) {
+
+
+            weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
+
             // bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
 #ifdef AUTONOMIC_LOAD_BALANCING

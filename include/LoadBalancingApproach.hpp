@@ -7,7 +7,6 @@
 
 #include <mpi.h>
 #include <ostream>
-
 class LoadBalancingApproach {
 protected:
     MPI_Comm world;
@@ -22,6 +21,8 @@ public:
     virtual std::string to_string() const {
         return "Undefined approach.";
     }
+
+    //virtual void adapt_weights(T* data) = 0;
 };
 
 #endif //SPEC_LOADBALANCINGAPPROACH_HPP

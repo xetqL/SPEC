@@ -22,11 +22,10 @@ protected:
     MPI_Comm world;
     MPI_Datatype datatype;
     int rank, worldsize;
-    std::unique_ptr<const LoadBalancingApproach> approach;
     const zz::log::LoggerPtr logger;
 
 public:
-
+    std::unique_ptr<const LoadBalancingApproach> approach;
     LoadBalancer(MPI_Comm world, MPI_Datatype datatype, LoadBalancingApproach* approach) :
         world(world),
         datatype(datatype),
@@ -37,7 +36,9 @@ public:
     };
 
     std::tuple<int, int, int, int> activate_load_balance(int msx, int msy, int step,
-                                                         std::vector<Data>* _data, std::vector<size_t> *_data_pointers){
+                                                         std::vector<Data>   * _data,
+                                                         std::vector<size_t> * _data_pointers) {
+
         if(rank == 0) logger->info("Calling load balancer at step {} with {}", step, this->approach->to_string());
 
         START_TIMING(current_lb_cost);
