@@ -14,9 +14,10 @@
 
 #ifdef PRODUCE_OUTPUTS
 #include <cnpy.h>
+#endif
+
 #include <WeightUpdater.hpp>
 
-#endif
 
 SimulatedLBM::SimulatedLBM(SimulationParams params, MPI_Comm comm, GossipDatabase<unsigned long>* workdb, SimulatedLBM::LBAlgorithm *load_balancer) :
         params(std::move(params)), comm(comm), workdb(workdb), load_balancer(load_balancer) {}
