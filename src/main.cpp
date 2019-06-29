@@ -572,8 +572,8 @@ int main(int argc, char** argv) {
     auto gossip_workload_db = GossipDatabase<unsigned long>::get_instance(worldsize, 2, 9999, world);
 
     SimulatedLBM simulation(params, world, gossip_workload_db.get(),
-            new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
-            //new ZoltanLoadBalancer<Cell>(world, cellDatatype, gossip_workload_db.get(), zoltan_create_wrapper, zoltan_LB<Cell>));
+            //new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
+            new ZoltanLoadBalancer<Cell>(world, cellDatatype, gossip_workload_db.get(), zoltan_create_wrapper, zoltan_LB<Cell>));
 
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);
