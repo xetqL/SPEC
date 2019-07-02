@@ -206,7 +206,8 @@ void SimulatedLBM::run(float alpha) {
 
         std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);
 
-        add_remote_data_to_arr(msx, msy, &data_pointers, my_cells.size(), remote_cells, bbox);
+        populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
+        //add_remote_data_to_arr(msx, msy, &data_pointers, my_cells.size(), remote_cells, bbox);
 
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
