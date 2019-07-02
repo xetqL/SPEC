@@ -175,7 +175,7 @@ void SimulatedLBM::run(float alpha) {
         if(lb_condition) {
 
 
-            weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
+            //weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
 
             // bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);

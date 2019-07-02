@@ -92,11 +92,10 @@ std::tuple<int, int, int, int> get_bounding_box(int msx, int msy, const std::vec
         maxx = std::max(x, maxx); maxy = std::max(y, maxy);
     }
 
-    maxx++;maxy++;
     assert(minx >= 0);
     assert(miny >= 0);
-    assert((unsigned int)  (maxx-minx) * (maxy-miny) >= (my_data.size()));
-    return std::make_tuple(std::max(0, minx-1), std::min(msx, maxx+1), std::max(0, miny-1), std::min(msy, maxy+1));
+    assert((unsigned int)  (maxx-minx+1) * (maxy-miny+1) >= (my_data.size()));
+    return std::make_tuple(std::max(0, minx-1), maxx+2, std::max(0, miny-1), maxy+1);
 }
 
 template<class A>

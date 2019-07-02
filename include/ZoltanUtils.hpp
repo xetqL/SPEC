@@ -140,7 +140,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm) {
     Zoltan_Set_Param(zz, "KEEP_CUTS", "1");
 
     Zoltan_Set_Param(zz, "DEBUG_LEVEL", "0");
-    Zoltan_Set_Param(zz, "LB_METHOD", "HSFC");
+    Zoltan_Set_Param(zz, "LB_METHOD", "RCB");
     Zoltan_Set_Param(zz, "DETERMINISTIC", "1");
     Zoltan_Set_Param(zz, "NUM_GID_ENTRIES", "1");
 
@@ -160,7 +160,7 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm) {
     //Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "1");
     Zoltan_Set_Param(zz, "RCB_REUSE", "1");
 
-    //Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
+    Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
 
     // Zoltan_Set_Param(zz, "AUTO_MIGRATE", "FALSE");
 
