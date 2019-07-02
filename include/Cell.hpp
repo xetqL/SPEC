@@ -39,6 +39,9 @@ struct Cell {
     std::pair<int, int> get_position_as_pair() const {
         return cell_to_global_position(Cell::get_msx(), Cell::get_msy(), gid);
     }
+    void get_position(int *px, int *py) const {
+        cell_to_global_position(Cell::get_msx(), Cell::get_msy(), gid, px, py);
+    }
 
     static CommunicationDatatype register_datatype() {
 
@@ -114,7 +117,11 @@ void init_populate_data_pointers(int msx, int msy,
                                  std::vector<size_t>* _data_pointers,
                                  const std::vector<Cell>& my_cells,
                                  const std::tuple<int, int, int, int>& bbox);
-
+void add_remote_data_to_arr(int msx, int msy,
+                            size_t* data_pointers,
+                            long mine_size,
+                            const std::vector<Cell>& remote_cells,
+                            const std::tuple<int, int, int, int>& bbox);
 void add_remote_data_to_arr(int msx, int msy,
                             std::vector<size_t>* _data_pointers,
                             long mine_size,

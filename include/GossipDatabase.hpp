@@ -414,11 +414,12 @@ class GossipDatabase {
         // Open the reception channel for X messages, and prepare buffers
         for(int i = 0; i < number_of_message; ++i) {
             rcv_entries[i].resize(worldsize); // known size without predicate
-            MPI_Irecv(rcv_entries[i].data(), rcv_entries[i].size(), entry_datatype, MPI_ANY_SOURCE, SEND_TAG, world,
+            MPI_Irecv(rcv_entries[i].data(), worldsize, entry_datatype, MPI_ANY_SOURCE, SEND_TAG, world,
                       &current_recv_reqs[i]);
         }
     }
 
+public:
     GossipDatabase(int database_size, int number_of_message, int send_tag, double dt, MPI_Comm _world) :
             database_size(database_size),
             number_of_message(number_of_message),
@@ -442,13 +443,11 @@ class GossipDatabase {
         // Open the reception channel for X messages, and prepare buffers
         for(int i = 0; i < number_of_message; ++i) {
             rcv_entries[i].resize(worldsize); // known size without predicate
-            MPI_Irecv(rcv_entries[i].data(), rcv_entries[i].size(), entry_datatype, MPI_ANY_SOURCE, SEND_TAG, world,
+            MPI_Irecv(rcv_entries[i].data(), worldsize, entry_datatype, MPI_ANY_SOURCE, SEND_TAG, world,
                       &current_recv_reqs[i]);
         }
 
     }
-
-public:
 
     static std::shared_ptr<GossipDatabase<StoredDataType>> get_instance(int database_size, int number_of_message, int send_tag, double dt, MPI_Comm _world){
         static std::unordered_map<int, std::shared_ptr<GossipDatabase<StoredDataType> > > instances;
@@ -467,12 +466,15 @@ public:
     }
 
     void execute(Index idx, StoredDataType data) {
+        return;
         execute(idx, data, update_strategy, default_predicate);
     }
 
     void execute(Index idx, StoredDataType data, EntryUpdateStrategy &strategy, EntryPropagationPredicate &pred) {
         if(worldsize >= 2) {
+
             finish_gossip_step();
+
             auto t = MPI_Wtime() - propagation_timestamp;
 
             if(t >= dt) {
@@ -566,7 +568,7 @@ private:
             // search for a target =/= me
             do { destination = rand() % worldsize; } while(destination == my_rank);
             snd_entries[i].assign(pe_load_data.begin(), pe_load_data.end() );
-            MPI_Isend(snd_entries[i].data(), snd_entries[i].size(), entry_datatype, destination, SEND_TAG, world,
+            MPI_Isend(snd_entries[i].data(), worldsize, entry_datatype, destination, SEND_TAG, world,
                       &current_send_reqs[i]);
         }
         step_counter++;
@@ -609,7 +611,8 @@ private:
             if(flag) {
                 merge_into_database(std::move(rcv_entries[i]));
                 // repost recv request
-                MPI_Irecv(rcv_entries[i].data(), rcv_entries[i].size(), entry_datatype, MPI_ANY_SOURCE, SEND_TAG, world,
+                rcv_entries[i].resize(worldsize);
+                MPI_Irecv(rcv_entries[i].data(), worldsize, entry_datatype, MPI_ANY_SOURCE, SEND_TAG, world,
                           &current_recv_reqs[i]);
             }
         }

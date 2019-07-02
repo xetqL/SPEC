@@ -5,16 +5,32 @@
 #include "Cell.hpp"
 
 void add_remote_data_to_arr(int msx, int msy,
-                            std::vector<size_t>* _data_pointers,
+                            std::vector<size_t>* data_pointers,
                             long mine_size,
                             const std::vector<Cell>& remote_cells,
                             const std::tuple<int, int, int, int>& bbox){
-    std::vector<size_t>& data_pointers = *(_data_pointers);
+    //std::vector<size_t>& data_pointers = *(_data_pointers);
     int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
     auto remote_size = remote_cells.size();
     for (size_t i = 0; i < remote_size; ++i) {
         const Cell& cell = remote_cells[i];
-        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        auto lid = position_to_cell(x2 - x1 + 1, y2 - y1 + 1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        assert(lid < data_pointers->size());
+        data_pointers->operator[](lid) = i+mine_size;
+    }
+}
+
+void add_remote_data_to_arr(int msx, int msy,
+                            size_t* data_pointers,
+                            long mine_size,
+                            const std::vector<Cell>& remote_cells,
+                            const std::tuple<int, int, int, int>& bbox){
+    //std::vector<size_t>& data_pointers = *(_data_pointers);
+    int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
+    auto remote_size = remote_cells.size();
+    for (size_t i = 0; i < remote_size; ++i) {
+        const Cell& cell = remote_cells[i];
+        auto lid = position_to_cell(x2 - x1 + 1, y2 - y1 + 1, cell_to_local_position(msx, msy, bbox, cell.gid));
         data_pointers[lid] = i+mine_size;
     }
 }
@@ -39,7 +55,7 @@ void populate_data_pointers(int msx, int msy,
         }
     }
 
-    add_remote_data_to_arr(msx, msy, _data_pointers, mine_size, remote_cells, bbox);
+    add_remote_data_to_arr(msx, msy, _data_pointers->data(), mine_size, remote_cells, bbox);
 }
 
 void init_populate_data_pointers(int msx, int msy,
@@ -51,7 +67,7 @@ void init_populate_data_pointers(int msx, int msy,
     int my_box = (x2-x1) * (y2-y1);
     auto mine_size   = my_cells.size();
 
-    data_pointers.resize(my_box);
+    data_pointers.resize(my_box + 4 * (msx < msy ? msx : msy));
     std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
     for (size_t i = 0; i < mine_size; ++i) {
         const Cell& cell = my_cells[i];

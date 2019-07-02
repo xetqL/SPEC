@@ -248,6 +248,16 @@ unsigned long create_water_ptr_vector(std::vector<Cell> *cells);
 
 const std::vector<const Cell*> create_water_ptr(const std::vector<Cell>& cells);
 
+std::tuple<std::vector<Cell>, std::vector<unsigned long>, double>
+dummy_erosion_computation(int step,
+                          int msx, int msy,
+                          const std::vector<Cell>& my_old_cells,
+                          const std::vector<unsigned long>& my_water_ptr,
+                          const std::vector<Cell>& remote_cells,
+                          const std::vector<unsigned long>& remote_water_ptr,
+                          const std::vector<size_t>& data_pointers,
+                          const std::tuple<int, int, int, int>& bbox);
+
 std::tuple<std::vector<Cell>, std::vector<unsigned long>, double> dummy_erosion_computation3(int step,
                                                                                              int msx, int msy,
                                                                                              const std::vector<Cell>& my_old_cells,

@@ -569,11 +569,11 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    auto gossip_workload_db = GossipDatabase<unsigned long>::get_instance(worldsize, 2, 9999, world);
+    auto gossip_workload_db = GossipDatabase<unsigned long>(worldsize, 2, 9999, 0, world);
 
-    SimulatedLBM simulation(params, world, gossip_workload_db.get(),
+    SimulatedLBM simulation(params, world, &gossip_workload_db,
             //new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
-            new ZoltanLoadBalancer<Cell>(world, cellDatatype, gossip_workload_db.get(), zoltan_create_wrapper, zoltan_LB<Cell>));
+            new ZoltanLoadBalancer<Cell>(world, cellDatatype, &gossip_workload_db, zoltan_create_wrapper, zoltan_LB<Cell>));
 
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);

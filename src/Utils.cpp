@@ -19,7 +19,10 @@
  std::pair<int, int> cell_to_global_position(int msx, int msy, long long position) {
     return std::make_pair(position % msx, (int) position / msx);
 }
-
+void cell_to_global_position(int msx, int msy, long long position, int *px, int *py){
+    *px = position % msx;
+    *py = (int) position / msx;
+}
  std::pair<int, int> cell_to_local_position(int msx, int msy, std::tuple<int,int,int,int> bounding_box, long long position) {
     int minx, maxx, miny, maxy; std::tie(minx, maxx, miny, maxy) = bounding_box;
     int gidx =  position % msx, gidy = (int) position / msx;

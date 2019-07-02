@@ -43,7 +43,7 @@ public:
 
         START_TIMING(current_lb_cost);
         load_balance(_data);
-        auto bbox = get_bounding_box(msx, msy, *(_data));
+        auto bbox = get_bounding_box(*(_data));
         init_populate_data_pointers(msx, msy, _data_pointers, *(_data), bbox);
         STOP_TIMING(current_lb_cost);
 

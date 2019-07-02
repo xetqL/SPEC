@@ -294,4 +294,63 @@ inline int zoltan_load_balance(std::vector<Cell>* mesh_data,
     return import_load - export_load;
 }
 
+template<class A>
+const std::vector<A> zoltan_exchange_data(const std::vector<A> &data,
+                                          const std::vector<int>& import_from_procs,
+                                          const std::vector<int>& num_import_from_procs,
+                                          const std::vector<std::vector<unsigned long>>& neighboring_cells,
+                                          MPI_Datatype datatype,
+                                          MPI_Comm LB_COMM) {
+
+    int wsize;
+    MPI_Comm_size(LB_COMM, &wsize);
+    int caller_rank;
+    MPI_Comm_rank(LB_COMM, &caller_rank);
+
+    std::vector<A> buffer;
+    std::vector<A> remote_data_gathered;
+
+    long nb_reqs = 0;
+
+    if (wsize == 1) return remote_data_gathered;
+
+    std::vector<std::vector<A>> data_to_migrate(wsize);
+
+    for(int i = 0; i < wsize; ++i) {
+        if(!neighboring_cells[i].empty()) nb_reqs++;
+        for(const auto& id : neighboring_cells[i]) {
+            data_to_migrate[i].push_back(data[id]);
+        }
+    }
+
+// Compute who has to send me something via Zoltan.
+///    int ierr = Zoltan_Invert_Lists(load_balancer, num_known, known_gids, known_lids, &export_procs[0], &export_procs[0],
+///                                   &num_found, &found_gids, &found_lids, &found_procs, &found_parts);
+
+    int cpt = 0;
+
+// Send the data to neighbors
+    std::vector<MPI_Request> reqs(nb_reqs);
+    for (size_t PE = 0; PE < (unsigned int) wsize; PE++) {
+        int send_size = data_to_migrate.at(PE).size();
+        if (send_size) {
+            MPI_Isend(&data_to_migrate.at(PE).front(), send_size, datatype, PE, 400, LB_COMM,
+                      &reqs[cpt]);
+            cpt++;
+        }
+    }
+    assert(cpt == nb_reqs);
+// Import the data from neighbors
+    for (int proc_id : import_from_procs) {
+        size_t size = num_import_from_procs[proc_id];
+        buffer.resize(size);
+        MPI_Recv(&buffer.front(), size, datatype, proc_id, 400, LB_COMM, MPI_STATUS_IGNORE);
+        std::move(buffer.begin(), buffer.end(), std::back_inserter(remote_data_gathered));
+    }
+
+    MPI_Waitall(reqs.size(), &reqs.front(), MPI_STATUSES_IGNORE);
+
+    return remote_data_gathered;
+}
+
 #endif //SPEC_ZOLTAN_FN_HPP

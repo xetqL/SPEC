@@ -41,7 +41,7 @@ void SimulatedLBM::run(float alpha) {
     SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
     //SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
-    auto gossip_waterslope_db = GossipDatabase<double>::get_instance(worldsize, 2, 8888, world);
+    auto gossip_waterslope_db = GossipDatabase<double>(worldsize, 2, 8888, 0, world);
 
     const bool i_am_foreman = rank == FOREMAN;
     auto datatype   = Cell::register_datatype();
@@ -103,7 +103,7 @@ void SimulatedLBM::run(float alpha) {
     auto bbox = this->load_balancer->activate_load_balance(msx, msy, 0, &my_cells, &data_pointers);
 
 #if LB_APPROACH == 1
-    this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), 3.0, alpha));
+    this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
 #endif
 
     std::unique_ptr<WeightUpdater<Cell>> weight_updater(new RandomWeightUpdater<Cell>(1));
@@ -173,11 +173,8 @@ void SimulatedLBM::run(float alpha) {
         bool lb_condition = false;
 #endif
         if(lb_condition) {
+            weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
 
-
-            //weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
-
-            // bool overloading = gossip_waterslope_db.zscore(rank) > 3.0;
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
 #ifdef AUTONOMIC_LOAD_BALANCING
             double median;
@@ -204,14 +201,17 @@ void SimulatedLBM::run(float alpha) {
 
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
 
+        data_pointers.resize(my_cells.size() + remote_cells.size());
+
+        bbox = update_bounding_box(remote_cells, bbox);
+
         std::tie(std::ignore, remote_water_ptr) = create_water_ptr_vector(remote_cells);
 
-        populate_data_pointers(msx, msy, &data_pointers, my_cells, remote_cells, bbox, lb_condition || step == 0);
-        //add_remote_data_to_arr(msx, msy, &data_pointers, my_cells.size(), remote_cells, bbox);
+        add_remote_data_to_arr(msx, msy, &data_pointers, my_cells.size(), remote_cells, bbox);
 
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
-        my_water_ptr.insert(my_water_ptr.end(), std::make_move_iterator(new_water_ptr.begin()), std::make_move_iterator(new_water_ptr.end()));
+        my_water_ptr.insert(my_water_ptr.end(), new_water_ptr.begin(), new_water_ptr.end());
 
         n += (unsigned long) add_weight; // adapt the number of cell to compute
 
@@ -221,11 +221,12 @@ void SimulatedLBM::run(float alpha) {
 
         STOP_TIMING(comp_time);
 
+
         MPI_Allreduce(MPI_IN_PLACE, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world);
 
         if(this->load_balancer->get_last_call() == step) perfect_time_value = comp_time;
 
-        double currDegradation = std::max((comp_time - perfect_time_value), 0.0);
+        double currDegradation = 0.0;//std::max((comp_time - perfect_time_value), 0.0);
 
         deltaWorks.push_back(currDegradation);
 
@@ -233,14 +234,17 @@ void SimulatedLBM::run(float alpha) {
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
 
+
 #if LB_APPROACH == 1
         RESTART_TIMING(my_gossip_time);
-        gossip_waterslope_db->execute(rank, get_slope<double>(water.begin(), water.end()));
+        gossip_waterslope_db.execute(rank, get_slope<double>(water.begin(), water.end()));
         workdb->execute(rank, n);
         STOP_TIMING(my_gossip_time);
 #endif
 
 //update_cells(&my_cells, gossip_waterslope_db.get(rank), [](Cell &c, auto v){c.slope = v;});
+
+
 
         if(this->load_balancer->get_last_call() + 1 < step) {
             degradation_since_last_lb +=
@@ -314,6 +318,7 @@ void SimulatedLBM::run(float alpha) {
         }
 #endif
         RESTART_TIMING(loop_time);
+
     }
     PAR_STOP_TIMING(loop_time, world);
     double total_gossip_time;

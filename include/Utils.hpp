@@ -15,6 +15,18 @@
 #include <vector>
 #include <mpi.h>
 
+template <typename T>
+std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
+    std::size_t total_size = 0;
+    for (const auto& sub : v)
+        total_size += sub.size(); // I wish there was a transform_accumulate
+    std::vector<T> result;
+    result.reserve(total_size);
+    for (const auto& sub : v)
+        result.insert(result.end(), sub.begin(), sub.end());
+    return result;
+}
+
 inline int get_rank(){
     int r;
     MPI_Comm_rank(MPI_COMM_WORLD, &r);
@@ -25,7 +37,9 @@ long long position_to_cell(int msx, int msy, const std::pair<int, int> & positio
 
 long long position_to_cell(int msx, int msy, const int x, const int y);
 
-std::pair<int, int> cell_to_global_position(int msx, int msy, long long position) ;
+std::pair<int, int> cell_to_global_position(int msx, int msy, long long position);
+void cell_to_global_position(int msx, int msy, long long position, int *px, int *py);
+
 
 std::pair<int, int> cell_to_local_position(int msx, int msy, std::tuple<int,int,int,int> bounding_box, long long position);
 
@@ -82,7 +96,7 @@ std::tuple<int, int, int, int> get_bounding_box(
 
 
 template<class A>
-std::tuple<int, int, int, int> get_bounding_box(int msx, int msy, const std::vector<A>& my_data) {
+std::tuple<int, int, int, int> get_bounding_box(const std::vector<A>& my_data) {
     int x, y, minx= std::numeric_limits<int>::max(), miny = std::numeric_limits<int>::max(), maxx=-1, maxy=-1;
 
     // create boundaries from vehicles
@@ -95,9 +109,26 @@ std::tuple<int, int, int, int> get_bounding_box(int msx, int msy, const std::vec
     assert(minx >= 0);
     assert(miny >= 0);
     assert((unsigned int)  (maxx-minx+1) * (maxy-miny+1) >= (my_data.size()));
-    return std::make_tuple(std::max(0, minx-1), maxx+2, std::max(0, miny-1), maxy+1);
+    //return std::make_tuple(std::max(0, minx), std::min(msx, maxx+2), std::max(0, miny-1), std::min(msy, maxy+1));
+    return std::make_tuple(minx, maxx, miny, maxy);
 }
 
+template<class A>
+std::tuple<int, int, int, int> update_bounding_box(const std::vector<A>& my_data, const std::tuple<int, int, int, int>& bbox) {
+    int x1,y1,x2,y2,x,y;
+    std::tie(x1, x2, y1, y2) = bbox;
+
+    // create boundaries from vehicles
+    for(const auto& v : my_data) {
+        v.get_position(&x, &y);
+        x1 = std::min(x, x1); y1 = std::min(y, y1);
+        x2 = std::max(x, x2); y2 = std::max(y, y2);
+    }
+
+    //return std::make_tuple(std::max(0, minx), std::min(msx, maxx+2), std::max(0, miny-1), std::min(msy, maxy+1));
+    return std::make_tuple(x1, x2, y1, y2);
+}
+/*
 template<class A>
 std::tuple<int, int, int, int> get_bounding_box(const std::vector<A>& my_data) {
     int x, y, minx= std::numeric_limits<int>::max(), miny = std::numeric_limits<int>::max(), maxx=-1, maxy=-1;
@@ -111,7 +142,7 @@ std::tuple<int, int, int, int> get_bounding_box(const std::vector<A>& my_data) {
     assert((maxx-minx) * (maxy-miny) >= (my_data.size()));
     return std::make_tuple(minx, maxx, miny, maxy);
 }
-
+*/
 template<typename Realtype, typename ContainerA>
 Realtype get_slope(const ContainerA& y) {
 
@@ -136,6 +167,8 @@ Realtype get_slope(const ContainerA& y) {
 
 template<typename Realtype, typename Iter>
 Realtype get_slope(const Iter& beginy, const Iter& endy) {
+
+    if(std::distance(beginy, endy) < 1) return (Realtype) 0.0;
 
     const auto n = std::distance(beginy, endy);
 
