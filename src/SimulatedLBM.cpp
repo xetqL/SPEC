@@ -23,38 +23,38 @@ SimulatedLBM::SimulatedLBM(SimulationParams params, MPI_Comm comm, GossipDatabas
         params(std::move(params)), comm(comm), workdb(workdb), load_balancer(load_balancer) {}
 
 void SimulatedLBM::run(float alpha) {
+
     auto world = this->comm;
 
     int worldsize;
     int rank;
     MPI_Comm_size(world, &worldsize);
     MPI_Comm_rank(world, &rank);
-
     const unsigned int xprocs = params.xprocs,
                        yprocs = params.yprocs,
                      cell_per_process = params.cell_per_process,
                      MAX_STEP = params.MAX_STEP;
 
     const int seed = params.seed;
-    unsigned int N = params.N;
-    bool load_lattice = params.load_lattice, verbose = params.verbose;
+    const unsigned int N = params.N;
+    const bool load_lattice = params.load_lattice, verbose = params.verbose;
 
     SlidingWindow<double> window_step_time(15);  // sliding window with max size = TODO: tune it?
     //SlidingWindow<double> window_my_time(100);   // sliding window with max size = TODO: tune it?
 
-    auto gossip_waterslope_db = GossipDatabase<double>(worldsize, 2, 8888, 0, world);
+    auto gossip_waterslope_db = GossipDatabase<double>::get_instance(worldsize, 2, 8888, 0, world);
 
     const bool i_am_foreman = rank == FOREMAN;
     auto datatype   = Cell::register_datatype();
 
-    std::string str_rank = "[RANK " + std::to_string(rank) + "] ";
+    const std::string str_rank = "[RANK " + std::to_string(rank) + "] ";
     std::mt19937 gen(seed); // common seed
     std::uniform_int_distribution<>  proc_dist(0, worldsize-1);
 
-    int cell_in_my_rows = (int) std::sqrt(cell_per_process), cell_in_my_cols = cell_in_my_rows;
-    int xcells = cell_in_my_rows * xprocs, ycells = cell_in_my_rows * yprocs;
+    const int cell_in_my_rows = (int) std::sqrt(cell_per_process), cell_in_my_cols = cell_in_my_rows;
+    const int xcells = cell_in_my_rows * xprocs, ycells = cell_in_my_rows * yprocs;
 
-    auto total_cell = xcells * ycells;
+    const auto total_cell = xcells * ycells;
     std::vector<int> cols(ycells);
     std::iota(cols.begin(), cols.end(), 0);
 
@@ -104,10 +104,12 @@ void SimulatedLBM::run(float alpha) {
     auto bbox = this->load_balancer->activate_load_balance(msx, msy, 0, &my_cells, &data_pointers);
 
 #if LB_APPROACH == 1
-    this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
+    this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), 3.0, alpha));
 #endif
 
+
     std::unique_ptr<WeightUpdater<Cell>> weight_updater(new TypeOnlyWeightUpdater<Cell>(1, [](auto data){return data.erosion_probability > 0.0;}));
+
 
 #ifdef PRODUCE_OUTPUTS
     int inner_type = Cell::ROCK_TYPE;
@@ -118,22 +120,17 @@ void SimulatedLBM::run(float alpha) {
 
     auto my_cell_count = my_cells.size();
 
-    std::vector<std::array<int,2>> all_types(worldsize*cell_per_process), my_types(my_cell_count);
+    std::vector<std::array<int, 2>> all_types(worldsize*cell_per_process), my_types(my_cell_count);
 
     for (int i = 0; i < my_cell_count; ++i) my_types[i] = {my_cells[i].gid, my_cells[i].type};
 
     gather_elements_on(my_types, FOREMAN, &all_types, datatype.minimal_datatype, world);
 
     if(i_am_foreman) {
-
         std::sort(all_types.begin(), all_types.end(), [](auto a, auto b){return a[0] < b[0];});
-
         std::vector<int> types, water_gid;
-
         //std::for_each(all_types.begin(), all_types.end(), [&types](auto e){types.push_back(e[1]);});
-
         std::for_each(all_types.begin(), all_types.end(), [&water_gid, &inner_type](auto e){if(e[1] == inner_type) water_gid.push_back(e[0]);});
-
         //assert((*(all_types.end() - 1))[0] == total_cell-1);
         cnpy::npz_save("gids-out.npz", "step-"+std::to_string(0), &water_gid[0], {water_gid.size()}, "a");
     }
@@ -174,6 +171,7 @@ void SimulatedLBM::run(float alpha) {
         bool lb_condition = false;
 #endif
         if(lb_condition) {
+
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
 
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
@@ -238,7 +236,7 @@ void SimulatedLBM::run(float alpha) {
 
 #if LB_APPROACH == 1
         RESTART_TIMING(my_gossip_time);
-        gossip_waterslope_db.execute(rank, get_slope<double>(water.begin(), water.end()));
+        gossip_waterslope_db->execute(rank, get_slope<double>(water.begin(), water.end()));
         workdb->execute(rank, n);
         STOP_TIMING(my_gossip_time);
 #endif

@@ -394,9 +394,33 @@ class GossipDatabase {
             database_size(database_size),
             number_of_message(number_of_message),
             SEND_TAG(send_tag),
-            dt(dt),
-            world(_world)
-    {
+            dt(dt), world(_world) {
+        MPI_Comm_rank(world, &my_rank);
+        MPI_Comm_size(world, &worldsize);
+        srand(my_rank + time(NULL));
+
+        init_database();
+
+        register_datatype();
+
+        //prepare buffers that hold the MPI_Request pointers
+        snd_entries.resize(number_of_message);
+        rcv_entries.resize(number_of_message);
+        current_send_reqs.resize(number_of_message);
+        current_recv_reqs.resize(number_of_message);
+
+        // Open the reception channel for X messages, and prepare buffers
+        for(int i = 0; i < number_of_message; ++i) {
+            rcv_entries[i].resize(worldsize); // known size without predicate
+            MPI_Irecv(rcv_entries[i].data(), worldsize, entry_datatype, MPI_ANY_SOURCE, SEND_TAG, world,
+                      &current_recv_reqs[i]);
+        }
+    }
+
+    GossipDatabase(int database_size, int number_of_message, int send_tag, double dt, MPI_Comm _world) :
+            database_size(database_size),
+            number_of_message(number_of_message),
+            SEND_TAG(send_tag), dt(dt), world(_world) {
         MPI_Comm_rank(world, &my_rank);
         MPI_Comm_size(world, &worldsize);
         srand(my_rank + time(NULL));
@@ -420,34 +444,6 @@ class GossipDatabase {
     }
 
 public:
-    GossipDatabase(int database_size, int number_of_message, int send_tag, double dt, MPI_Comm _world) :
-            database_size(database_size),
-            number_of_message(number_of_message),
-            SEND_TAG(send_tag),
-            dt(dt),
-            world(_world) {
-        MPI_Comm_rank(world, &my_rank);
-        MPI_Comm_size(world, &worldsize);
-        srand(my_rank + time(NULL));
-
-        init_database();
-
-        register_datatype();
-
-        //prepare buffers that hold the MPI_Request pointers
-        snd_entries.resize(number_of_message);
-        rcv_entries.resize(number_of_message);
-        current_send_reqs.resize(number_of_message);
-        current_recv_reqs.resize(number_of_message);
-
-        // Open the reception channel for X messages, and prepare buffers
-        for(int i = 0; i < number_of_message; ++i) {
-            rcv_entries[i].resize(worldsize); // known size without predicate
-            MPI_Irecv(rcv_entries[i].data(), worldsize, entry_datatype, MPI_ANY_SOURCE, SEND_TAG, world,
-                      &current_recv_reqs[i]);
-        }
-
-    }
 
     static std::shared_ptr<GossipDatabase<StoredDataType>> get_instance(int database_size, int number_of_message, int send_tag, double dt, MPI_Comm _world){
         static std::unordered_map<int, std::shared_ptr<GossipDatabase<StoredDataType> > > instances;

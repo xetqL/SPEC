@@ -547,10 +547,16 @@ zz::log::LoggerPtr perflogger, steplogger, proctime;
 //    MPI_Finalize();
 //    return 0;
 //}
+
+
 int main(int argc, char** argv) {
     int worldsize;
-    MPI_Init(&argc, &argv);
+    MPI_Init(NULL, NULL);
+
+    // Get the number of processes
+
     MPI_Comm_size(MPI_COMM_WORLD, &worldsize);
+
     float ver;
 
     Zoltan_Initialize(argc, argv, &ver );
@@ -570,10 +576,10 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    auto gossip_workload_db = GossipDatabase<unsigned long>(worldsize, 2, 9999, 0, world);
+    auto gossip_workload_db = GossipDatabase<unsigned long>::get_instance(worldsize, 2, 9999, 0, world);
 
-    SimulatedLBM simulation(params, world, &gossip_workload_db,
-            new ZoltanLoadBalancer<Cell>(world, cellDatatype, &gossip_workload_db, zoltan_create_wrapper, zoltan_LB<Cell>));
+    SimulatedLBM simulation(params, world, gossip_workload_db.get(),
+            new ZoltanLoadBalancer<Cell>(world, cellDatatype, gossip_workload_db.get(), zoltan_create_wrapper, zoltan_LB<Cell>));
 
     zz::log::config_from_file("logger.cfg");
     perflogger = zz::log::get_logger("perf",  true);

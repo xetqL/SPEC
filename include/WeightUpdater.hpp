@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include "ULBA.hpp"
 #include "StdApproach.hpp"
+#include "Cell.hpp"
 
 template<class Data>
 class WeightUpdater {
@@ -87,8 +88,9 @@ public:
             weight_amount = diff_with_share / target_cnt;
         }
 
-        for(auto& cell : data) {
-            cell.weight = cell.weight + (weight_amount * (predicate(cell)));
+        for(const auto id : potential_targets) {
+            Data& cell  = _data->at(id);
+            cell.weight = (weight_amount * (predicate(cell)));
         }
     }
 };

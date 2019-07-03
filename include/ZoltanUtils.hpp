@@ -150,12 +150,10 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm) {
     //Zoltan_Set_Param(zz, "NUM_GLOBAL_PARTS", "8");
     Zoltan_Set_Param(zz, "NUM_LID_ENTRIES", "1");
     Zoltan_Set_Param(zz, "OBJ_WEIGHT_DIM",  "1");
-    Zoltan_Set_Param(zz, "OBJ_WEIGHTS_COMPARABLE", "0");
-    Zoltan_Set_Param(zz, "RCB_MULTICRITERIA_NORM", "3");
 
     Zoltan_Set_Param(zz, "RETURN_LISTS", "ALL");
 
-    // Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "2");
+    //Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "2");
     //Zoltan_Set_Param(zz, "CHECK_GEOM", "1");
     //Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "1");
     Zoltan_Set_Param(zz, "RCB_REUSE", "1");
