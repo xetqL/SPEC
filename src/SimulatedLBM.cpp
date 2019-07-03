@@ -173,7 +173,7 @@ void SimulatedLBM::run(float alpha) {
 #else   // NO_LOAD_BALANCING
         bool lb_condition = false;
 #endif
-        if(step % 10) {
+        if(lb_condition) {
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
 
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
