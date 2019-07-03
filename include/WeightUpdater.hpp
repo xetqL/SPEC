@@ -76,7 +76,8 @@ public:
             const LoadBalancingApproach* approach,
             float W, float my_load) override {
         float share, alpha;
-        std::tie(share, alpha) = approach->compute_share(get_rank());
+        auto rank = get_rank();
+        std::tie(share, alpha) = approach->compute_share(rank);
         std::vector<Data>& data = *_data;
         //now I want alpha*W of it, i.e., remove (1-alpha)*W.
         //1. Compute the difference between my workload and the average
@@ -88,11 +89,9 @@ public:
             weight_amount = diff_with_share / target_cnt;
         }
 
-        std::cout << "Desired share " << share << std::endl;
-
         for(const auto id : potential_targets) {
             Data& cell  = _data->at(id);
-            cell.weight = (weight_amount * (predicate(cell)));
+            cell.weight = (weight_amount * ( predicate(cell)) );
         }
     }
 };

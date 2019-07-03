@@ -19,17 +19,14 @@ std::pair<LoadBalancingApproach::WorkloadShare, LoadBalancingApproach::WorkloadW
     // Count the number of overloading processes
     MPI_Allreduce(&overloading, &N, 1, MPI_INT, MPI_SUM, this->world);
 
-    double share = 1;
     if(N == 0) return {1, 0.0};
 
     if(overloading) {
         //std::cout << "outlier..." << std::endl;
-        share = (1 - this->alpha) * share;
-        return {share, this->alpha};
+        return {(1 - this->alpha), this->alpha};
     } else {
         //std::cout << N << " outliers" << std::endl;
-        share = (1 + this->alpha * ((double) N / (double) (P-N))) * share;
-        return {share, 0.0};
+        return {(1 + this->alpha * ((double) N / (double) (P-N))), 0.0};
     }
 
 }

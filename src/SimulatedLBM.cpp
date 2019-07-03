@@ -108,7 +108,7 @@ void SimulatedLBM::run(float alpha) {
 #endif
 
 
-    std::unique_ptr<WeightUpdater<Cell>> weight_updater(new TypeOnlyWeightUpdater<Cell>(1, [](auto data){return data.erosion_probability > 0.0;}));
+    std::unique_ptr<WeightUpdater<Cell>> weight_updater(new TypeOnlyWeightUpdater<Cell>(1, [](auto data){return (int) data.erosion_probability > 0.0 && data.type == Cell::ROCK_TYPE;}));
 
 
 #ifdef PRODUCE_OUTPUTS
@@ -171,8 +171,9 @@ void SimulatedLBM::run(float alpha) {
         bool lb_condition = false;
 #endif
         if(lb_condition) {
-
+            auto prev = compute_estimated_workload(my_cells, Cell::WATER_TYPE);
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
+            assert(prev == compute_estimated_workload(my_cells, Cell::WATER_TYPE));
 
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
 #ifdef AUTONOMIC_LOAD_BALANCING
@@ -210,6 +211,10 @@ void SimulatedLBM::run(float alpha) {
 
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
+        std::vector<unsigned long> diff;
+        std::set_difference(my_rock_ptr.begin(), my_rock_ptr.end(), new_water_ptr.begin(), new_water_ptr.end(), std::back_inserter(diff));
+        my_rock_ptr.swap(diff);
+
         my_water_ptr.insert(my_water_ptr.end(), new_water_ptr.begin(), new_water_ptr.end());
 
         n += (unsigned long) add_weight; // adapt the number of cell to compute
@@ -219,7 +224,6 @@ void SimulatedLBM::run(float alpha) {
         CHECKPOINT_TIMING(comp_time, my_comp_time);
 
         STOP_TIMING(comp_time);
-
 
         MPI_Allreduce(MPI_IN_PLACE, &comp_time, 1, MPI_DOUBLE, MPI_MAX, world);
 
@@ -232,7 +236,6 @@ void SimulatedLBM::run(float alpha) {
         compTimes.push_back(comp_time);
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
-
 
 #if LB_APPROACH == 1
         RESTART_TIMING(my_gossip_time);
@@ -262,7 +265,7 @@ void SimulatedLBM::run(float alpha) {
         std::vector<int> tloads(worldsize);
         std::vector<float> all_the_workloads(worldsize);
 
-        auto my_workload = compute_estimated_workload(my_cells);
+        auto my_workload = compute_estimated_workload(my_cells, Cell::WATER_TYPE);
 
         MPI_Gather(&my_workload,  1, MPI_FLOAT,  &all_the_workloads.front(), 1, MPI_FLOAT,  FOREMAN, world);
         MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(),           1, MPI_DOUBLE, FOREMAN, world);

@@ -462,7 +462,7 @@ public:
     }
 
     void execute(Index idx, StoredDataType data) {
-        return;
+
         execute(idx, data, update_strategy, default_predicate);
     }
 

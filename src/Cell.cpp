@@ -99,9 +99,15 @@ void populate_data_pointers(int msx, int msy,
     }
 }
 
+float compute_estimated_workload(const std::vector<Cell>& _my_cells, int type) {
+    float load = 0;
+    for (const auto& cell : _my_cells) load += cell.weight * (type == cell.type);
+    return load;
+}
+
 float compute_estimated_workload(const std::vector<Cell>& _my_cells) {
     float load = 0;
-    for (const auto& cell : _my_cells) load += cell.weight;
+    for (const auto& cell : _my_cells) load += cell.weight * (cell.type);
     return load;
 }
 
