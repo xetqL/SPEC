@@ -88,6 +88,8 @@ public:
             weight_amount = diff_with_share / target_cnt;
         }
 
+        std::cout << "Desired share " << share << std::endl;
+
         for(const auto id : potential_targets) {
             Data& cell  = _data->at(id);
             cell.weight = (weight_amount * (predicate(cell)));
