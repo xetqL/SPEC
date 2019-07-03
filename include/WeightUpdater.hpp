@@ -57,9 +57,41 @@ public:
             for (auto target = random_targets; random_targets != (random_targets+target_cnt); random_targets++) {
                 data->at(*target).weight += (weight_amount);
             }
+        }
 
-        } // else my cells weight reflect my workload
     }
 };
+
+
+template<class Data>
+class TypeOnlyWeightUpdater : public WeightUpdater<Data> {
+    const int target_cnt;
+    const std::function<bool(Data)> predicate;
+public:
+    TypeOnlyWeightUpdater(int target_cnt, std::function<bool(Data)>&& predicate) : target_cnt(target_cnt), predicate(predicate) {}
+
+    void update_weight(
+            std::vector<Data>* _data, std::vector<unsigned long> potential_targets,
+            const LoadBalancingApproach* approach,
+            float W, float my_load) override {
+        float share, alpha;
+        std::tie(share, alpha) = approach->compute_share(get_rank());
+        std::vector<Data>& data = *_data;
+        //now I want alpha*W of it, i.e., remove (1-alpha)*W.
+        //1. Compute the difference between my workload and the average
+        float weight_amount = 0.0f;
+
+        if(alpha > 0) { //I should over-estimate my workload to get less cells
+            share *= W; //use the estimated mean
+            auto diff_with_share = my_load - share;
+            weight_amount = diff_with_share / target_cnt;
+        }
+
+        for(auto& cell : data) {
+            cell.weight = cell.weight + (weight_amount * (predicate(cell)));
+        }
+    }
+};
+// RJCGB-T7CW6-6V366-9JE7Y-UT9BT
 
 #endif //SPEC_WEIGHTUPDATER_HPP

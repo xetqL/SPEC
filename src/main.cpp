@@ -553,13 +553,14 @@ int main(int argc, char** argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &worldsize);
     float ver;
 
-    Zoltan_Initialize( 0, NULL, &ver );
+    Zoltan_Initialize(argc, argv, &ver );
 
     auto world = MPI_COMM_WORLD;
 
     auto cellDatatype = Cell::register_datatype().element_datatype;
 
     SimulationParams params;
+
     bool err;
 
     std::tie(params, err) = parse_cli(argc, argv);
@@ -572,7 +573,6 @@ int main(int argc, char** argv) {
     auto gossip_workload_db = GossipDatabase<unsigned long>(worldsize, 2, 9999, 0, world);
 
     SimulatedLBM simulation(params, world, &gossip_workload_db,
-            //new StripeLoadBalancer(world, cellDatatype, 0, params.xcells, params.ycells));
             new ZoltanLoadBalancer<Cell>(world, cellDatatype, &gossip_workload_db, zoltan_create_wrapper, zoltan_LB<Cell>));
 
     zz::log::config_from_file("logger.cfg");

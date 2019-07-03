@@ -24,6 +24,7 @@ SimulatedLBM::SimulatedLBM(SimulationParams params, MPI_Comm comm, GossipDatabas
 
 void SimulatedLBM::run(float alpha) {
     auto world = this->comm;
+
     int worldsize;
     int rank;
     MPI_Comm_size(world, &worldsize);
@@ -106,7 +107,7 @@ void SimulatedLBM::run(float alpha) {
     this->load_balancer->set_approach(new ULBA(world, &gossip_waterslope_db, 3.0, alpha));
 #endif
 
-    std::unique_ptr<WeightUpdater<Cell>> weight_updater(new RandomWeightUpdater<Cell>(1));
+    std::unique_ptr<WeightUpdater<Cell>> weight_updater(new TypeOnlyWeightUpdater<Cell>(1, [](auto data){return data.erosion_probability > 0.0;}));
 
 #ifdef PRODUCE_OUTPUTS
     int inner_type = Cell::ROCK_TYPE;
@@ -172,7 +173,7 @@ void SimulatedLBM::run(float alpha) {
 #else   // NO_LOAD_BALANCING
         bool lb_condition = false;
 #endif
-        if(lb_condition) {
+        if(step % 10) {
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
 
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
