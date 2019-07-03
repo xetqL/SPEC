@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 3.10)
 project(SPEC C CXX)
 
 #enable_language(C CXX)
+find_package(MPI REQUIRED)
 
-find_library(mpi NAMES mpi libmpi PATHS /home/xetql/openmpi-1.10.7/install/lib)
-set(MPI_HEADERS /home/xetql/openmpi-1.10.7/install/include)
-set(MPI_CXX_COMPILER /home/xetql/openmpi-1.10.7/install/bin/mpic++)
+#find_library(mpi NAMES mpi libmpi PATHS /home/xetql/openmpi-1.10.7/install/lib)
+#set(MPI_HEADERS /home/xetql/openmpi-1.10.7/install/include)
+#set(MPI_CXX_COMPILER /home/xetql/openmpi-1.10.7/install/bin/mpic++)
 #find_path(MPI_HEADERS NAMES mpi mpi.h HINTS /home/xetql/openmpi-1.10.7/install/include)
 
-message(${MPI})
-message(${MPI_HEADERS})
+
 
 find_package (Threads)
 
@@ -67,7 +67,7 @@ else()
     message("Compiled without Zoltan")
 endif()
 
-target_link_libraries(SPEC mpi)
+#target_link_libraries(SPEC mpi)
 target_link_libraries(SPEC z)
 target_link_libraries(SPEC ${CMAKE_THREAD_LIBS_INIT})
 
