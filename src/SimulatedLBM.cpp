@@ -171,11 +171,11 @@ void SimulatedLBM::run(float alpha) {
         bool lb_condition = false;
 #endif
         if(lb_condition) {
-            auto prev = compute_estimated_workload(my_cells, Cell::WATER_TYPE);
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
-            assert(prev == compute_estimated_workload(my_cells, Cell::WATER_TYPE));
 
+            auto prev = compute_estimated_workload(my_cells, Cell::WATER_TYPE);
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
+
 #ifdef AUTONOMIC_LOAD_BALANCING
             double median;
             if(std::distance(window_step_time.begin(), window_step_time.end() - 3) < 0)

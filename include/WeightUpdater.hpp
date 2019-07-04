@@ -63,7 +63,6 @@ public:
     }
 };
 
-
 template<class Data>
 class TypeOnlyWeightUpdater : public WeightUpdater<Data> {
     const int target_cnt;
@@ -82,14 +81,13 @@ public:
         //now I want alpha*W of it, i.e., remove (1-alpha)*W.
         //1. Compute the difference between my workload and the average
         float weight_amount = 0.0f;
-
         std::vector<unsigned long> targets;
         std::copy_if(potential_targets.begin(), potential_targets.end(), std::back_inserter(targets), [this, &data](auto tar){return this->predicate(data[tar]);});
-
         if(alpha > 0) { //I should over-estimate my workload to get less cells
             share *= W; //use the estimated mean
             auto diff_with_share = my_load - share;
             weight_amount = diff_with_share / targets.size();
+            std::cout << "Desired share for "<< get_rank() << " " << share << std::endl;
         }
         for(const auto id : targets) {
             Data& cell  = _data->at(id);
@@ -97,5 +95,4 @@ public:
         }
     }
 };
-
 #endif //SPEC_WEIGHTUPDATER_HPP
