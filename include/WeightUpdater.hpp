@@ -10,7 +10,7 @@
 #include "ULBA.hpp"
 #include "StdApproach.hpp"
 #include "Cell.hpp"
-
+#include <iostream>
 template<class Data>
 class WeightUpdater {
 public:
