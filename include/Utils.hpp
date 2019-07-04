@@ -187,7 +187,30 @@ Realtype get_slope(const Iter& beginy, const Iter& endy) {
     return denominator == 0 ? (Realtype) 0 : numerator / denominator;
 }
 
+namespace functional
+{
+    template<class IIter, class OIter, class F>
+    void map(IIter begin, IIter end, OIter out, F&& f){
+        for(; begin != end; begin++, out++){
+            *out = f(*begin);
+        }
+    }
 
+    template<class T, class IIter, class F1, class F2>
+    T map_reduce(IIter begin, IIter end, F1&& mapFunc, F2&& reduceFunc){
+        T res = mapFunc(*begin);
+        begin++;
+        for(; begin != end; begin++) res = reduceFunc(res, mapFunc(*begin));
+        return res;
+    }
+
+    template<class T, class IIter, class F2>
+    T reduce(IIter begin, IIter end, F2&& reduceFunc, T start){
+        T res = start;
+        for(; begin != end; begin++) res = reduceFunc(res, *begin);
+        return res;
+    }
+}
 
 namespace stats
 {

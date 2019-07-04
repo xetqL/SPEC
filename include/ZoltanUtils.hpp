@@ -33,8 +33,6 @@ void get_object_list(void *data, int sizeGID, int sizeLID,
 
     for (i=0; i < mesh_size; i++){
         obj_wgts[wgt_dim*i] = mesh->at(i).weight;
-        if(wgt_dim > 1)
-            obj_wgts[wgt_dim*i+1] = (float) mesh->at(i).slope; //slope
         globalID[i] = (ZOLTAN_ID_TYPE) mesh->at(i).gid;
         localID[i]  = (ZOLTAN_ID_TYPE) i;
     }

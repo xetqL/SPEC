@@ -104,11 +104,11 @@ void SimulatedLBM::run(float alpha) {
     auto bbox = this->load_balancer->activate_load_balance(msx, msy, 0, &my_cells, &data_pointers);
 
 #if LB_APPROACH == 1
-    this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), 3.0, alpha));
+    this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), 1.0, alpha));
 #endif
 
 
-    std::unique_ptr<WeightUpdater<Cell>> weight_updater(new TypeOnlyWeightUpdater<Cell>(1, [](auto data){return (int) data.erosion_probability > 0.0 && data.type == Cell::ROCK_TYPE;}));
+    std::unique_ptr<WeightUpdater<Cell>> weight_updater(new TypeOnlyWeightUpdater<Cell>(1, [](auto data){return data.erosion_probability > 0.0 && data.type == Cell::ROCK_TYPE;}));
 
 
 #ifdef PRODUCE_OUTPUTS
@@ -171,10 +171,17 @@ void SimulatedLBM::run(float alpha) {
         bool lb_condition = false;
 #endif
         if(lb_condition) {
-            weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
+            int my_weight_before_update = functional::map_reduce<int>(my_cells.begin(), my_cells.end(), [](Cell& c){return c.weight;}, [](int a, int b){return a+b;});
 
-            auto prev = compute_estimated_workload(my_cells, Cell::WATER_TYPE);
+            weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), my_weight_before_update);
+
+            int my_weight_before_lb = functional::map_reduce<int>(my_cells.begin(), my_cells.end(), [](Cell& c){return c.weight;}, [](int a, int b){return a+b;});
+
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
+
+            int my_weight_after = functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a+b.weight;}, 0.0);
+
+            std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
 
 #ifdef AUTONOMIC_LOAD_BALANCING
             double median;
@@ -244,9 +251,7 @@ void SimulatedLBM::run(float alpha) {
         STOP_TIMING(my_gossip_time);
 #endif
 
-//update_cells(&my_cells, gossip_waterslope_db.get(rank), [](Cell &c, auto v){c.slope = v;});
-
-
+        //update_cells(&my_cells, gossip_waterslope_db.get(rank), [](Cell &c, auto v){c.slope = v;});
 
         if(this->load_balancer->get_last_call() + 1 < step) {
             degradation_since_last_lb +=

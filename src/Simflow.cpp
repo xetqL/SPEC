@@ -451,7 +451,7 @@ dummy_erosion_computation(int step,
 }
 
 std::tuple<std::vector<Cell>, std::vector<unsigned long>, double>
-dummy_erosion_computation3(int step,
+dummy_erosion_computation3( int step,
                             int msx, int msy,
                             const std::vector<Cell>& my_old_cells,
                             const std::vector<unsigned long>& my_water_ptr,
