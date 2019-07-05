@@ -39,18 +39,22 @@ void generate_lattice_rocks( const int rocks_per_stripe, int msx, int msy,
                                     std::vector<Cell>* _cells,
                                     float erosion_probability,
                                     int begin_stripe, int end_stripe){
+    using Radius   = int;
+    using XPosition= int;
+    using YPosition= int;
 
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+
     std::vector<Cell>& cells = *_cells;
-    std::vector<std::tuple<int, int, int>> rocks_data(rocks_per_stripe);
+    std::vector<std::tuple<XPosition, YPosition, Radius>> rocks_data(rocks_per_stripe);
 
     for (int i = 0; i < rocks_per_stripe; ++i) {
 //        rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)), (begin_stripe + end_stripe) * (3.0/4.0) : (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 4);
         rocks_data[i] = std::make_tuple((int) std::floor((i+1) * msx / (rocks_per_stripe+1)),
-                rank == size-1 ? (begin_stripe + end_stripe) / 2 + (end_stripe - begin_stripe) / 4 : (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 4);
+                rank == size-1 ? (begin_stripe + end_stripe) / 2 + (end_stripe - begin_stripe) / 4 : (begin_stripe + end_stripe) / 2, (end_stripe - begin_stripe) / 3);
     }
 
     for(auto& cell : cells) {

@@ -164,22 +164,22 @@ void SimulatedLBM::run(float alpha) {
         PAR_START_TIMING(step_time, world);
 
 #ifdef AUTONOMIC_LOAD_BALANCING
-        bool lb_condition = this->load_balancer->get_last_call() + ncall <= step || degradation_since_last_lb > this->load_balancer->get_average_cost();
+        bool lb_condition = /*this->load_balancer->get_last_call() + ncall <= step ||*/ degradation_since_last_lb > this->load_balancer->get_average_cost();
 #elif  CYCLIC_LOAD_BALANCING
         bool lb_condition = this->load_balancer->get_last_call() + params.interval <= step;
 #else   // NO_LOAD_BALANCING
         bool lb_condition = false;
 #endif
         if(lb_condition) {
-            int my_weight_before_update = functional::map_reduce<int>(my_cells.begin(), my_cells.end(), [](Cell& c){return c.weight;}, [](int a, int b){return a+b;});
+            int my_weight_before_update = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
 
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), my_weight_before_update);
 
-            int my_weight_before_lb = functional::map_reduce<int>(my_cells.begin(), my_cells.end(), [](Cell& c){return c.weight;}, [](int a, int b){return a+b;});
+            int my_weight_before_lb = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
 
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
 
-            int my_weight_after = functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a+b.weight;}, 0.0);
+            int my_weight_after = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
 
             std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
 
@@ -191,7 +191,9 @@ void SimulatedLBM::run(float alpha) {
             auto mean   = stats::mean<double>(window_step_time.begin(), window_step_time.end());
 
             unsigned int pcall = this->load_balancer->get_last_call();
+
             ncall = (unsigned int) this->load_balancer->estimate_best_ncall(((step - pcall) - 1), median-mean);
+
 #elif  CYCLIC_LOAD_BALANCING
             ncall = params.interval;
 #endif
