@@ -71,7 +71,7 @@ void SimulatedLBM::run(float alpha) {
     //const int loading_proc = proc_dist(gen) % worldsize; //one randomly chosen load proc
     std::uniform_int_distribution<>  lproc_dist((int)N/2, worldsize-1-(int)N/2);
 
-    const int center = worldsize-1;//lproc_dist(gen);
+    const int center = lproc_dist(gen);
     loading_procs.push_back(center);
 
     for(int i = 1; i < N; i++) {
@@ -171,17 +171,17 @@ void SimulatedLBM::run(float alpha) {
         bool lb_condition = false;
 #endif
         if(lb_condition) {
+
+#if LB_APPROACH == 1
             int my_weight_before_update = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
-
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), my_weight_before_update);
-
             int my_weight_before_lb = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
-
+#endif
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
-
+#if LB_APPROACH == 1
             int my_weight_after = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
-
             std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
+#endif
 
 #ifdef AUTONOMIC_LOAD_BALANCING
             double median;
