@@ -210,6 +210,12 @@ namespace functional
         for(; begin != end; begin++) res = reduceFunc(res, *begin);
         return res;
     }
+
+    template<class IIter, class OIter, class F>
+    void filter(IIter begin, IIter end, OIter out, F&& pred){
+        return std::copy_if(begin, end, out, pred);
+    }
+
 }
 
 namespace stats
