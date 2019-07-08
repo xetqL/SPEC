@@ -104,7 +104,7 @@ void SimulatedLBM::run(float alpha) {
     auto bbox = this->load_balancer->activate_load_balance(msx, msy, 0, &my_cells, &data_pointers);
 
 #if LB_APPROACH == 1
-    this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), 1.0, alpha));
+    this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), 3.0, alpha));
 #endif
 
 

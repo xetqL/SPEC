@@ -12,7 +12,12 @@ ULBA::ULBA(MPI_Comm world, GossipDatabase<double> *wirdb, double threshold, doub
         alpha(alpha) {
     MPI_Comm_size(world, &P);
 }
-
+/**
+ * Compute the workload share of a given PE as function of its outlier status and
+ * the global unloading parameter $\alpha$.
+ * @param rank
+ * @return
+ */
 std::pair<LoadBalancingApproach::WorkloadShare, LoadBalancingApproach::WorkloadWeight> ULBA::compute_share(int rank) const {
     int N = 0, overloading = wirdb->zscore(rank) > threshold ? 1 : 0;
 
