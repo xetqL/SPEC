@@ -173,12 +173,14 @@ void SimulatedLBM::run(float alpha) {
         if(lb_condition) {
 
             int my_weight_before_update = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
+
 #if LB_APPROACH == 1
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), my_weight_before_update);
 #endif
             int my_weight_before_lb = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
 
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
+
             std::tie(n, my_water_ptr, my_rock_ptr) = create_all_ptr_vector(my_cells);
 
             int my_weight_after = (int) functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0);
@@ -195,7 +197,6 @@ void SimulatedLBM::run(float alpha) {
             unsigned int pcall = this->load_balancer->get_last_call();
 
             ncall = (unsigned int) this->load_balancer->estimate_best_ncall(((step - pcall) - 1), median-mean);
-
 #elif  CYCLIC_LOAD_BALANCING
             ncall = params.interval;
 #endif
@@ -274,7 +275,7 @@ void SimulatedLBM::run(float alpha) {
         std::vector<int> tloads(worldsize);
         std::vector<float> all_the_workloads(worldsize);
 
-        auto my_workload = compute_estimated_workload(my_cells, Cell::WATER_TYPE);
+        auto my_workload = (int) functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0);
 
         MPI_Gather(&my_workload,  1, MPI_FLOAT,  &all_the_workloads.front(), 1, MPI_FLOAT,  FOREMAN, world);
         MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(),           1, MPI_DOUBLE, FOREMAN, world);

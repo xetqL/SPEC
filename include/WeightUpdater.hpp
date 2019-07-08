@@ -78,14 +78,14 @@ public:
         auto rank = get_rank();
         std::tie(share, alpha) = approach->compute_share(rank);
         std::vector<Data>& data = *_data;
-        //now I want alpha*W of it, i.e., remove (1-alpha)*W.
-        //1. Compute the difference between my workload and the average
+        // now I want alpha*W of it, i.e., remove (1-alpha)*W.
+        // 1. Compute the difference between my workload and the average
         float weight_amount = 0.0f;
         std::vector<unsigned long> targets;
         std::copy_if(potential_targets.begin(), potential_targets.end(), std::back_inserter(targets), [this, &data](auto tar){return this->predicate(data[tar]);});
 
-        if(alpha > 0) { //I should over-estimate my workload to get less cells
-            share *= W; //use the estimated mean
+        if(alpha > 0) { // I should over-estimate my workload to get less cells
+            share *= W; // use the estimated mean
             float diff_with_share = my_load - share;
             if(diff_with_share > 0) {
                 weight_amount = diff_with_share / targets.size();
