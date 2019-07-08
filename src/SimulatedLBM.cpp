@@ -275,7 +275,7 @@ void SimulatedLBM::run(float alpha) {
         std::vector<int> tloads(worldsize);
         std::vector<float> all_the_workloads(worldsize);
 
-        auto my_workload = (int) functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0);
+        float my_workload = functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0f);
 
         MPI_Gather(&my_workload,  1, MPI_FLOAT,  &all_the_workloads.front(), 1, MPI_FLOAT,  FOREMAN, world);
         MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(),           1, MPI_DOUBLE, FOREMAN, world);
