@@ -10,7 +10,7 @@ if __name__ == '__main__':
     data = [json.loads(l.split(']: ')[1]) for l in lines]
     loads = pd.Series([d['loads'] for d in data])
     slopes= pd.Series([d['slopes'] for d in data])
-    loads2 = loads.apply(lambda x: [ float((v-min(x))/(max(x)-min(x)))  for v in x])
+    loads2 = loads.apply(lambda x: [float((v-min(x))/(max(x)-min(x)))  for v in x])
     slopes2 = slopes.apply(lambda x: [float((v-min(x))/(max(x)-min(x))) if (max(x) > 0) else 0 for v in x])
 
     loadarr = np.array(loads2.values.tolist())
