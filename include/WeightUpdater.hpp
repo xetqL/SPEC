@@ -83,11 +83,15 @@ public:
         float weight_amount = 0.0f;
         std::vector<unsigned long> targets;
         std::copy_if(potential_targets.begin(), potential_targets.end(), std::back_inserter(targets), [this, &data](auto tar){return this->predicate(data[tar]);});
+
         if(alpha > 0) { //I should over-estimate my workload to get less cells
             share *= W; //use the estimated mean
             float diff_with_share = my_load - share;
-            weight_amount = diff_with_share / targets.size();
+            if(diff_with_share > 0) {
+                weight_amount = diff_with_share / targets.size();
+            }
         }
+
         for(const auto id : targets) {
             Data& cell  = _data->at(id);
             cell.weight = weight_amount;
