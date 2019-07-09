@@ -256,6 +256,7 @@ void SimulatedLBM::run(float alpha) {
         STOP_TIMING(my_gossip_time);
 #endif
 
+
         //update_cells(&my_cells, gossip_waterslope_db.get(rank), [](Cell &c, auto v){c.slope = v;});
 
         if(this->load_balancer->get_last_call() + 1 < step) {
