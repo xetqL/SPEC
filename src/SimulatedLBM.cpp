@@ -197,6 +197,7 @@ void SimulatedLBM::run(float alpha) {
             unsigned int pcall = this->load_balancer->get_last_call();
 
             ncall = (unsigned int) this->load_balancer->estimate_best_ncall(((step - pcall) - 1), median-mean);
+
 #elif  CYCLIC_LOAD_BALANCING
             ncall = params.interval;
 #endif
