@@ -185,7 +185,7 @@ void SimulatedLBM::run(float alpha) {
 
             int my_weight_after = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return b.type == Cell::WATER_TYPE ? a + b.weight : a;}, 0.0);
 
-            std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
+            std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << "; rocks = " << std::count_if(my_cells.begin(), my_cells.end(), [](auto c){return c.type == Cell::ROCK_TYPE;}) << std::endl;
 
 #ifdef AUTONOMIC_LOAD_BALANCING
             double median;
