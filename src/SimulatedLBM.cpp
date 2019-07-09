@@ -183,7 +183,7 @@ void SimulatedLBM::run(float alpha) {
 
             std::tie(n, my_water_ptr, my_rock_ptr) = create_all_ptr_vector(my_cells);
 
-            int my_weight_after = (int) functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0);
+            int my_weight_after = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return b.type == Cell::WATER_TYPE ? a + b.weight : a;}, 0.0);
 
             std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
 
