@@ -319,10 +319,6 @@ const std::vector<A> zoltan_exchange_data(const std::vector<A> &data,
         }
     }
 
-// Compute who has to send me something via Zoltan.
-///    int ierr = Zoltan_Invert_Lists(load_balancer, num_known, known_gids, known_lids, &export_procs[0], &export_procs[0],
-///                                   &num_found, &found_gids, &found_lids, &found_procs, &found_parts);
-
     int cpt = 0;
 
 // Send the data to neighbors

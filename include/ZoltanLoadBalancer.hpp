@@ -102,12 +102,11 @@ private:
 
         {
             nb_reqs = std::count_if(data_to_migrate.cbegin(), data_to_migrate.cend(), [](auto buf){return !buf.empty();});
-            std::vector<MPI_Request> send_reqs(nb_reqs),
-                    rcv_reqs(wsize);
+            std::vector<MPI_Request> send_reqs(nb_reqs), rcv_reqs(wsize);
             std::vector<MPI_Status> statuses(wsize);
 
             int nb_neighbor = 0;
-            for(int comm_pe = 0; comm_pe < wsize; ++comm_pe){
+            for(int comm_pe = 0; comm_pe < wsize; ++comm_pe) {
                 MPI_Irecv(&num_import_from_procs[comm_pe], 1, MPI_INT, comm_pe, 666, comm, &rcv_reqs[comm_pe]);
                 int send_size = data_to_migrate.at(comm_pe).size();
                 if (send_size) {
@@ -115,6 +114,7 @@ private:
                     nb_neighbor++;
                 }
             }
+
             MPI_Waitall(send_reqs.size(), &send_reqs.front(), MPI_STATUSES_IGNORE);
             MPI_Barrier(comm);
             for(int comm_pe = 0; comm_pe < wsize; ++comm_pe) {
@@ -135,16 +135,24 @@ private:
 
 //TODO: alpha should be a struct holding the algorithm and the data?
 template<class Data> void ZoltanLoadBalancer<Data>::load_balance(std::vector<Data> *_data) {
+
+
     lb_func(_data, zoltan_lb, true);
+
     std::tie(neighbors, neighboring_cells, cell_per_neighbors) = compute_neighborhood(_data);
 }
 
 template<class Data> std::vector<Data> ZoltanLoadBalancer<Data>::propagate(const std::vector<Data> &data,
                             int *nb_elements_recv, int *nb_elements_sent, double cell_size) {
-    //return zoltan_exchange_data<Data>(data, neighbors, cell_per_neighbors, neighboring_cells, this->datatype, this->world);
-    int r, s;
-    return zoltan_exchange_data<Data>(zoltan_lb, data, &r, &s, this->datatype, this->world);
+    std::vector<Data> r;
+    std::vector<std::vector<unsigned long>> i;
 
+    std::tie(r,i) = zoltan_exchange_data<Data>(data, neighbors, cell_per_neighbors, neighboring_cells, this->datatype, this->world);
+
+    assert(std::equal(i.begin(), i.end(), neighboring_cells.begin(), neighboring_cells.end()));
+
+    return r;
+    //return zoltan_exchange_data<Data>(zoltan_lb, data, &r, &s, this->datatype, this->world);
 }
 
 

@@ -84,7 +84,7 @@ inline void gather_elements_on(const std::vector<A> &local_el,
 #ifdef WITH_ZOLTAN
 #include <zoltan.h>
 template<class A>
-const std::vector<A> zoltan_exchange_data(Zoltan_Struct *load_balancer,
+std::tuple<const std::vector<A>, std::vector<std::vector<unsigned long>> >  zoltan_exchange_data(Zoltan_Struct *load_balancer,
                                           const std::vector<A> &data,
                                           int* nb_elements_recv,
                                           int* nb_elements_sent,
@@ -105,6 +105,7 @@ const std::vector<A> zoltan_exchange_data(Zoltan_Struct *load_balancer,
     if (wsize == 1) return remote_data_gathered;
 
     std::vector<std::vector<A>> data_to_migrate(wsize);
+    std::vector<std::vector<unsigned long>> id_to_migrate(wsize);
     size_t data_id = 0;
     std::vector<int> PEs(wsize, -1), parts(wsize, -1);
     int num_found, num_known = 0;
@@ -133,6 +134,7 @@ const std::vector<A> zoltan_exchange_data(Zoltan_Struct *load_balancer,
                     export_procs.push_back(PE);
                     //get the value and copy it into the "to migrate" vector
                     data_to_migrate.at(PE).push_back(data.at(data_id));
+                    id_to_migrate.at(PE).push_back(data_id);
                     num_known++;
                 }
             }
@@ -200,7 +202,7 @@ const std::vector<A> zoltan_exchange_data(Zoltan_Struct *load_balancer,
     }
 
     MPI_Waitall(reqs.size(), &reqs.front(), MPI_STATUSES_IGNORE);
-    return remote_data_gathered;
+    return std::make_tuple(remote_data_gathered, id_to_migrate);
 }
 
 template<class A>
