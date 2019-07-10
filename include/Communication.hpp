@@ -102,7 +102,7 @@ std::tuple<const std::vector<A>, std::vector<std::vector<unsigned long>> >  zolt
     std::vector<A> buffer;
     std::vector<A> remote_data_gathered;
     long nb_reqs = 0;
-    if (wsize == 1) return remote_data_gathered;
+    if (wsize == 1) return {remote_data_gathered, {}};
 
     std::vector<std::vector<A>> data_to_migrate(wsize);
     std::vector<std::vector<unsigned long>> id_to_migrate(wsize);
