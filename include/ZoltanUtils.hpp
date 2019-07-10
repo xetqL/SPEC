@@ -153,10 +153,10 @@ Zoltan_Struct* zoltan_create_wrapper(bool automatic_migration, MPI_Comm comm) {
 
     //Zoltan_Set_Param(zz, "RCB_OUTPUT_LEVEL", "2");
     //Zoltan_Set_Param(zz, "CHECK_GEOM", "1");
-    //Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "1");
+    Zoltan_Set_Param(zz, "RCB_RECTILINEAR_BLOCKS", "1");
     Zoltan_Set_Param(zz, "RCB_REUSE", "1");
 
-    Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
+    //Zoltan_Set_Param(zz, "AVERAGE_CUTS", "1");
 
     // Zoltan_Set_Param(zz, "AUTO_MIGRATE", "FALSE");
 
