@@ -144,7 +144,7 @@ template<class Data> void ZoltanLoadBalancer<Data>::load_balance(std::vector<Dat
 
 template<class Data> std::vector<Data> ZoltanLoadBalancer<Data>::propagate(const std::vector<Data> &data,
                             int *nb_elements_recv, int *nb_elements_sent, double cell_size) {
-    std::vector<Data> r;
+    /*std::vector<Data> r;
     std::vector<std::vector<unsigned long>> i;
 
     std::tie(r,i) = zoltan_exchange_data<Data>(zoltan_lb, data, nb_elements_recv, nb_elements_sent, this->datatype, this->world);// zoltan_exchange_data<Data>(data, neighbors, cell_per_neighbors, neighboring_cells, this->datatype, this->world);
@@ -152,7 +152,10 @@ template<class Data> std::vector<Data> ZoltanLoadBalancer<Data>::propagate(const
     assert(std::equal(i.begin(), i.end(), neighboring_cells.begin(), neighboring_cells.end()));
 
     return r;
-    //return zoltan_exchange_data<Data>(zoltan_lb, data, &r, &s, this->datatype, this->world);
+    return zoltan_exchange_data<Data>(zoltan_lb, data, &r, &s, this->datatype, this->world);
+     */
+    return zoltan_exchange_data<Data>(data, neighbors, cell_per_neighbors, neighboring_cells, this->datatype, this->world);
+
 }
 
 
