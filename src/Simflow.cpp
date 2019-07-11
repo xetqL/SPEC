@@ -3,7 +3,7 @@
 //
 
 #include "Simflow.hpp"
-
+#include <iostream>
 // FLOP simulation
 /*
 void consume_cpu_flops(double& flop_to_consume) {
