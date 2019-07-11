@@ -532,7 +532,6 @@ dummy_erosion_computation3( int step,
 
                 if(my_old_cells[idx_neighbor].slope >= 0.0 &&
                     p < thetas[j] * my_old_cells[idx_neighbor].erosion_probability) {
-
                     my_cells[idx_neighbor].type   = 1;
                     my_cells[idx_neighbor].weight = 8;
                     new_water_cells.push_back(idx_neighbor);
