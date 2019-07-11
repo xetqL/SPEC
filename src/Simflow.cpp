@@ -530,7 +530,11 @@ dummy_erosion_computation3( int step,
                 if(idx_neighbor >= my_old_cells.size() || my_cells[idx_neighbor].type) continue;
                 auto p = udist(gen);
 
-                if(my_old_cells[idx_neighbor].slope >= 0.0 && p < thetas[j] * my_old_cells[idx_neighbor].erosion_probability) {
+                if(p < thetas[j] * my_old_cells[idx_neighbor].erosion_probability) {
+                    if(my_old_cells[idx_neighbor].slope >= 0.0) {
+                        std::cout << "Cancelling new rock" << std::endl;
+                        continue;
+                    }
                     my_cells[idx_neighbor].type   = 1;
                     my_cells[idx_neighbor].weight = 8;
                     new_water_cells.push_back(idx_neighbor);
