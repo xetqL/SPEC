@@ -428,8 +428,10 @@ dummy_erosion_computation(int step,
         for (int j = 0; j < 8; ++j) {
             auto idx_neighbor = idx_neighbors[j];
             auto theta = thetas[j];
+
             if(idx_neighbor >= my_old_cells.size()) continue;
             if(my_cells[idx_neighbor].type) continue;
+
             auto erosion_proba = my_old_cells[idx_neighbor].erosion_probability;
             //auto x = cell_to_global_position(msx, msy, idx_neighbor);
             auto p = udist(gen);
@@ -528,11 +530,12 @@ dummy_erosion_computation3( int step,
                 if(idx_neighbor >= my_old_cells.size() || my_cells[idx_neighbor].type) continue;
                 auto p = udist(gen);
 
-                if(p < thetas[j] * my_old_cells[idx_neighbor].erosion_probability) {
+                if(my_old_cells[idx_neighbor].slope >= 0.0 && p < thetas[j] * my_old_cells[idx_neighbor].erosion_probability) {
                     my_cells[idx_neighbor].type   = 1;
                     my_cells[idx_neighbor].weight = 8;
                     new_water_cells.push_back(idx_neighbor);
                     total_weight += my_cells[idx_neighbor].weight;
+                    my_old_cells[idx_neighbor].slope = -1.0;
                 }
             }
 

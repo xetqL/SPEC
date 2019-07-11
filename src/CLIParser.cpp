@@ -12,6 +12,7 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
     unsigned int N;
     bool load_lattice, verbose;
     float alpha;
+    float zthreshold;
     std::string lattice_fname, outputfname;
 
     zz::cfg::ArgParser parser;
@@ -29,6 +30,9 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
     parser.add_opt_value('f', "filename" , lattice_fname, std::string(""), "load this lattice file", "STRING");
     parser.add_opt_value('a', "alpha" , alpha, 0.1f, "set the alpha-value (unloading model)", "FLOAT");
 
+    parser.add_opt_value('z', "zthreshold" , zthreshold, 3.0f, "set the alpha-value (unloading model), default = 3.0", "FLOAT");
+
+
 #ifdef CYCLIC_LOAD_BALANCING
     parser.add_opt_value('I', "interval" , interval, (unsigned int) 0, "load balancing interval (CYCLIC LB)", "INT");
 #endif
@@ -45,6 +49,7 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
     } else {
         SimulationParams p = {xprocs, yprocs, N, MAX_STEP, cell_per_process, interval, seed, load_lattice, verbose, lattice_fname, outputfname};
         p.alpha = alpha;
+        p.zthreshold = zthreshold;
         return {p, false};
    
     }

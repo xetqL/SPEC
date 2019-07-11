@@ -104,12 +104,10 @@ void SimulatedLBM::run(float alpha) {
     auto bbox = this->load_balancer->activate_load_balance(msx, msy, 0, &my_cells, &data_pointers);
 
 #if LB_APPROACH == 1
-    this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), 1.0, alpha));
+    this->load_balancer->set_approach(new ULBA(world, gossip_waterslope_db.get(), params.zthreshold, alpha));
 #endif
 
-
-    std::unique_ptr<WeightUpdater<Cell>> weight_updater(new TypeOnlyWeightUpdater<Cell>(1, [](auto data){return data.erosion_probability > 0.0 && data.type == Cell::ROCK_TYPE;}));
-
+    std::unique_ptr<WeightUpdater<Cell>> weight_updater(new TypeOnlyWeightUpdater<Cell>([](const auto& data){return data.erosion_probability > 0.0 && data.type == Cell::ROCK_TYPE;}));
 
 #ifdef PRODUCE_OUTPUTS
     int inner_type = Cell::ROCK_TYPE;
@@ -174,18 +172,14 @@ void SimulatedLBM::run(float alpha) {
 
 #if LB_APPROACH == 1
             int my_weight_before_update = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
-
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
-
             int my_weight_before_lb = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
 #endif
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
             std::tie(n, my_water_ptr, my_rock_ptr) = create_all_ptr_vector(my_cells);
-
 #if LB_APPROACH == 1
             int my_weight_after = (int) functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0);
             std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
-
 #endif
 
 #ifdef AUTONOMIC_LOAD_BALANCING

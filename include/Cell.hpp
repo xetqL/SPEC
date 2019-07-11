@@ -21,7 +21,7 @@ struct Cell {
     int gid, type; //type = -1:empty, 0:rock, 1:water
     float weight, erosion_probability;
     mutable float fakeInnerData = 1.0f;
-    double slope;
+    mutable double slope = 0.0;
 
     Cell() : gid(0), type(0), weight(ROCK_WEIGHT), erosion_probability(0), slope(1.0) {};
     Cell(int gid, int type, float weight, float erosion_probability)

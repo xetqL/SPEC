@@ -65,10 +65,9 @@ public:
 
 template<class Data>
 class TypeOnlyWeightUpdater : public WeightUpdater<Data> {
-    const int target_cnt;
     const std::function<bool(Data)> predicate;
 public:
-    TypeOnlyWeightUpdater(int target_cnt, std::function<bool(Data)>&& predicate) : target_cnt(target_cnt), predicate(predicate) {}
+    TypeOnlyWeightUpdater(std::function<bool(const Data&)>&& predicate) : predicate(predicate) {}
 
     void update_weight(
             std::vector<Data>* _data, std::vector<unsigned long> potential_targets,
