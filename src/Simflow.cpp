@@ -539,7 +539,7 @@ dummy_erosion_computation3( int step,
                 if(idx_neighbor >= my_old_cells.size() || my_cells[idx_neighbor].type) continue;
 
                 if(id_neighbors[j] != my_cells[idx_neighbor].gid){
-                    printf("Neighbor of %d, %d not equal to %d", cell->gid, id_neighbors[j], my_cells[idx_neighbor].gid);
+                    printf("Neighbor %d of %d, %d not equal to %d", j, cell->gid, id_neighbors[j], my_cells[idx_neighbor].gid);
                     abort();
                 }
                 auto p = udist(gen);
