@@ -65,7 +65,7 @@ void init_populate_data_pointers(int msx, int msy,
                                  const std::tuple<int, int, int, int>& bbox) {
     std::vector<size_t>& data_pointers = *(_data_pointers);
     int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
-    int my_box = (x2-x1) * (y2-y1);
+    int my_box = (x2-x1+1) * (y2-y1+1);
     auto mine_size   = my_cells.size();
 
     data_pointers.resize(my_box);
