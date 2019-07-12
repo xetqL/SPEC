@@ -456,6 +456,7 @@ dummy_erosion_computation(int step,
     return std::make_tuple(my_cells, new_water_cells, total_weight);
 }
 
+#include <io.hpp>
 std::tuple<std::vector<Cell>, std::vector<unsigned long>, double>
 dummy_erosion_computation3( int step,
                             int msx, int msy,
