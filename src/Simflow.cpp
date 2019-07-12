@@ -508,7 +508,7 @@ dummy_erosion_computation3( int step,
 
             if(i < my_water_cell_count){
                 if(my_cells[data_pointers[lid]].gid != cell->gid){
-                    printf("Gid %d not equal to %d", cell->gid, my_cells[data_pointers[lid]].gid);
+                    std::cout << __pos << " ";printf("Gid %d not equal to %d", cell->gid, my_cells[data_pointers[lid]].gid);
                     abort();
                 }
             } else if(remote_cells[data_pointers[lid]].gid != cell->gid){
