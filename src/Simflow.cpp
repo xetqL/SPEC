@@ -506,7 +506,7 @@ dummy_erosion_computation3( int step,
             auto lid = position_to_cell(x2-x1, y2-y1, __pos);
 
             memset(idx_neighbors, (size_t) my_old_cells.size() + 1, 8);
-            memset(id_neighbors,  (size_t) my_old_cells.size() + 1, 8);
+            memset(id_neighbors,  (size_t) msx*msy+1, 8);
 
             if(lid+1 < total_box) {
                 idx_neighbors[0] = (data_pointers[lid+1]);
@@ -514,23 +514,23 @@ dummy_erosion_computation3( int step,
             }
             if((lid-(x2-x1))+1 >= 0) {
                 idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
-                id_neighbors[1] = ((cell->gid)-(x2-x1))+1;
+                id_neighbors[1] = ((cell->gid)-(msx))+1;
             }
             if(lid-(x2-x1) >= 0) {
                 idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
-                id_neighbors[2] = (cell->gid)-(x2-x1);
+                id_neighbors[2] = (cell->gid)-(msx);
             }
             if(lid+(x2-x1) < total_box) {
                 idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
-                id_neighbors[6] = (cell->gid)+(x2-x1);
+                id_neighbors[6] = (cell->gid)+(msx);
             }
             if(lid+(x2-x1)+1 < total_box) {
                 idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
-                id_neighbors[7] = (cell->gid)+(x2-x1)+1;
+                id_neighbors[7] = (cell->gid)+(msx)+1;
             }
             if(lid+(x2-x1)-1 < total_box) {
                 idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
-                id_neighbors[5] = (cell->gid)+(x2-x1)-1;
+                id_neighbors[5] = (cell->gid)+(msx)-1;
             }
 
             for (int j = 0; j < 8; ++j) {
