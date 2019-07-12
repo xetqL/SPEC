@@ -14,7 +14,7 @@ void add_remote_data_to_arr(int msx, int msy,
     auto remote_size = remote_cells.size();
     for (size_t i = 0; i < remote_size; ++i) {
         const Cell& cell = remote_cells[i];
-        auto lid = position_to_cell(x2 - x1 + 1, y2 - y1 + 1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        auto lid = position_to_cell(x2 - x1, y2 - y1, cell_to_local_position(msx, msy, bbox, cell.gid));
         assert(lid < data_pointers->size());
         data_pointers->operator[](lid) = i+mine_size;
     }
@@ -30,7 +30,7 @@ void add_remote_data_to_arr(int msx, int msy,
     auto remote_size = remote_cells.size();
     for (size_t i = 0; i < remote_size; ++i) {
         const Cell& cell = remote_cells[i];
-        auto lid = position_to_cell(x2 - x1 + 1, y2 - y1 + 1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        auto lid = position_to_cell(x2 - x1, y2 - y1, cell_to_local_position(msx, msy, bbox, cell.gid));
         //assert(lid < data_pointers.size());
         data_pointers[lid] = i+mine_size;
     }
