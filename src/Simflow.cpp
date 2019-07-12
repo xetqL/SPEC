@@ -505,10 +505,15 @@ dummy_erosion_computation3( int step,
             auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
             auto lid = position_to_cell(x2-x1, y2-y1, __pos);
 
-            if(i < my_water_cell_count)
-                assert(my_cells[data_pointers[lid]].gid == cell->gid);
-            else
-                assert(remote_cells[data_pointers[lid]].gid == cell->gid);
+            if(i < my_water_cell_count){
+                if(my_cells[data_pointers[lid]].gid != cell->gid){
+                    printf("Gid %d not equal to %d", cell->gid, my_cells[data_pointers[lid]].gid);
+                    abort();
+                }
+            } else if(remote_cells[data_pointers[lid]].gid != cell->gid){
+                printf("Gid %d not equal to %d", cell->gid, remote_cells[data_pointers[lid]].gid);
+                abort();
+            }
 
             memset(idx_neighbors, (size_t) my_old_cells.size() + 1, 8);
             memset(id_neighbors,  (size_t) msx*msy+1, 8);
