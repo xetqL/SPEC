@@ -8,6 +8,7 @@
 
 #include <ostream>
 #include <vector>
+#include <deque>
 
 template<class A>
 std::ostream &operator<<(std::ostream &os, const std::vector<A> &data) {
