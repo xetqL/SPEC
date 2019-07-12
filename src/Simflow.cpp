@@ -503,7 +503,7 @@ dummy_erosion_computation3( int step,
 
         for(unsigned int w = 0; w < cell->weight; ++w) {
             auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
-            auto lid = position_to_cell(x2-x1+1, y2-y1+1, __pos);
+            auto lid = position_to_cell(x2-x1, y2-y1, __pos);
 
             memset(idx_neighbors, (size_t) my_old_cells.size() + 1, 8);
             memset(id_neighbors,  (size_t) msx*msy+1, 8);
@@ -539,7 +539,7 @@ dummy_erosion_computation3( int step,
                 if(idx_neighbor >= my_old_cells.size() || my_cells[idx_neighbor].type) continue;
 
                 if(id_neighbors[j] != my_cells[idx_neighbor].gid){
-                    printf("%d not equal to %d", id_neighbors[j], my_cells[idx_neighbor].gid);
+                    printf("Neighbor of %d, %d not equal to %d", cell->gid, id_neighbors[j], my_cells[idx_neighbor].gid);
                     abort();
                 }
                 auto p = udist(gen);
