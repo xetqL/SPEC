@@ -477,7 +477,9 @@ dummy_erosion_computation3( int step,
     const size_t all_water_count     = my_water_cell_count + remote_water_count;
 
     std::vector<size_t>     _idx_neighbors(8, -1);
+    std::vector<size_t>      _id_neighbors(8, -1);
     size_t* idx_neighbors = _idx_neighbors.data();
+    size_t* id_neighbors  = _id_neighbors.data();
 
     std::vector<float>  _thetas = {0.0f, 0.0f, 0.0f, -1.0f, -1.0f,  1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
     // std::vector<int>    _directions = {1, -(x2-x1)+1, -(x2-x1), (x2-x1), +(x2-x1)+1,  1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
@@ -504,30 +506,38 @@ dummy_erosion_computation3( int step,
             auto lid = position_to_cell(x2-x1, y2-y1, __pos);
 
             memset(idx_neighbors, (size_t) my_old_cells.size() + 1, 8);
+            memset(id_neighbors,  (size_t) my_old_cells.size() + 1, 8);
 
             if(lid+1 < total_box) {
                 idx_neighbors[0] = (data_pointers[lid+1]);
+                id_neighbors[0] = cell->gid+1;
             }
             if((lid-(x2-x1))+1 >= 0) {
                 idx_neighbors[1] = (data_pointers[(lid-(x2-x1))+1]);
+                id_neighbors[1] = ((cell->gid)-(x2-x1))+1;
             }
             if(lid-(x2-x1) >= 0) {
                 idx_neighbors[2] = (data_pointers[lid-(x2-x1)]);
+                id_neighbors[2] = (cell->gid)-(x2-x1);
             }
             if(lid+(x2-x1) < total_box) {
                 idx_neighbors[6] = (data_pointers[lid+(x2-x1)]);
+                id_neighbors[6] = (cell->gid)+(x2-x1);
             }
             if(lid+(x2-x1)+1 < total_box) {
                 idx_neighbors[7] = (data_pointers[lid+(x2-x1)+1]);
+                id_neighbors[7] = (cell->gid)+(x2-x1)+1;
             }
             if(lid+(x2-x1)-1 < total_box) {
                 idx_neighbors[5] = (data_pointers[lid+(x2-x1)-1]);
+                id_neighbors[5] = (cell->gid)+(x2-x1)-1;
             }
 
             for (int j = 0; j < 8; ++j) {
                 auto idx_neighbor = idx_neighbors[j];
 
                 if(idx_neighbor >= my_old_cells.size() || my_cells[idx_neighbor].type) continue;
+                assert(id_neighbors[j] == my_cells[idx_neighbor].gid);
                 auto p = udist(gen);
 
                 if(my_old_cells[idx_neighbor].slope >= 0.0 &&
