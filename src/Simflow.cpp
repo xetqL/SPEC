@@ -503,7 +503,7 @@ dummy_erosion_computation3( int step,
 
         for(unsigned int w = 0; w < cell->weight; ++w) {
             auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
-            assert(position_to_cell(msx, msy, std::get<0>(__pos)+std::get<0>(bbox), std::get<1>(__pos)+std::get<3>(bbox)) == cell->gid);
+            assert(position_to_cell(msx, msy, std::get<0>(__pos)+std::get<0>(bbox), std::get<1>(__pos)+std::get<2>(bbox)) == cell->gid);
             auto lid = position_to_cell(x2-x1, y2-y1, __pos);
 
             if(i < my_water_cell_count){
