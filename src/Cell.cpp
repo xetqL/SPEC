@@ -68,7 +68,7 @@ void init_populate_data_pointers(int msx, int msy,
     int my_box = (x2-x1) * (y2-y1);
     auto mine_size   = my_cells.size();
 
-    data_pointers.resize(my_box + 4 * (msx < msy ? msx : msy));
+    data_pointers.resize(my_box);
     std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
     for (size_t i = 0; i < mine_size; ++i) {
         const Cell& cell = my_cells[i];
