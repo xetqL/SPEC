@@ -34,8 +34,10 @@ if __name__ == '__main__':
 
     print("\nAverage step time (std)  {0:.3f} s".format(avg_step_time_std))
     print(  "Average step time (ulba) {0:.3f} s".format(avg_step_time_ulba))
+
     print("\nAverage comp time (std)  {0:.3f} s".format(avg_comp_time_std))
     print(  "Average comp time (ulba) {0:.3f} s".format(avg_comp_time_ulba))
 
-    print("\nPerformance improvement: {0:.3f} %".format(100.*(total_time_std-total_time_ulba)/total_time_std))
+    print("\nPerformance (Overall) improvement: {0:.3f} %".format(100.*(total_time_std-total_time_ulba)/total_time_std))
+    print("\nPerformance (Computation) improvement : {0:.3f} %".format(100.*(avg_comp_time_std-avg_comp_time_ulba)/avg_comp_time_std))
 
