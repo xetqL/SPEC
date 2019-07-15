@@ -466,6 +466,7 @@ dummy_erosion_computation3( int step,
                             const std::vector<unsigned long>& remote_water_ptr,
                             const std::vector<size_t>& data_pointers,
                             const std::tuple<int, int, int, int>& bbox) {
+    double fctime = 0;
     std::vector<Cell> my_cells = my_old_cells;
 
     int x1,x2,y1,y2; std::tie(x1,x2, y1,y2) = bbox;
@@ -543,17 +544,17 @@ dummy_erosion_computation3( int step,
             }
 
             if(i < my_water_cell_count) {
-                // START_TIMING(flowcomp);
+                 START_TIMING(flowcomp);
                 consume_flops(&cell->fakeInnerData, 1);
-                // STOP_TIMING(flowcomp);
-                //fctime += flowcomp;
+                 STOP_TIMING(flowcomp);
+                fctime += flowcomp;
             }
 
         }
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
         /* stop */
     }
-    //std::cout << get_rank() << " Flow computation time " << fctime << " for " << cells_with_refine << std::endl;
+    std::cout << get_rank() << " Flow computation time " << fctime << " for " << cells_with_refine << std::endl;
     return std::make_tuple(my_cells, new_water_cells, total_weight);
 }
 /*
