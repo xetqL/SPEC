@@ -490,6 +490,7 @@ dummy_erosion_computation3( int step,
     std::vector<unsigned long> new_water_cells;
     double total_weight = 0;
     new_water_cells.reserve(10000);
+    START_TIMING(flowcomp);
     for(unsigned int i = 0; i < all_water_count; ++i) {
         const Cell* cell;
 
@@ -544,16 +545,17 @@ dummy_erosion_computation3( int step,
             }
 
             if(i < my_water_cell_count) {
-                 START_TIMING(flowcomp);
+
                 consume_flops(&cell->fakeInnerData, 1);
-                 STOP_TIMING(flowcomp);
-                fctime += flowcomp;
+
             }
 
         }
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
         /* stop */
     }
+    STOP_TIMING(flowcomp);
+    fctime += flowcomp;
     std::cout << get_rank() << " Flow computation time " << fctime << std::endl;
     return std::make_tuple(my_cells, new_water_cells, total_weight);
 }
