@@ -168,18 +168,18 @@ void SimulatedLBM::run(float alpha) {
         bool lb_condition = false;
 #endif
         if(lb_condition) {
+            int my_weight_before_update = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
 
 #if LB_APPROACH == 1
-            //int my_weight_before_update = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
-            //int my_weight_before_lb = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
 #endif
+            int my_weight_before_lb = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
+
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
             std::tie(n, my_water_ptr, my_rock_ptr) = create_all_ptr_vector(my_cells);
-#if LB_APPROACH == 1
-            //int my_weight_after = (int) functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0);
-//            std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
-#endif
+
+            int my_weight_after = (int) functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0);
+            std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
 
 #ifdef AUTONOMIC_LOAD_BALANCING
             double median;
@@ -207,7 +207,6 @@ void SimulatedLBM::run(float alpha) {
         START_TIMING(comp_time);
 
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
-
 
         bbox = update_bounding_box(remote_cells, bbox);
 
@@ -243,10 +242,6 @@ void SimulatedLBM::run(float alpha) {
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
 
-        STOP_TIMING(step_time);
-        CHECKPOINT_TIMING(loop_time, time_since_start);
-        STOP_TIMING(loop_time);
-
 #if LB_APPROACH == 1
         START_TIMING(my_gossip_time);
         gossip_waterslope_db->execute(rank, get_slope<double>(water.begin(), water.end()));
@@ -254,6 +249,7 @@ void SimulatedLBM::run(float alpha) {
         STOP_TIMING(my_gossip_time);
         total_gossip_time += my_gossip_time;
 #endif
+
 
         //update_cells(&my_cells, gossip_waterslope_db.get(rank), [](Cell &c, auto v){c.slope = v;});
 
@@ -264,7 +260,9 @@ void SimulatedLBM::run(float alpha) {
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
+        STOP_TIMING(step_time);
+        CHECKPOINT_TIMING(loop_time, time_since_start);
+        STOP_TIMING(loop_time);
 
         stepTimes.push_back(step_time);
 

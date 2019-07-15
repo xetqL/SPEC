@@ -87,6 +87,7 @@ public:
             float diff_with_share = my_load - share;
             weight_amount = diff_with_share / targets.size();
         }
+
         for(const auto id : targets) {
             Data& cell  = _data->at(id);
             cell.weight = weight_amount;
