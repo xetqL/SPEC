@@ -3,7 +3,7 @@
 //
 #include "Utils.hpp"
 #include "Cell.hpp"
-
+#include <io.hpp>
 void add_remote_data_to_arr(int msx, int msy,
                             std::vector<size_t>* data_pointers,
                             long mine_size,
@@ -11,11 +11,18 @@ void add_remote_data_to_arr(int msx, int msy,
                             const std::tuple<int, int, int, int>& bbox){
     //std::vector<size_t>& data_pointers = *(_data_pointers);
     int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
+
     auto remote_size = remote_cells.size();
+    int bbox_size_x, bbox_size_y; std::tie(bbox_size_x, bbox_size_y) = get_size(bbox);
     for (size_t i = 0; i < remote_size; ++i) {
         const Cell& cell = remote_cells[i];
-        auto lid = position_to_cell(x2 - x1, y2 - y1, cell_to_local_position(msx, msy, bbox, cell.gid));
-        assert(lid < data_pointers->size());
+        auto lpos = cell_to_local_position(msx, msy, bbox, cell.gid);
+        auto lid = position_to_cell(bbox_size_x, bbox_size_y, lpos);
+        //std::cout << get_rank() << " " << lpos << std::endl;
+//        if(lid >= data_pointers->size()) {
+//            std::cout << cell.gid << " "<< bbox << " ; " << lpos << " " << lid << " < " << data_pointers->size() << std::endl;
+//            abort();
+//        }
         data_pointers->operator[](lid) = i+mine_size;
     }
 }
@@ -28,11 +35,13 @@ void add_remote_data_to_arr(int msx, int msy,
     //std::vector<size_t>& data_pointers = *(_data_pointers);
     int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
     auto remote_size = remote_cells.size();
+    int bbox_size_x, bbox_size_y; std::tie(bbox_size_x, bbox_size_y) = get_size(bbox);
     for (size_t i = 0; i < remote_size; ++i) {
         const Cell& cell = remote_cells[i];
-        auto lid = position_to_cell(x2 - x1, y2 - y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        auto lid = position_to_cell(bbox_size_x, bbox_size_y, cell_to_local_position(msx, msy, bbox, cell.gid));
         //assert(lid < data_pointers.size());
         data_pointers[lid] = i+mine_size;
+        assert(remote_cells[data_pointers[lid]-mine_size].gid == cell.gid);
     }
 }
 
@@ -44,15 +53,18 @@ void populate_data_pointers(int msx, int msy,
                             bool create) {
     std::vector<size_t>& data_pointers = *(_data_pointers);
     int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
-    int my_box = (x2-x1) * (y2-y1);
+    int bbox_size_x, bbox_size_y; std::tie(bbox_size_x, bbox_size_y) = get_size(bbox);
+    int my_box = bbox_size_x * bbox_size_y;
+    assert(my_box >= my_cells.size() + remote_cells.size());
     auto mine_size   = my_cells.size();
     if(create) {
         data_pointers.resize(my_box);
         std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
         for (size_t i = 0; i < mine_size; ++i) {
             const Cell& cell = my_cells[i];
-            auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+            auto lid = position_to_cell(bbox_size_x, bbox_size_y, cell_to_local_position(msx, msy, bbox, cell.gid));
             data_pointers[lid] = i;
+            assert(my_cells[data_pointers[lid]].gid == cell.gid);
         }
     }
 
@@ -65,15 +77,18 @@ void init_populate_data_pointers(int msx, int msy,
                                  const std::tuple<int, int, int, int>& bbox) {
     std::vector<size_t>& data_pointers = *(_data_pointers);
     int x1, x2, y1, y2; std::tie(x1, x2, y1, y2) = bbox;
-    int my_box = (x2-x1+1) * (y2-y1+1);
+    int bbox_size_x, bbox_size_y; std::tie(bbox_size_x, bbox_size_y) = get_size(bbox);
+
+    int my_box = (bbox_size_x) * (bbox_size_y);
     auto mine_size   = my_cells.size();
 
     data_pointers.resize(my_box);
     std::fill(data_pointers.begin(), data_pointers.end(), msx * msy + 1);
     for (size_t i = 0; i < mine_size; ++i) {
         const Cell& cell = my_cells[i];
-        auto lid = position_to_cell(x2-x1, y2-y1, cell_to_local_position(msx, msy, bbox, cell.gid));
+        auto lid = position_to_cell(bbox_size_x, bbox_size_y, cell_to_local_position(msx, msy, bbox, cell.gid));
         data_pointers[lid] = i;
+        assert(my_cells[data_pointers[lid]].gid == cell.gid);
     }
 }
 

@@ -86,14 +86,13 @@ std::tuple<int, int, int, int> get_bounding_box(
         minx = std::min(x, minx); miny = std::min(y, miny);
         maxx = std::max(x, maxx); maxy = std::max(y, maxy);
     }
-
-    maxx++;maxy++;
     assert(minx >= 0);
     assert(miny >= 0);
-    assert((unsigned int)  (maxx-minx) * (maxy-miny) >= (my_data.size() + remote_data.size()));
+    assert((unsigned int)  (maxx-minx+1) * (maxy-miny+1) >= (my_data.size() + remote_data.size()));
     return std::make_tuple(minx, maxx, miny, maxy);
 }
 
+std::tuple<int, int> get_size(std::tuple<int, int, int, int> bbox);
 
 template<class A>
 std::tuple<int, int, int, int> get_bounding_box(const std::vector<A>& my_data) {
@@ -114,6 +113,23 @@ std::tuple<int, int, int, int> get_bounding_box(const std::vector<A>& my_data) {
 }
 
 template<class A>
+std::tuple<int, int, int, int> get_bounding_box(int msx, int msy, const std::vector<A>& my_data) {
+    int x, y, minx= std::numeric_limits<int>::max(), miny = std::numeric_limits<int>::max(), maxx=-1, maxy=-1;
+
+    // create boundaries from vehicles
+    for(const auto& v : my_data) {
+        std::tie(x, y) = v.get_position_as_pair();
+        minx = std::min(x, minx); miny = std::min(y, miny);
+        maxx = std::max(x, maxx); maxy = std::max(y, maxy);
+    }
+
+    assert(minx >= 0);
+    assert(miny >= 0);
+    assert((unsigned int)  (maxx-minx+1) * (maxy-miny+1) >= (my_data.size()));
+    return std::make_tuple(std::max(0, minx-1), std::min(msx-1, maxx+1), std::max(0, miny-1), std::min(msy-1, maxy+1));
+}
+
+template<class A>
 std::tuple<int, int, int, int> update_bounding_box(const std::vector<A>& my_data, const std::tuple<int, int, int, int>& bbox) {
     int x1,y1,x2,y2,x,y;
     std::tie(x1, x2, y1, y2) = bbox;
@@ -128,6 +144,7 @@ std::tuple<int, int, int, int> update_bounding_box(const std::vector<A>& my_data
     //return std::make_tuple(std::max(0, minx), std::min(msx, maxx+2), std::max(0, miny-1), std::min(msy, maxy+1));
     return std::make_tuple(x1, x2, y1, y2);
 }
+
 /*
 template<class A>
 std::tuple<int, int, int, int> get_bounding_box(const std::vector<A>& my_data) {

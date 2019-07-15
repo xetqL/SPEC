@@ -73,24 +73,24 @@ private:
             auto pos_in_double = data->at(data_id).template get_position_as_array<double>();
             int numparts;
             Zoltan_LB_Box_PP_Assign(zoltan_lb,
-                                    pos_in_double.at(0) - 1,
-                                    pos_in_double.at(1) - 1,
-                                    pos_in_double.size() == 3 ? pos_in_double.at(2) - 1 : 0.0,
-                                    pos_in_double.at(0) + 1,
-                                    pos_in_double.at(1) + 1,
-                                    pos_in_double.size() == 3 ? pos_in_double.at(2) + 1 : 0.0,
+                                    pos_in_double.at(0) - 0.7,
+                                    pos_in_double.at(1) - 0.7,
+                                    pos_in_double.size() == 3 ? pos_in_double.at(2) - 0.7 : 0.0,
+                                    pos_in_double.at(0) + 0.7,
+                                    pos_in_double.at(1) + 0.7,
+                                    pos_in_double.size() == 3 ? pos_in_double.at(2) + 0.7 : 0.0,
                                     &PEs.front(), &num_found, parts.data(), &numparts);
 
             for (int PE_idx = 0; PE_idx < num_found; PE_idx++) {
                 int PE = PEs[PE_idx];
-                if (PE >= 0 && PE != caller_rank) {
+                if (PE >= 0 && PE != get_rank()) {
                     export_gids.push_back(data->at(data_id).gid);
                     export_lids.push_back(data_id);
                     export_procs.push_back(PE);
+                    //std::cout << get_rank() << " " << data->at(data_id) << std::endl;
                     //get the value and copy it into the "to migrate" vector
                     data_to_migrate.at(PE).push_back((data_id));
                     num_known++;
-
                 }
             }
             data_id++; //if the element must stay with me then check the next one
@@ -127,7 +127,7 @@ private:
                 if(num_import_from_procs[i] > 0) import_from_procs.push_back(i);
             }
         }
-
+        MPI_Barrier(MPI_COMM_WORLD);
         return std::make_tuple(import_from_procs, data_to_migrate, num_import_from_procs);
     }
 };
@@ -140,9 +140,7 @@ template<class Data> void ZoltanLoadBalancer<Data>::load_balance(std::vector<Dat
 
 template<class Data> std::vector<Data> ZoltanLoadBalancer<Data>::propagate(const std::vector<Data> &data,
                             int *nb_elements_recv, int *nb_elements_sent, double cell_size) {
-
-    //return zoltan_exchange_data<Data>(data, neighbors, cell_per_neighbors, neighboring_cells, this->datatype, this->world);
-    return zoltan_exchange_data<Data>(zoltan_lb, data, nb_elements_recv, nb_elements_sent, this->datatype, this->world);
+    return zoltan_exchange_data<Data>(data, neighbors, cell_per_neighbors, neighboring_cells, this->datatype, this->world);
 }
 
 

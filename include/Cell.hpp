@@ -10,7 +10,7 @@
 #include <vector>
 #include "Communication.hpp"
 #include "Utils.hpp"
-
+#include <io.hpp>
 #define ROCK_WEIGHT 0.0
 #define WATER_WEIGHT 1.0
 
@@ -93,7 +93,7 @@ struct Cell {
     }
 
     friend std::ostream &operator<<(std::ostream &os, const Cell &cell) {
-        os << "gid: " << cell.gid << " type: " << cell.type << " weight: " << cell.weight << " erosion_probability: "
+        os << "gid: " << cell.gid << " position: " << cell_to_global_position(Cell::get_msx(), Cell::get_msy(), cell.gid) << " type: " << cell.type << " weight: " << cell.weight << " erosion_probability: "
            << cell.erosion_probability;
         return os;
     }

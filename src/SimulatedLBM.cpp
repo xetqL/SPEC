@@ -171,15 +171,15 @@ void SimulatedLBM::run(float alpha) {
         if(lb_condition) {
 
 #if LB_APPROACH == 1
-            int my_weight_before_update = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
+            //int my_weight_before_update = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
             weight_updater->update_weight(&my_cells, my_rock_ptr, load_balancer->approach.get(), workdb->mean(), workdb->get(rank));
-            int my_weight_before_lb = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
+            //int my_weight_before_lb = (int) functional::reduce(my_cells.begin(), my_cells.end(), [](int a, Cell& b){return a + b.weight;}, 0.0);
 #endif
             bbox = this->load_balancer->activate_load_balance(msx, msy, step, &my_cells, &data_pointers);
             std::tie(n, my_water_ptr, my_rock_ptr) = create_all_ptr_vector(my_cells);
 #if LB_APPROACH == 1
-            int my_weight_after = (int) functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0);
-            std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
+            //int my_weight_after = (int) functional::reduce(my_water_ptr.begin(), my_water_ptr.end(), [&my_cells](int a, unsigned int b){return a + my_cells[b].weight;}, 0.0);
+//            std::cout << rank << " " << my_weight_before_update << " -> " << my_weight_before_lb << " -> " << my_weight_after << std::endl;
 #endif
 
 #ifdef AUTONOMIC_LOAD_BALANCING
@@ -209,7 +209,6 @@ void SimulatedLBM::run(float alpha) {
 
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
 
-        data_pointers.resize(my_cells.size() + remote_cells.size());
 
         bbox = update_bounding_box(remote_cells, bbox);
 
@@ -219,13 +218,6 @@ void SimulatedLBM::run(float alpha) {
 
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
-        std::sort(new_water_ptr.begin(), new_water_ptr.end());
-
-        auto last = std::unique(new_water_ptr.begin(), new_water_ptr.end());
-
-        new_water_ptr.erase(last, new_water_ptr.end());
-
-        std::cout << "WEIGHT_NEW_PTR> " << rank << " " << add_weight << " " << new_water_ptr.size() << std::endl;
 
         std::vector<unsigned long> diff;
         std::set_difference(my_rock_ptr.begin(), my_rock_ptr.end(), new_water_ptr.begin(), new_water_ptr.end(), std::back_inserter(diff));
