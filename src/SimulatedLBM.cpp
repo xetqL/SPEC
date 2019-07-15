@@ -94,7 +94,7 @@ void SimulatedLBM::run(float alpha) {
 
     bottom = y_proc_idx * cell_in_my_rows;
     top    = (y_proc_idx+1) * cell_in_my_rows;
-    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? 0.6f : 0.00f, bottom, top);
+    generate_lattice_rocks(1, msx, msy, &my_cells, i_am_loading_proc ? params.strong_erosion_probability: 0.00f, bottom, top);
 
     int recv, sent;
     std::vector<double> lb_costs;
@@ -217,7 +217,6 @@ void SimulatedLBM::run(float alpha) {
 
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
-
         std::vector<unsigned long> diff;
         std::set_difference(my_rock_ptr.begin(), my_rock_ptr.end(), new_water_ptr.begin(), new_water_ptr.end(), std::back_inserter(diff));
         my_rock_ptr.swap(diff);
@@ -244,6 +243,10 @@ void SimulatedLBM::run(float alpha) {
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
 
+        PAR_STOP_TIMING(step_time, world);
+        CHECKPOINT_TIMING(loop_time, time_since_start);
+        STOP_TIMING(loop_time);
+
 #if LB_APPROACH == 1
         START_TIMING(my_gossip_time);
         gossip_waterslope_db->execute(rank, get_slope<double>(water.begin(), water.end()));
@@ -261,9 +264,7 @@ void SimulatedLBM::run(float alpha) {
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        PAR_STOP_TIMING(step_time, world);
-        CHECKPOINT_TIMING(loop_time, time_since_start);
-        STOP_TIMING(loop_time);
+
 
         stepTimes.push_back(step_time);
 

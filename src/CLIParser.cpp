@@ -13,6 +13,7 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
     bool load_lattice, verbose;
     float alpha;
     float zthreshold;
+    float erosion;
     std::string lattice_fname, outputfname;
 
     zz::cfg::ArgParser parser;
@@ -30,7 +31,8 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
     parser.add_opt_value('f', "filename" , lattice_fname, std::string(""), "load this lattice file", "STRING");
     parser.add_opt_value('a', "alpha" , alpha, 0.1f, "set the alpha-value (unloading model)", "FLOAT");
 
-    parser.add_opt_value('z', "zthreshold" , zthreshold, 3.0f, "set the alpha-value (unloading model), default = 3.0", "FLOAT");
+    parser.add_opt_value('z', "zthreshold" , zthreshold, 3.0f, "z-score threshold", "FLOAT");
+    parser.add_opt_value('e', "erosion" , erosion, 0.4f, "erosion probability", "FLOAT");
 
 
 #ifdef CYCLIC_LOAD_BALANCING
@@ -50,6 +52,7 @@ std::pair<SimulationParams, bool>  parse_cli(int argc, char** argv) {
         SimulationParams p = {xprocs, yprocs, N, MAX_STEP, cell_per_process, interval, seed, load_lattice, verbose, lattice_fname, outputfname};
         p.alpha = alpha;
         p.zthreshold = zthreshold;
+        p.strong_erosion_probability = erosion;
         return {p, false};
    
     }

@@ -560,7 +560,6 @@ private:
         std::vector<int> destinations;
         int destination;
         for(int i = 0; i < number_of_message; ++i) {
-
             // search for a target =/= me
             do { destination = rand() % worldsize; } while(destination == my_rank);
             snd_entries[i].assign(pe_load_data.begin(), pe_load_data.end() );
@@ -578,8 +577,6 @@ private:
     }
 
     void gossip_update(Index idx, StoredDataType my_load, EntryUpdateStrategy &strategy) {
-        assert(idx < database_size);
-        assert(idx >= 0);
         DatabaseEntry mine = {idx, 0, my_load};
         for (DatabaseEntry &entry : pe_load_data) entry = strategy(entry, mine);
     }

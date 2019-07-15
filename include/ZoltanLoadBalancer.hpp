@@ -127,7 +127,6 @@ private:
                 if(num_import_from_procs[i] > 0) import_from_procs.push_back(i);
             }
         }
-        MPI_Barrier(MPI_COMM_WORLD);
         return std::make_tuple(import_from_procs, data_to_migrate, num_import_from_procs);
     }
 };

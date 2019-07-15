@@ -20,7 +20,9 @@ struct SimulationParams {
     bool verbose      = false;
     float alpha       = 0.0;
     float zthreshold  = 0.0;
+    float strong_erosion_probability = 0.0;
     std::string filename, outputfname;
+
 
     SimulationParams() {}
 
