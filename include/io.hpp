@@ -39,6 +39,7 @@ std::ostream &operator<<(std::ostream &os, const std::deque<A> &data) {
     os << data.at(sz-1);
     return os;
 }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 static std::ostream &operator<<(std::ostream &os, const std::tuple<int, int, int , int>& bbox) {
