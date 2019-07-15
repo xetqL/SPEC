@@ -541,14 +541,14 @@ dummy_erosion_computation3( int step,
                     my_old_cells[idx_neighbor].slope = -1.0;
                 }
             }
-/*
+
             if(i < my_water_cell_count) {
                 // START_TIMING(flowcomp);
-                consume_flops(&cell->fakeInnerData, 1);    
+                consume_flops(&cell->fakeInnerData, 1);
                 // STOP_TIMING(flowcomp);
                 //fctime += flowcomp;
             }
-*/
+
         }
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
         /* stop */
