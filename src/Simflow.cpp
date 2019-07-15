@@ -544,7 +544,7 @@ dummy_erosion_computation3( int step,
 
             if(i < my_water_cell_count) {
                 // START_TIMING(flowcomp);
-                consume_flops(&cell->fakeInnerData, 2);
+                consume_flops(&cell->fakeInnerData, 1);
                 // STOP_TIMING(flowcomp);
                 //fctime += flowcomp;
             }

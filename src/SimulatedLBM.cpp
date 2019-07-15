@@ -158,7 +158,7 @@ void SimulatedLBM::run(float alpha) {
     PAR_START_TIMING(loop_time, world);
     for(unsigned int step = 0; step < MAX_STEP; ++step) {
         if(i_am_foreman) steplogger->info() << "Beginning step "<< step;
-        PAR_START_TIMING(step_time, world);
+        START_TIMING(step_time);
 
 #ifdef AUTONOMIC_LOAD_BALANCING
         bool lb_condition = /*this->load_balancer->get_last_call() + ncall <= step ||*/ degradation_since_last_lb > this->load_balancer->get_average_cost();
@@ -243,7 +243,7 @@ void SimulatedLBM::run(float alpha) {
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
 
-        PAR_STOP_TIMING(step_time, world);
+        STOP_TIMING(step_time);
         CHECKPOINT_TIMING(loop_time, time_since_start);
         STOP_TIMING(loop_time);
 
