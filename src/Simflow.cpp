@@ -541,13 +541,14 @@ dummy_erosion_computation3( int step,
                     my_old_cells[idx_neighbor].slope = -1.0;
                 }
             }
-
+/*
             if(i < my_water_cell_count) {
                 // START_TIMING(flowcomp);
                 consume_flops(&cell->fakeInnerData, 1);
                 // STOP_TIMING(flowcomp);
                 //fctime += flowcomp;
             }
+*/
         }
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
         /* stop */
@@ -569,9 +570,9 @@ void compute_fluid(float total_cells) {
     double total_flops = total_cells * flops;
     consume_cpu_flops(total_flops);
 }
-
+*/
 // based on CPU_TIME for 145 flops
 void compute_fluid_time(long total_cells) {
     int64_t to_wait = 150 * total_cells;
     std::this_thread::sleep_for(std::chrono::nanoseconds(to_wait));
-} */
+}

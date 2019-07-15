@@ -214,6 +214,8 @@ void SimulatedLBM::run(float alpha) {
 
         add_remote_data_to_arr(msx, msy, &data_pointers, my_cells.size(), remote_cells, bbox);
 
+        compute_fluid_time(n);
+
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
         std::vector<unsigned long> diff;
