@@ -466,9 +466,6 @@ dummy_erosion_computation3( int step,
                             const std::vector<unsigned long>& remote_water_ptr,
                             const std::vector<size_t>& data_pointers,
                             const std::tuple<int, int, int, int>& bbox) {
-    double boundarytimings = 0.0;
-    double fctime = 0.0;
-
     std::vector<Cell> my_cells = my_old_cells;
 
     int x1,x2,y1,y2; std::tie(x1,x2, y1,y2) = bbox;
@@ -484,7 +481,6 @@ dummy_erosion_computation3( int step,
     std::vector<size_t>     _idx_neighbors(8, -1);
     std::vector<size_t>      _id_neighbors(8, -1);
     size_t* idx_neighbors = _idx_neighbors.data();
-    size_t* id_neighbors  = _id_neighbors.data();
 
     std::vector<float>  _thetas = {0.0f, 0.0f, 0.0f, -1.0f, -1.0f,  1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
     // std::vector<int>    _directions = {1, -(x2-x1)+1, -(x2-x1), (x2-x1), +(x2-x1)+1,  1.0f/1.4142135f, 1.0f, 1.0f/1.4142135f};
@@ -508,55 +504,31 @@ dummy_erosion_computation3( int step,
             auto __pos = cell_to_local_position(msx, msy, bbox, cell->gid);
             auto lid = position_to_cell(bbox_size_x, bbox_size_y, __pos);
 
-//            if(i < my_water_cell_count){
-//                if(my_cells[data_pointers[lid]].gid != cell->gid){
-//                    std::cout << __pos << " ";printf("Gid %d with lid %d not equal to %d", cell->gid, lid, my_cells[data_pointers[lid]].gid);
-//                    std::cout <<std::endl;
-//                    abort();
-//                }
-//            } else if(remote_cells[data_pointers[lid]-my_cells.size()].gid != cell->gid){
-//                std::cout << __pos << " ";printf("remote Gid %d with lid %d not equal to %d", cell->gid, lid, remote_cells[data_pointers[lid]-my_cells.size()].gid);
-//                std::cout <<std::endl;
-//                abort();
-//            }
-
             memset(idx_neighbors, (size_t) my_old_cells.size() + 1, 8);
-            memset(id_neighbors,  (size_t) msx*msy+1, 8);
 
             if(lid+1 < total_box) {
                 idx_neighbors[0] = (data_pointers[lid+1]);
-                id_neighbors[0] = cell->gid+1;
             }
             if((lid-(bbox_size_x))+1 >= 0) {
                 idx_neighbors[1] = (data_pointers[(lid-(bbox_size_x))+1]);
-                id_neighbors[1] = ((cell->gid)-(msx))+1;
             }
             if(lid-(bbox_size_x) >= 0) {
                 idx_neighbors[2] = (data_pointers[lid-(bbox_size_x)]);
-                id_neighbors[2] = (cell->gid)-(msx);
             }
             if(lid+(bbox_size_x) < total_box) {
                 idx_neighbors[6] = (data_pointers[lid+(bbox_size_x)]);
-                id_neighbors[6] = (cell->gid)+(msx);
             }
             if(lid+(bbox_size_x)+1 < total_box) {
                 idx_neighbors[7] = (data_pointers[lid+(bbox_size_x)+1]);
-                id_neighbors[7] = (cell->gid)+(msx)+1;
             }
             if(lid+(bbox_size_x)-1 < total_box) {
                 idx_neighbors[5] = (data_pointers[lid+(bbox_size_x)-1]);
-                id_neighbors[5] = (cell->gid)+(msx)-1;
             }
 
             for (int j = 0; j < 8; ++j) {
                 auto idx_neighbor = idx_neighbors[j];
 
                 if(idx_neighbor >= my_old_cells.size() || my_cells[idx_neighbor].type) continue;
-
-                if(id_neighbors[j] != my_cells[idx_neighbor].gid){
-                    printf("Neighbor %d of %d, %d not equal to %d", j, cell->gid, id_neighbors[j], my_cells[idx_neighbor].gid);
-                    abort();
-                }
 
                 auto p = udist(gen);
 
@@ -572,7 +544,7 @@ dummy_erosion_computation3( int step,
 
             if(i < my_water_cell_count) {
                 // START_TIMING(flowcomp);
-                consume_flops(&cell->fakeInnerData, 1);
+                consume_flops(&cell->fakeInnerData, 2);
                 // STOP_TIMING(flowcomp);
                 //fctime += flowcomp;
             }
