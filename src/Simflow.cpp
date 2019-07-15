@@ -554,7 +554,7 @@ dummy_erosion_computation3( int step,
         /*DO NOT OPTIMIZE; SIMULATE COMPUTATION OF LBM FLUID WITH BGK D2Q9*/
         /* stop */
     }
-    std::cout << get_rank() << " Flow computation time " << fctime << " for " << cells_with_refine << std::endl;
+    std::cout << get_rank() << " Flow computation time " << fctime << std::endl;
     return std::make_tuple(my_cells, new_water_cells, total_weight);
 }
 /*
