@@ -204,7 +204,6 @@ void SimulatedLBM::run(float alpha) {
             deltaWorks.clear();
         }
 
-        START_TIMING(comp_time);
 
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
 
@@ -214,9 +213,12 @@ void SimulatedLBM::run(float alpha) {
 
         add_remote_data_to_arr(msx, msy, &data_pointers, my_cells.size(), remote_cells, bbox);
 
-        compute_fluid_time(n);
 
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
+
+
+        START_TIMING(comp_time);
+        compute_fluid_time(n);
 
         std::vector<unsigned long> diff;
         std::set_difference(my_rock_ptr.begin(), my_rock_ptr.end(), new_water_ptr.begin(), new_water_ptr.end(), std::back_inserter(diff));
