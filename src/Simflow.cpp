@@ -556,7 +556,7 @@ dummy_erosion_computation3( int step,
     //std::cout << get_rank() << " Flow computation time " << fctime << " for " << cells_with_refine << std::endl;
     return std::make_tuple(my_cells, new_water_cells, total_weight);
 }
-/*
+/*22
 void compute_fluid(const std::vector<Cell>& my_old_cells) {
     double total_cells = 0.0;
     for(const auto& cell : my_old_cells) {

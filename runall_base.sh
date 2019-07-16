@@ -3,11 +3,12 @@ set -o xtrace
 partition=$1
 time="0-00:15:00"
 shift
+seed=$RANDOM
 for P in "$@"
 do
 
-sbatch --constraint=E5-2630V4 -p $partition --output N?_ULBA_"$P"_%j.out -n $P -c 1 -J SPEC_ULBA -t $time spec.slurm bin/SPEC_ULBA $P 1 1000 450 12 ? 0.2
+sbatch --constraint=E5-2630V4 -p $partition --output N?_ULBA_"$P"_%j.out -n $P -c 1 -J SPEC_ULBA -t $time spec.slurm bin/SPEC_ULBA $P 1 1000 450 $seed ? 0.2
 
-sbatch --constraint=E5-2630V4 -p $partition --output N?_STD_"$P"_%j.out -n $P -c 1 -J SPEC_STD -t $time spec.slurm bin/SPEC_STD $P 1 1000 450 12 ? 0.2
+sbatch --constraint=E5-2630V4 -p $partition --output N?_STD_"$P"_%j.out -n $P -c 1 -J SPEC_STD -t $time spec.slurm bin/SPEC_STD $P 1 1000 450 $seed ? 0.2
 
 done 
