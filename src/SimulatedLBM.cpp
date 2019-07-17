@@ -216,7 +216,6 @@ void SimulatedLBM::run(float alpha) {
 
         std::tie(my_cells, new_water_ptr, add_weight) = dummy_erosion_computation3(step, msx, msy, my_cells, my_water_ptr, remote_cells, remote_water_ptr, data_pointers, bbox);
 
-
         std::vector<unsigned long> diff;
         std::set_difference(my_rock_ptr.begin(), my_rock_ptr.end(), new_water_ptr.begin(), new_water_ptr.end(), std::back_inserter(diff));
         my_rock_ptr.swap(diff);
