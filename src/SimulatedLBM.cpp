@@ -243,9 +243,6 @@ void SimulatedLBM::run(float alpha) {
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
 
-        STOP_TIMING(step_time);
-        CHECKPOINT_TIMING(loop_time, time_since_start);
-        STOP_TIMING(loop_time);
 
 #if LB_APPROACH == 1
         START_TIMING(my_gossip_time);
@@ -262,6 +259,10 @@ void SimulatedLBM::run(float alpha) {
         }
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        STOP_TIMING(step_time);
+        CHECKPOINT_TIMING(loop_time, time_since_start);
+        STOP_TIMING(loop_time);
 
         std::vector<double> exch_timings(worldsize), slopes(worldsize);
         std::vector<int> tloads(worldsize);
