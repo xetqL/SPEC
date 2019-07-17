@@ -203,6 +203,7 @@ void SimulatedLBM::run(float alpha) {
             water.push_back(n);
             deltaWorks.clear();
         }
+
         START_TIMING(comp_time);
 
         auto remote_cells = this->load_balancer->propagate(my_cells, &recv, &sent, 1.0);
@@ -260,11 +261,10 @@ void SimulatedLBM::run(float alpha) {
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
         STOP_TIMING(step_time);
         CHECKPOINT_TIMING(loop_time, time_since_start);
         STOP_TIMING(loop_time);
-
-        stepTimes.push_back(step_time);
 
         std::vector<double> exch_timings(worldsize), slopes(worldsize);
         std::vector<int> tloads(worldsize);
@@ -275,6 +275,9 @@ void SimulatedLBM::run(float alpha) {
         MPI_Gather(&my_workload,  1, MPI_FLOAT,  &all_the_workloads.front(), 1, MPI_FLOAT,  FOREMAN, world);
         MPI_Gather(&my_comp_time, 1, MPI_DOUBLE, &timings.front(),           1, MPI_DOUBLE, FOREMAN, world);
 
+        MPI_Allreduce(MPI_IN_PLACE, &step_time, 1, MPI_DOUBLE,  MPI_MAX, world);
+
+        stepTimes.push_back(step_time);
         if(i_am_foreman) {
             auto total_slope = get_slope<double>(window_step_time.data_container);
             steplogger->info("degradation since last LB ") << degradation_since_last_lb << ", avg_lb_cost " << this->load_balancer->get_average_cost() << ", total slope: " << total_slope;
