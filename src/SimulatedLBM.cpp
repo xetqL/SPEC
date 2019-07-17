@@ -243,6 +243,10 @@ void SimulatedLBM::run(float alpha) {
 
         window_step_time.add(comp_time);  // monitor evolution of computing time with a window
 
+        STOP_TIMING(step_time);
+        CHECKPOINT_TIMING(loop_time, time_since_start);
+        STOP_TIMING(loop_time);
+
 #if LB_APPROACH == 1
         START_TIMING(my_gossip_time);
         gossip_waterslope_db->execute(rank, get_slope<double>(water.begin(), water.end()));
@@ -250,8 +254,6 @@ void SimulatedLBM::run(float alpha) {
         STOP_TIMING(my_gossip_time);
         total_gossip_time += my_gossip_time;
 #endif
-
-
         //update_cells(&my_cells, gossip_waterslope_db.get(rank), [](Cell &c, auto v){c.slope = v;});
 
         if(this->load_balancer->get_last_call() + 1 < step) {
@@ -260,11 +262,6 @@ void SimulatedLBM::run(float alpha) {
         }
         /// COMPUTATION STOP
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-        STOP_TIMING(step_time);
-        CHECKPOINT_TIMING(loop_time, time_since_start);
-        STOP_TIMING(loop_time);
 
         std::vector<double> exch_timings(worldsize), slopes(worldsize);
         std::vector<int> tloads(worldsize);
